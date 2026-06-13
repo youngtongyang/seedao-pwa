@@ -1,26 +1,256 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+  SEEDAO design system — "Violet × Warm Amber"
+  -------------------------------------------------
+  Brand DNA borrowed from seedao.xyz's violet, warmed up for a
+  community + AI feel. White in light mode, deep plum-black in dark.
+  All tokens are semantic so components never hardcode brand colors.
+*/
+
+/* Enable class-based dark mode driven by next-themes (`.dark` on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  --radius: 0.85rem;
+
+  /* Brand raw tokens (use sparingly for glows / illustration accents) */
+  --brand-violet: #6d5ae6;
+  --brand-violet-soft: #8b7bf0;
+  --brand-amber: #f4a93c;
+  --brand-amber-soft: #f7c069;
+
+  /* Semantic — light */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1726;
+
+  --card: #ffffff;
+  --card-foreground: #1a1726;
+
+  --popover: #ffffff;
+  --popover-foreground: #1a1726;
+
+  --primary: #6d5ae6;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f1eefb;
+  --secondary-foreground: #3a2f66;
+
+  --muted: #f5f3fa;
+  --muted-foreground: #6b6580;
+
+  --accent: #f4a93c;
+  --accent-foreground: #3a2a12;
+
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+
+  --success: #2f9e64;
+  --success-foreground: #ffffff;
+
+  --border: #e9e5f2;
+  --input: #e9e5f2;
+  --ring: #6d5ae6;
+
+  /* Surfaces used by ambient glows */
+  --glow-violet: rgba(109, 90, 230, 0.16);
+  --glow-amber: rgba(244, 169, 60, 0.16);
+}
+
+.dark {
+  --background: #14121c;
+  --foreground: #ece9f5;
+
+  --card: #1c1926;
+  --card-foreground: #ece9f5;
+
+  --popover: #1c1926;
+  --popover-foreground: #ece9f5;
+
+  --primary: #8b7bf0;
+  --primary-foreground: #14121c;
+
+  --secondary: #262232;
+  --secondary-foreground: #d9d3ec;
+
+  --muted: #221e2e;
+  --muted-foreground: #a39cb8;
+
+  --accent: #f4b860;
+  --accent-foreground: #2a1e0a;
+
+  --destructive: #ff6369;
+  --destructive-foreground: #1a0c0d;
+
+  --success: #46c98a;
+  --success-foreground: #07140d;
+
+  --border: #2a2638;
+  --input: #2a2638;
+  --ring: #8b7bf0;
+
+  --glow-violet: rgba(139, 123, 240, 0.18);
+  --glow-amber: rgba(244, 184, 96, 0.14);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand-violet: var(--brand-violet);
+  --color-brand-violet-soft: var(--brand-violet-soft);
+  --color-brand-amber: var(--brand-amber);
+  --color-brand-amber-soft: var(--brand-amber-soft);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 14px);
+
+  --font-sans: var(--font-geist-sans), var(--font-noto-sans-sc), ui-sans-serif,
+    system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  --animate-accordion-down: accordion-down 0.22s ease-out;
+  --animate-accordion-up: accordion-up 0.22s ease-out;
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-float: float 7s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Respect reduced motion globally */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--primary) 24%, transparent);
+  }
+}
+
+@layer utilities {
+  /* Subtle, tasteful brand text accent — not a cheap gradient */
+  .text-gradient-brand {
+    background-image: linear-gradient(
+      100deg,
+      var(--brand-violet),
+      var(--brand-amber)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Hairline ring used on cards for an elegant, layered look */
+  .ring-hairline {
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border) 90%, transparent);
+  }
+
+  .bg-grid {
+    background-image: radial-gradient(
+      color-mix(in oklab, var(--foreground) 7%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  /* Hide scrollbars for horizontal carousels while keeping scroll */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
