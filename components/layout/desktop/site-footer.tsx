@@ -31,6 +31,8 @@ export function SiteFooter() {
               <Link
                 key={item.id}
                 href={item.href}
+                target={item.external ? "_blank" : undefined}
+                rel={item.external ? "noopener noreferrer" : undefined}
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 {t.nav[item.labelKey]}

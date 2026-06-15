@@ -32,6 +32,8 @@ export function SiteHeader() {
               <Link
                 key={item.id}
                 href={item.href}
+                target={item.external ? "_blank" : undefined}
+                rel={item.external ? "noopener noreferrer" : undefined}
                 className={cn(
                   "rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
                   active && "text-foreground",

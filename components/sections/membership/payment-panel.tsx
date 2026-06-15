@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import {
   CheckCircle2,
-  Compass,
   Loader2,
   LogIn,
   RotateCcw,
@@ -67,12 +66,6 @@ export function PaymentPanel({ className }: { className?: string }) {
               <Link href="/login">
                 <LogIn className="size-4" />
                 {t.membership.paidCtaLogin}
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/onboarding">
-                <Compass className="size-4" />
-                {t.membership.paidCtaOnboard}
               </Link>
             </Button>
           </div>

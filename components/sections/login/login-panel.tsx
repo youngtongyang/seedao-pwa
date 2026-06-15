@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import {
-  Compass,
   Loader2,
   Lock,
   LogOut,
@@ -126,12 +125,6 @@ export function LoginPanel() {
           </h2>
           <p className="text-sm text-muted-foreground">{t.login.loggedInDesc}</p>
         </div>
-        <Button asChild size="lg" className="w-full">
-          <Link href="/onboarding">
-            <Compass className="size-4" />
-            {t.login.goOnboarding}
-          </Link>
-        </Button>
         <button
           type="button"
           onClick={account.logout}

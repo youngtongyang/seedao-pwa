@@ -33,6 +33,8 @@ export function MobileMenu({ trigger }: { trigger: React.ReactNode }) {
               <Link
                 key={item.id}
                 href={item.href}
+                target={item.external ? "_blank" : undefined}
+                rel={item.external ? "noopener noreferrer" : undefined}
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-between border-b border-border/70 py-3.5 text-base font-medium"
               >

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Compass } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { AmbientGlow } from "@/components/shared/ambient";
 import { Reveal } from "@/components/shared/reveal";
@@ -26,12 +26,6 @@ export function ClosingCTA({ className }: { className?: string }) {
             <Link href="/#membership">
               {t.hero.primaryCta}
               <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-            <Link href="/onboarding">
-              <Compass className="size-4" />
-              {t.nav.onboarding}
             </Link>
           </Button>
         </div>
