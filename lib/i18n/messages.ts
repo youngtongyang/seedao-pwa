@@ -57,9 +57,8 @@ const zh = {
     slogan1: "共在",
     slogan2: "涌现",
     slogan3: "逍遥",
-    headline: "认识自己，认识彼此，\n与 AI 共学共建。",
-    subhead:
-      "我们相信，比起为了金钱而学习与建造，关系的生长更值得珍视。在这里，与人同行，与 AI 共创。",
+    headline: "认识朋友，探索自己，创造价值",
+    subhead: "一个人学 AI 很难，一群人学 AI 更容易",
     primaryCta: "成为会员",
     secondaryCta: "认识社区",
     scrollHint: "向下滚动探索",
@@ -243,9 +242,8 @@ const en: typeof zh = {
     slogan1: "Coexist",
     slogan2: "Emerge",
     slogan3: "Roam Free",
-    headline: "Know yourself, know each other,\nco-learn and co-build with AI.",
-    subhead:
-      "We believe the growth of relationships matters more than learning or building merely for money. Here, you walk with people and create with AI.",
+    headline: "Meet friends, explore yourself, create value.",
+    subhead: "Learning AI alone is hard; learning AI together is easier.",
     primaryCta: "Become a member",
     secondaryCta: "Meet the community",
     scrollHint: "Scroll to explore",

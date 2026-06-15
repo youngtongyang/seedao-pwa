@@ -61,12 +61,9 @@ export function HeroMobile() {
               <ArrowRight className="size-4" />
             </Link>
           </Button>
-          <Button asChild size="lg" variant="outline" className="w-full">
-            <Link href="/#community">{t.hero.secondaryCta}</Link>
-          </Button>
         </div>
 
-        <dl className="mt-8 grid w-full grid-cols-3 gap-2 rounded-2xl border border-border bg-card/60 py-4">
+        <dl className="mt-8 grid w-full grid-cols-1 gap-2 rounded-2xl border border-border bg-card/60 py-4">
           {heroStats.map((s) => (
             <div key={s.value} className="flex flex-col items-center">
               <dt className="text-xl font-bold tracking-tight">{s.value}</dt>

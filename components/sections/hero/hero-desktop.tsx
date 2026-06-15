@@ -76,9 +76,6 @@ export function HeroDesktop() {
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/#community">{t.hero.secondaryCta}</Link>
-            </Button>
           </motion.div>
 
           <motion.dl
