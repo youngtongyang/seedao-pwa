@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, CreditCard, LifeBuoy, LogIn } from "lucide-react";
+import {
+  ChevronRight,
+  CreditCard,
+  LifeBuoy,
+  LogIn,
+  LogOut,
+  UserRound,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Wordmark } from "@/components/brand/wordmark";
 import { HelpDialog } from "@/components/help/help-dialog";
@@ -11,13 +19,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { logout, useAuthed } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 import { primaryNav } from "@/lib/nav";
 
 export function MobileMenu({ trigger }: { trigger: React.ReactNode }) {
   const t = useT();
+  const router = useRouter();
+  const authed = useAuthed();
   const [open, setOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+
+  async function handleLogout() {
+    setOpen(false);
+    await logout();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <>
@@ -56,14 +74,35 @@ export function MobileMenu({ trigger }: { trigger: React.ReactNode }) {
               <CreditCard className="size-5" />
               {t.nav.membership}
             </Link>
-            <Link
-              href="/login"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl bg-muted px-4 py-3 text-sm font-medium"
-            >
-              <LogIn className="size-5" />
-              {t.nav.login}
-            </Link>
+            {authed ? (
+              <>
+                <Link
+                  href="/profile"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl bg-muted px-4 py-3 text-sm font-medium"
+                >
+                  <UserRound className="size-5" />
+                  {t.nav.my}
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 rounded-xl bg-muted px-4 py-3 text-sm font-medium"
+                >
+                  <LogOut className="size-5" />
+                  {t.nav.logout}
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl bg-muted px-4 py-3 text-sm font-medium"
+              >
+                <LogIn className="size-5" />
+                {t.nav.login}
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuthed } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 import { tabNav } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -9,11 +10,19 @@ import { cn } from "@/lib/utils";
 export function BottomNav() {
   const t = useT();
   const pathname = usePathname();
+  const authed = useAuthed();
+
+  // Once logged in, the "Log in" tab becomes "My" → profile.
+  const items = tabNav.map((item) =>
+    item.id === "login" && authed
+      ? { ...item, id: "my", href: "/profile", labelKey: "my" as const }
+      : item,
+  );
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
       <ul className="flex items-stretch">
-        {tabNav.map((item) => {
+        {items.map((item) => {
           const active =
             item.href === "/"
               ? pathname === "/"

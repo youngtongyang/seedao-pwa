@@ -12,6 +12,7 @@ import {
   requestSmsCode,
   verifyPhoneCode,
 } from "@/lib/auth/phone";
+import { refreshAuth } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 
 const RESEND_SECONDS = 60;
@@ -74,6 +75,7 @@ export function LoginPanel() {
     try {
       const result = await verifyPhoneCode(phone, code);
       if (result.ok) {
+        refreshAuth();
         router.push("/profile");
       } else {
         setError(t.login.verifyFailed);

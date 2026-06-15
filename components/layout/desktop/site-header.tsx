@@ -1,11 +1,13 @@
 "use client";
 
+import { LogOut, UserRound } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LangToggle } from "@/components/i18n/lang-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
+import { logout, useAuthed } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 import { primaryNav } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -13,6 +15,14 @@ import { cn } from "@/lib/utils";
 export function SiteHeader() {
   const t = useT();
   const pathname = usePathname();
+  const router = useRouter();
+  const authed = useAuthed();
+
+  async function handleLogout() {
+    await logout();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 backdrop-blur-xl">
@@ -48,9 +58,29 @@ export function SiteHeader() {
         <div className="flex items-center gap-1.5">
           <LangToggle />
           <ThemeToggle />
-          <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-            <Link href="/login">{t.nav.login}</Link>
-          </Button>
+          {authed ? (
+            <>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Link href="/profile">
+                  <UserRound className="size-4" />
+                  {t.nav.my}
+                </Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="hidden sm:inline-flex"
+              >
+                <LogOut className="size-4" />
+                {t.nav.logout}
+              </Button>
+            </>
+          ) : (
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/login">{t.nav.login}</Link>
+            </Button>
+          )}
           <Button asChild size="sm" className="hidden sm:inline-flex">
             <Link href="/#membership">{t.nav.membership}</Link>
           </Button>

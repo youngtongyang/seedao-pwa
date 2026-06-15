@@ -2,6 +2,9 @@ import { cookies } from "next/headers";
 import { verifyCode } from "@/lib/auth/server";
 
 const SESSION_COOKIE = "seedao.session";
+/** Client-readable hint so the UI can reflect login state (session is httpOnly). */
+const AUTHED_COOKIE = "seedao.authed";
+const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 /** POST /auth/verify — verify phone + OTP, then establish a session. */
 export async function POST(request: Request) {
@@ -25,7 +28,14 @@ export async function POST(request: Request) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: MAX_AGE,
+  });
+  store.set(AUTHED_COOKIE, "1", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: MAX_AGE,
   });
 
   return Response.json({ ok: true });
