@@ -1,190 +1,241 @@
 "use client";
 
-import { KeyRound, Loader2, Smartphone } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { CheckCircle2, KeyRound, Loader2, Smartphone, XCircle } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  isValidCode,
-  isValidPhone,
-  requestSmsCode,
-  verifyPhoneCode,
-} from "@/lib/auth/phone";
-import { refreshAuth } from "@/lib/auth/use-auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { SnsCheckResult } from "@/lib/api/types";
+import { loginWithCode, registerNewSns } from "@/lib/auth/phone";
 import { useT } from "@/lib/i18n";
+import { checkSns } from "@/lib/sns/client";
+import { isValidUsername, snsNameFor } from "@/lib/profile/types";
+import {
+  PanelHeader,
+  PhoneCodeFields,
+  useAuthSuccess,
+  useErrorText,
+  usePhoneCode,
+} from "./login-shared";
 
-const RESEND_SECONDS = 60;
+// The wallet stack (wagmi/RainbowKit) loads only when this tab is opened — Radix
+// mounts inactive tab content lazily, so the chunk is fetched on first click.
+const WalletLogin = dynamic(() => import("./wallet-login"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex justify-center py-10">
+      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+    </div>
+  ),
+});
 
 export function LoginPanel() {
   const t = useT();
-  const router = useRouter();
+  return (
+    <div className="rounded-3xl border border-border bg-card p-8">
+      <Tabs defaultValue="login">
+        <TabsList className="mx-auto flex w-full max-w-xs">
+          <TabsTrigger value="login" className="flex-1">
+            {t.login.tabLogin}
+          </TabsTrigger>
+          <TabsTrigger value="join" className="flex-1">
+            {t.login.tabJoin}
+          </TabsTrigger>
+        </TabsList>
 
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
-  const [sending, setSending] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+        <TabsContent value="login">
+          <LoginForm />
+        </TabsContent>
+        <TabsContent value="join">
+          <JoinForms />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ── Login (existing user) ──────────────────────────────────────────────────────
+
+function LoginForm() {
+  const t = useT();
+  const pc = usePhoneCode();
+  const errorText = useErrorText();
+  const onSuccess = useAuthSuccess();
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
-  // Tick the resend countdown down to zero.
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const id = window.setTimeout(() => setCountdown((s) => s - 1), 1000);
-    return () => window.clearTimeout(id);
-  }, [countdown]);
-
-  const phoneOk = isValidPhone(phone);
-  const codeOk = isValidCode(code);
-
-  async function handleSend() {
-    setError(null);
-    setNotice(null);
-    if (!phoneOk) {
-      setError(t.login.invalidPhone);
-      return;
-    }
-    setSending(true);
-    try {
-      const result = await requestSmsCode(phone);
-      if (result.ok) {
-        setCountdown(RESEND_SECONDS);
-        setNotice(t.login.codeSent);
-      } else {
-        setError(t.login.sendFailed);
-      }
-    } finally {
-      setSending(false);
-    }
-  }
-
-  async function handleVerify(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!phoneOk) {
-      setError(t.login.invalidPhone);
-      return;
-    }
-    if (!codeOk) {
-      setError(t.login.invalidCode);
-      return;
-    }
-    setVerifying(true);
+    if (!pc.phoneOk) return setError(t.login.invalidPhone);
+    if (!pc.codeOk) return setError(t.login.invalidCode);
+    setBusy(true);
     try {
-      const result = await verifyPhoneCode(phone, code);
-      if (result.ok) {
-        refreshAuth();
-        router.push("/profile");
-      } else {
-        setError(t.login.verifyFailed);
-      }
+      const result = await loginWithCode(pc.phone, pc.code);
+      if (result.ok) onSuccess(result.user);
+      else setError(errorText(result.error));
     } finally {
-      setVerifying(false);
+      setBusy(false);
     }
   }
 
   return (
-    <form
-      onSubmit={handleVerify}
-      className="flex flex-col gap-5 rounded-3xl border border-border bg-card p-8 text-center"
-    >
-      <div className="flex flex-col items-center gap-3">
-        <span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Smartphone className="size-7" />
-        </span>
-        <div className="space-y-1.5">
-          <h2 className="text-xl font-bold">{t.login.title}</h2>
-          <p className="max-w-xs text-sm text-muted-foreground">
-            {t.login.subtitle}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4 text-left">
-        <div className="space-y-1.5">
-          <Label htmlFor="login-phone">{t.login.phoneLabel}</Label>
-          <div className="flex items-center gap-2">
-            <span className="flex h-11 shrink-0 items-center rounded-xl border border-input bg-muted px-3 text-sm text-muted-foreground">
-              +86
-            </span>
-            <Input
-              id="login-phone"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              maxLength={11}
-              placeholder={t.login.phonePlaceholder}
-              value={phone}
-              onChange={(e) =>
-                setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))
-              }
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="login-code">{t.login.codeLabel}</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="login-code"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder={t.login.codePlaceholder}
-              value={code}
-              onChange={(e) =>
-                setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-              }
-            />
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 shrink-0 whitespace-nowrap"
-              disabled={sending || countdown > 0 || !phoneOk}
-              onClick={handleSend}
-            >
-              {sending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : countdown > 0 ? (
-                t.login.resendIn(countdown)
-              ) : (
-                t.login.sendCode
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5 text-center">
+      <PanelHeader icon={<Smartphone className="size-7" />} title={t.login.title} subtitle={t.login.subtitle} />
+      <PhoneCodeFields pc={pc} />
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {!error && notice && (
-        <p className="text-sm text-success">{notice}</p>
-      )}
+      <Button type="submit" size="lg" className="w-full" disabled={busy || !pc.phoneOk || !pc.codeOk}>
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
+        {busy ? t.login.loggingIn : t.login.loginCta}
+      </Button>
+    </form>
+  );
+}
 
+// ── Join (new user) ────────────────────────────────────────────────────────────
+
+function JoinForms() {
+  const t = useT();
+  return (
+    <Tabs defaultValue="new" className="text-center">
+      <PanelHeader icon={<KeyRound className="size-7" />} title={t.login.joinTitle} subtitle={t.login.joinSubtitle} />
+      <TabsList className="mx-auto mt-4 flex w-full max-w-xs">
+        <TabsTrigger value="new" className="flex-1">
+          {t.login.joinNewTab}
+        </TabsTrigger>
+        <TabsTrigger value="wallet" className="flex-1">
+          {t.login.joinWalletTab}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="new">
+        <JoinNewName />
+      </TabsContent>
+      <TabsContent value="wallet">
+        <WalletLogin />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function JoinNewName() {
+  const t = useT();
+  const pc = usePhoneCode();
+  const errorText = useErrorText();
+  const onSuccess = useAuthSuccess();
+  const [username, setUsername] = useState("");
+  const [check, setCheck] = useState<SnsCheckResult | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const seq = useRef(0);
+
+  const usernameOk = isValidUsername(username);
+  const snsName = snsNameFor(username);
+
+  // Debounced availability check against the real backend. State is only set
+  // asynchronously (inside the timeout) to avoid cascading renders; stale
+  // results are ignored both by the `seq` guard and by the name match below.
+  useEffect(() => {
+    if (!usernameOk) return;
+    const mine = ++seq.current;
+    const id = window.setTimeout(async () => {
+      setChecking(true);
+      const result = await checkSns(snsName);
+      if (mine === seq.current) {
+        setCheck(result);
+        setChecking(false);
+      }
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [snsName, usernameOk]);
+
+  // Only trust a result that belongs to the name currently in the box.
+  const current = check && check.sns_name === snsName ? check : null;
+  const available = current?.available === true && usernameOk;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!pc.phoneOk) return setError(t.login.invalidPhone);
+    if (!usernameOk) return setError(t.login.snsInvalid);
+    if (!pc.codeOk) return setError(t.login.invalidCode);
+    setBusy(true);
+    try {
+      const result = await registerNewSns(pc.phone, pc.code, snsName);
+      if (result.ok) onSuccess(result.user);
+      else setError(errorText(result.error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5 text-center">
+      <div className="space-y-1.5 text-left">
+        <Label htmlFor="join-sns">{t.login.snsLabel}</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="join-sns"
+            value={username}
+            onChange={(e) =>
+              setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 20))
+            }
+            placeholder={t.login.snsPlaceholder}
+            autoComplete="off"
+          />
+          <span className="shrink-0 text-sm text-muted-foreground">.seedao</span>
+        </div>
+        <SnsStatus username={username} usernameOk={usernameOk} checking={checking} check={current} />
+      </div>
+
+      <PhoneCodeFields pc={pc} />
+      {error && <p className="text-sm text-destructive">{error}</p>}
       <Button
         type="submit"
         size="lg"
         className="w-full"
-        disabled={verifying || !phoneOk || !codeOk}
+        disabled={busy || !pc.phoneOk || !pc.codeOk || !available}
       >
-        {verifying ? (
-          <>
-            <Loader2 className="size-4 animate-spin" />
-            {t.login.verifying}
-          </>
-        ) : (
-          <>
-            <KeyRound className="size-4" />
-            {t.login.verifyCta}
-          </>
-        )}
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
+        {busy ? t.login.joining : t.login.joinCta}
       </Button>
-
-      <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-        {t.login.demoNote}
-      </p>
     </form>
+  );
+}
+
+function SnsStatus({
+  username,
+  usernameOk,
+  checking,
+  check,
+}: {
+  username: string;
+  usernameOk: boolean;
+  checking: boolean;
+  check: SnsCheckResult | null;
+}) {
+  const t = useT();
+  if (!username) return <p className="text-xs text-muted-foreground">{t.login.snsHint}</p>;
+  if (!usernameOk) return <p className="text-xs text-destructive">{t.login.snsInvalid}</p>;
+  if (checking) return <p className="text-xs text-muted-foreground">{t.login.snsChecking}</p>;
+  if (!check) return <p className="text-xs text-muted-foreground">{t.login.snsHint}</p>;
+  if (check.available)
+    return (
+      <p className="flex items-center gap-1 text-xs text-success">
+        <CheckCircle2 className="size-3.5" /> {t.login.snsAvailable}
+      </p>
+    );
+  const reasonText =
+    check.reason === "invalid_format"
+      ? t.login.snsInvalid
+      : check.reason === "reserved_word"
+        ? t.login.snsReserved
+        : t.login.snsTaken;
+  return (
+    <p className="flex items-center gap-1 text-xs text-destructive">
+      <XCircle className="size-3.5" /> {reasonText}
+    </p>
   );
 }

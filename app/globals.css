@@ -137,8 +137,9 @@
   --radius-xl: calc(var(--radius) + 6px);
   --radius-2xl: calc(var(--radius) + 14px);
 
-  --font-sans: var(--font-geist-sans), var(--font-noto-sans-sc), ui-sans-serif,
-    system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  /* "Noto Sans SC" is the self-hosted family declared in fonts/noto-sans-sc.css. */
+  --font-sans: var(--font-geist-sans), "Noto Sans SC", ui-sans-serif, system-ui,
+    -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
 
   --animate-accordion-down: accordion-down 0.22s ease-out;

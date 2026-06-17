@@ -1,0 +1,147 @@
+/**
+ * Wire types for the SeeDAO API server (`https://api.seedao.xyz`, all routes
+ * under `/v1`). These mirror the Go DTOs 1:1 so they are the single place to
+ * change when the backend contract changes — see `seedao-api-server`
+ * `internal/service/*` and `internal/pkg/response`.
+ *
+ * Field names are snake_case to match the JSON the backend emits verbatim; we
+ * keep them as-is rather than camel-casing so there is exactly one shape to
+ * reason about end to end.
+ */
+
+/** Uniform response envelope returned by every endpoint. */
+export type ApiEnvelope<T> = {
+  code: number;
+  message: string;
+  detail?: string;
+  data?: T;
+};
+
+/** Backend error codes (see `internal/pkg/errcode`). `0` is success. */
+export const ErrCode = {
+  OK: 0,
+  INVALID_PARAM: 40001,
+  INVALID_SMS_CODE: 40002,
+  SNS_UNAVAILABLE: 40003,
+  WALLET_VERIFY_FAILED: 40004,
+  WALLET_NO_SNS: 40005,
+  PHONE_ALREADY_EXISTS: 40006,
+  UNAUTHORIZED: 40100,
+  TOO_MANY_REQUESTS: 42901,
+  INTERNAL: 50000,
+} as const;
+
+export type ErrCodeValue = (typeof ErrCode)[keyof typeof ErrCode];
+
+/**
+ * Stable, transport-agnostic error keys handed to the client so the UI can
+ * localize without hard-coding numeric codes. `unknown_error` is the fallback.
+ */
+export type ApiErrorKey =
+  | "invalid_param"
+  | "invalid_code"
+  | "sns_unavailable"
+  | "wallet_verify_failed"
+  | "wallet_no_sns"
+  | "phone_exists"
+  | "unauthorized"
+  | "rate_limited"
+  | "internal"
+  | "upstream_unreachable"
+  | "unknown_error";
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+
+export type RegisterSource = "new_sns" | "existing_sns";
+
+export type AuthUser = {
+  id: number;
+  sns_name: string;
+  register_source: RegisterSource | string;
+};
+
+/** Returned by both login and register. */
+export type AuthResult = {
+  token: string;
+  token_exp: number;
+  user: AuthUser;
+};
+
+export type SendSmsRequest = { phone: string };
+export type SendSmsResult = { retry_after: number };
+
+export type LoginRequest = { phone: string; code: string };
+
+export type RegisterNewSnsRequest = {
+  phone: string;
+  code: string;
+  register_type: "new_sns";
+  sns_name: string;
+};
+
+export type RegisterExistingSnsRequest = {
+  phone: string;
+  code: string;
+  register_type: "existing_sns";
+  wallet: string;
+  wallet_type: string;
+  domain: string;
+  message: string;
+  signature: string;
+};
+
+export type RegisterRequest = RegisterNewSnsRequest | RegisterExistingSnsRequest;
+
+// ── SNS ─────────────────────────────────────────────────────────────────────
+
+/** Why a name is unavailable (see `internal/pkg/snsutil`). */
+export type SnsCheckReason =
+  | "invalid_format"
+  | "taken_in_app"
+  | "taken_in_registry"
+  | "reserved_word";
+
+export type SnsCheckResult = {
+  sns_name: string;
+  available: boolean;
+  reason?: SnsCheckReason;
+};
+
+// ── Wallet (SIWE) ─────────────────────────────────────────────────────────────
+
+export type WalletNonceRequest = { wallet: string; domain: string };
+
+export type WalletNonceResult = {
+  nonce: string;
+  /** The full SIWE message the wallet must sign, built server-side. */
+  message: string;
+  expires_at: number;
+};
+
+export type VerifySnsRequest = {
+  wallet: string;
+  wallet_type: string;
+  domain: string;
+  message: string;
+  signature: string;
+};
+
+export type VerifySnsResult = {
+  wallet: string;
+  sns_name: string;
+  claimable: boolean;
+};
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+
+/** Read-only profile (`GET /v1/user/profile`). Phone is masked server-side. */
+export type ProfileResult = {
+  id: number;
+  sns_name: string;
+  phone: string;
+  register_source: RegisterSource | string;
+  avatar: string;
+  bio: string;
+  /** RFC3339 UTC, e.g. `2026-06-15T08:00:00Z`. */
+  created_at: string;
+};

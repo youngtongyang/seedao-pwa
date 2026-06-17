@@ -1,12 +1,14 @@
 /**
- * Phone + OTP auth seam.
+ * Client entry points for phone-based auth.
  *
- * Pure validators here are shared by the client form and the server route
- * handlers. The `requestSmsCode` / `verifyPhoneCode` helpers are the client
- * entry points — they call our own Route Handlers (`/sms/send`, `/auth/verify`),
- * which in turn forward to the real backend (see those route files). Swapping in
- * a real backend therefore never touches the components.
+ * Pure validators here are shared by the login form. The network helpers call
+ * our own BFF route handlers (`/api/auth/*`), which forward to the backend and
+ * own the session cookie — so swapping backends never touches components.
+ *
+ * On failure they surface the backend's stable error key (see `ApiErrorKey`)
+ * so the UI can localize it.
  */
+import type { AuthUser } from "@/lib/api/types";
 
 /** Mainland China mobile numbers: 11 digits starting 13–19. */
 export const CN_PHONE_RE = /^1[3-9]\d{9}$/;
@@ -22,8 +24,8 @@ export function isValidCode(code: string): boolean {
   return OTP_CODE_RE.test(code.trim());
 }
 
-export type SmsSendResult = { ok: boolean; error?: string };
-export type VerifyResult = { ok: boolean; error?: string };
+export type SmsResult = { ok: true } | { ok: false; error?: string };
+export type AuthOutcome = { ok: true; user: AuthUser } | { ok: false; error?: string };
 
 async function postJson(url: string, body: unknown) {
   const res = await fetch(url, {
@@ -35,25 +37,69 @@ async function postJson(url: string, body: unknown) {
   return { res, data };
 }
 
+function errorOf(data: Record<string, unknown>): string | undefined {
+  return typeof data.error === "string" ? data.error : undefined;
+}
+
 /** Ask the backend to send an OTP to `phone`. */
-export async function requestSmsCode(phone: string): Promise<SmsSendResult> {
+export async function requestSmsCode(phone: string): Promise<SmsResult> {
   try {
-    const { res, data } = await postJson("/sms/send", { phone });
-    return { ok: res.ok, error: typeof data.error === "string" ? data.error : undefined };
+    const { res, data } = await postJson("/api/auth/sms", { phone });
+    return res.ok ? { ok: true } : { ok: false, error: errorOf(data) };
   } catch {
-    return { ok: false };
+    return { ok: false, error: "upstream_unreachable" };
   }
 }
 
-/** Verify `phone` + `code`. On success the server sets the session cookie. */
-export async function verifyPhoneCode(
+/** Log an existing user in with phone + OTP. */
+export async function loginWithCode(phone: string, code: string): Promise<AuthOutcome> {
+  return submitAuth("/api/auth/login", { phone, code });
+}
+
+/** Register a brand-new user, minting `{snsName}` (must already include `.seedao`). */
+export async function registerNewSns(
   phone: string,
   code: string,
-): Promise<VerifyResult> {
+  snsName: string,
+): Promise<AuthOutcome> {
+  return submitAuth("/api/auth/register", {
+    phone,
+    code,
+    register_type: "new_sns",
+    sns_name: snsName,
+  });
+}
+
+export type ExistingSnsRegistration = {
+  phone: string;
+  code: string;
+  wallet: string;
+  walletType?: string;
+  domain: string;
+  message: string;
+  signature: string;
+};
+
+/** Register a user who proved ownership of an on-chain SNS via a wallet signature. */
+export async function registerExistingSns(input: ExistingSnsRegistration): Promise<AuthOutcome> {
+  return submitAuth("/api/auth/register", {
+    phone: input.phone,
+    code: input.code,
+    register_type: "existing_sns",
+    wallet: input.wallet,
+    wallet_type: input.walletType ?? "EOA",
+    domain: input.domain,
+    message: input.message,
+    signature: input.signature,
+  });
+}
+
+async function submitAuth(url: string, body: unknown): Promise<AuthOutcome> {
   try {
-    const { res, data } = await postJson("/auth/verify", { phone, code });
-    return { ok: res.ok, error: typeof data.error === "string" ? data.error : undefined };
+    const { res, data } = await postJson(url, body);
+    if (!res.ok) return { ok: false, error: errorOf(data) };
+    return { ok: true, user: data.user as AuthUser };
   } catch {
-    return { ok: false };
+    return { ok: false, error: "upstream_unreachable" };
   }
 }

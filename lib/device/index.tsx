@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export type Device = "mobile" | "desktop";
 
@@ -17,6 +18,16 @@ type DeviceContextValue = {
 
 const DeviceContext = createContext<DeviceContextValue | null>(null);
 
+function mediaQuery(): MediaQueryList {
+  return window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+}
+
+function subscribe(onChange: () => void) {
+  const mq = mediaQuery();
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
 export function DeviceProvider({
   children,
   initialDevice,
@@ -24,17 +35,14 @@ export function DeviceProvider({
   children: React.ReactNode;
   initialDevice: Device;
 }) {
-  const [device, setDevice] = useState<Device>(initialDevice);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const update = () => setDevice(mq.matches ? "mobile" : "desktop");
-    update();
-    setReady(true);
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
+  // Read the real viewport via an external store; fall back to the server's
+  // UA guess for SSR + the first hydration render (so there's no mismatch).
+  const device = useSyncExternalStore<Device>(
+    subscribe,
+    () => (mediaQuery().matches ? "mobile" : "desktop"),
+    () => initialDevice,
+  );
+  const ready = useHydrated();
 
   return (
     <DeviceContext.Provider value={{ device, ready }}>

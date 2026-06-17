@@ -1,29 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Noto_Sans_SC } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
+// Self-hosted Noto Sans SC (@font-face with unicode-range chunks under
+// /public/fonts/noto-sans-sc). Declares the `Noto Sans SC` family referenced by
+// the --font-sans stack in globals.css. No build-time fetch from Google.
+import "./fonts/noto-sans-sc.css";
 import { Providers } from "./providers";
 import { getInitialDevice } from "@/lib/device/server";
 
-const geistSans = Geist({
+// Self-hosted Geist variable fonts (woff2 colocated in ./fonts). Replaces the
+// next/font/google loaders so the build never reaches out to Google.
+const geistSans = localFont({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  src: "./fonts/Geist-Variable.woff2",
+  weight: "100 900",
   display: "swap",
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  src: "./fonts/GeistMono-Variable.woff2",
+  weight: "100 900",
   display: "swap",
-});
-
-// Chinese-first body font. Latin glyphs fall back to Geist (declared first in
-// the --font-sans stack); CJK glyphs render with Noto Sans SC.
-const notoSansSC = Noto_Sans_SC({
-  variable: "--font-noto-sans-sc",
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
-  display: "swap",
-  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -65,7 +63,7 @@ export default async function RootLayout({
     <html
       lang="zh-CN"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${notoSansSC.variable} h-full`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="min-h-full bg-background text-foreground antialiased">
         <Providers initialDevice={initialDevice}>{children}</Providers>

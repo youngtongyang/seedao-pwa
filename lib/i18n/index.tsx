@@ -6,7 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
 } from "react";
 import {
   defaultLocale,
@@ -26,6 +26,36 @@ type I18nContextValue = {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
+// The chosen locale is persisted in localStorage and exposed as an external
+// store, so reading it needs no synchronous setState inside an effect.
+const localeListeners = new Set<() => void>();
+
+function subscribeLocale(onChange: () => void) {
+  localeListeners.add(onChange);
+  return () => {
+    localeListeners.delete(onChange);
+  };
+}
+
+function getStoredLocale(): Locale {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
+    if (stored && locales.includes(stored)) return stored;
+  } catch {
+    /* ignore storage failures (private mode etc.) */
+  }
+  return defaultLocale;
+}
+
+function persistLocale(next: Locale) {
+  try {
+    localStorage.setItem(STORAGE_KEY, next);
+  } catch {
+    /* ignore storage failures (private mode etc.) */
+  }
+  for (const l of localeListeners) l();
+}
+
 export function I18nProvider({
   children,
   initialLocale = defaultLocale,
@@ -33,31 +63,24 @@ export function I18nProvider({
   children: React.ReactNode;
   initialLocale?: Locale;
 }) {
-  const [locale, setLocaleState] = useState<Locale>(initialLocale);
-
-  // Restore a previously chosen locale on the client.
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (stored && locales.includes(stored)) setLocaleState(stored);
-  }, []);
+  // Restore a previously chosen locale on the client; SSR + first render use
+  // the server-provided initial locale to avoid a hydration mismatch.
+  const locale = useSyncExternalStore(
+    subscribeLocale,
+    getStoredLocale,
+    () => initialLocale,
+  );
 
   // Keep <html lang> in sync for a11y / SEO.
   useEffect(() => {
     document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
   }, [locale]);
 
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      /* ignore storage failures (private mode etc.) */
-    }
-  }, []);
+  const setLocale = useCallback((next: Locale) => persistLocale(next), []);
 
   const toggleLocale = useCallback(
-    () => setLocale(locale === "zh" ? "en" : "zh"),
-    [locale, setLocale],
+    () => persistLocale(locale === "zh" ? "en" : "zh"),
+    [locale],
   );
 
   const value = useMemo(

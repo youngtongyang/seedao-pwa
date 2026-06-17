@@ -13,7 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AgentPreview } from "./agent-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,7 @@ export function OnboardingGame({
   const [passed, setPassed] = useState<Record<string, boolean>>({});
   const [feedback, setFeedback] = useState<Feedback>("idle");
   const [completed, setCompleted] = useState(false);
+  const [prevIndex, setPrevIndex] = useState(index);
 
   const step = onboardingSteps[index];
   const isLast = index === onboardingSteps.length - 1;
@@ -49,11 +50,12 @@ export function OnboardingGame({
   const completedCount = onboardingSteps.filter((s) => passed[s.id]).length;
   const pct = Math.round((completedCount / onboardingSteps.length) * 100);
 
-  // Sync feedback when navigating between steps.
-  useEffect(() => {
+  // Sync feedback when navigating between steps (adjust state during render
+  // rather than in an effect).
+  if (index !== prevIndex) {
+    setPrevIndex(index);
     setFeedback(passed[step.id] ? "correct" : "idle");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
+  }
 
   function setAnswer(value: string | string[]) {
     setAnswers((a) => ({ ...a, [step.id]: value }));
@@ -289,7 +291,6 @@ function StepInput({
   name: string;
   feedback: Feedback;
 }) {
-  const t = useT();
   const L = useLocalized();
   const step = onboardingSteps.find((s) => s.id === stepId)!;
   const value = answers[stepId];
