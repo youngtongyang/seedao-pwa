@@ -94,8 +94,6 @@ const zh = {
     assistantQrAlt: "社区小助手微信二维码",
     delegatedNote: "后续引导全部在微信上由小助手协助完成，无需在网站继续操作。",
     afterPayCta: "前往手机号登录",
-    securedBy: "由微信支付提供安全保障",
-    guarantee: "7 天内不满意可退",
   },
 
   community: {
@@ -348,8 +346,6 @@ const en: typeof zh = {
     delegatedNote:
       "Onboarding happens entirely on WeChat with the assistant — nothing more to do on the site.",
     afterPayCta: "Continue to phone login",
-    securedBy: "Secured by WeChat Pay",
-    guarantee: "7-day refund if not satisfied",
   },
 
   community: {

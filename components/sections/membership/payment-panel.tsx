@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Info, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, Info } from "lucide-react";
 import Link from "next/link";
 import { Fragment, useState } from "react";
 import { QRFrame } from "@/components/shared/qr-frame";
@@ -166,15 +166,6 @@ export function PaymentPanel({ className }: { className?: string }) {
           )}
         </motion.div>
       </AnimatePresence>
-
-      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
-          <ShieldCheck className="size-3.5 text-success" />
-          {t.membership.securedBy}
-        </span>
-        <span>·</span>
-        <span>{t.membership.guarantee}</span>
-      </div>
     </div>
   );
 }
