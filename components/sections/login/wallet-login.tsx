@@ -41,7 +41,9 @@ function ConnectControl() {
   const { address, isConnected } = useWagmiAccount();
   const { connect, connectors, isPending, error } = useConnect();
   const { disconnect } = useDisconnect();
-  const connector = connectors[0]; // the single injected connector
+  // Which connector the user clicked — drives the per-button spinner (the hook's
+  // `isPending` is global, so it can't tell us *which* wallet is connecting).
+  const [pendingUid, setPendingUid] = useState<string | null>(null);
 
   if (isConnected && address) {
     return (
@@ -56,19 +58,51 @@ function ConnectControl() {
     );
   }
 
+  // wagmi auto-discovers every installed wallet as its own connector via EIP-6963
+  // (`multiInjectedProviderDiscovery`, on by default). Those carry an `rdns` id
+  // (e.g. "io.metamask") plus a name and icon; the generic `injected()` fallback
+  // keeps the bare id "injected". Prefer the discovered list so the user can pick
+  // a specific wallet; fall back to the generic connector only when nothing
+  // announced itself (older single-wallet browsers).
+  const discovered = connectors.filter((c) => c.id !== "injected");
+  const generic = connectors.find((c) => c.id === "injected");
+  const wallets = discovered.length > 0 ? discovered : generic ? [generic] : [];
+
+  if (wallets.length === 0) {
+    return <p className="text-sm text-destructive">{t.login.walletNoWallet}</p>;
+  }
+
   return (
-    <div className="flex flex-col items-center gap-2">
-      <Button
-        type="button"
-        size="lg"
-        variant="outline"
-        className="w-full"
-        disabled={isPending || !connector}
-        onClick={() => connector && connect({ connector })}
-      >
-        {isPending ? <Loader2 className="size-4 animate-spin" /> : <Wallet className="size-4" />}
-        {isPending ? t.login.walletConnecting : t.login.walletConnect}
-      </Button>
+    <div className="flex flex-col gap-2">
+      {wallets.map((connector) => {
+        const pending = isPending && pendingUid === connector.uid;
+        // The generic fallback's name ("Injected") isn't user-friendly.
+        const label = connector.id === "injected" ? t.login.walletConnect : connector.name;
+        return (
+          <Button
+            key={connector.uid}
+            type="button"
+            size="lg"
+            variant="outline"
+            className="w-full justify-start gap-3"
+            disabled={isPending}
+            onClick={() => {
+              setPendingUid(connector.uid);
+              connect({ connector }, { onSettled: () => setPendingUid(null) });
+            }}
+          >
+            {pending ? (
+              <Loader2 className="size-5 animate-spin" />
+            ) : connector.icon ? (
+              // eslint-disable-next-line @next/next/no-img-element -- EIP-6963 icons are inline data URIs
+              <img src={connector.icon} alt="" className="size-5 rounded" />
+            ) : (
+              <Wallet className="size-5" />
+            )}
+            <span className="flex-1 text-left">{pending ? t.login.walletConnecting : label}</span>
+          </Button>
+        );
+      })}
       {error && <p className="text-xs text-destructive">{t.login.walletNoWallet}</p>}
     </div>
   );

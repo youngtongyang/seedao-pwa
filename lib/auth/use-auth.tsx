@@ -39,7 +39,7 @@ export function refreshAuth() {
 /** Clear the session on the server, then update the UI. */
 export async function logout() {
   try {
-    await fetch("/auth/logout", { method: "POST" });
+    await fetch("/api/auth/logout", { method: "POST" });
   } catch {
     /* ignore — clear the UI regardless */
   }

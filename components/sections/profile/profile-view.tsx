@@ -1,8 +1,11 @@
 "use client";
 
-import { Award, CalendarDays, Loader2, Lock, Phone, ShieldCheck } from "lucide-react";
+import { Award, CalendarDays, Loader2, Lock, LogOut, Phone, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import type { ProfileResult } from "@/lib/api/types";
+import { logout } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
 
@@ -47,8 +50,15 @@ function Field({
 
 export function ProfileView() {
   const t = useT();
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfileResult | null>(null);
   const [loading, setLoading] = useState(true);
+
+  async function handleLogout() {
+    await logout();
+    router.push("/");
+    router.refresh();
+  }
 
   useEffect(() => {
     let active = true;
@@ -147,6 +157,18 @@ export function ProfileView() {
           </div>
         </div>
         <p className="mt-4 text-sm text-muted-foreground">{t.profile.reputationSoon}</p>
+      </div>
+
+      {/* Logout — shared across desktop and mobile shells */}
+      <div className="mt-8 flex justify-center sm:justify-end">
+        <Button
+          variant="outline"
+          onClick={handleLogout}
+          className="w-full sm:w-auto"
+        >
+          <LogOut className="size-4" />
+          {t.nav.logout}
+        </Button>
       </div>
     </div>
   );

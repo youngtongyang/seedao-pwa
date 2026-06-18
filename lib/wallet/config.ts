@@ -5,10 +5,14 @@ import { injected } from "wagmi/connectors";
 /**
  * wagmi config for the "I already hold an on-chain SNS" flow.
  *
- * Browser-wallet (injected, e.g. MetaMask) only — no WalletConnect, so there's
- * no Reown `projectId` to configure and no cloud allowlist. Built lazily (never
- * at module import) so it runs only when the wallet tab mounts; the rest of the
- * app never touches the web3 stack.
+ * Browser-wallet (injected) only — no WalletConnect, so there's no Reown
+ * `projectId` to configure and no cloud allowlist. `multiInjectedProviderDiscovery`
+ * defaults to true, so every installed wallet announces itself via EIP-6963 and
+ * shows up as its own connector (MetaMask, Rabby, OKX, …); the explicit
+ * `injected()` below is only the fallback for older browsers that expose a bare
+ * `window.ethereum` without EIP-6963. The wallet picker (see `wallet-login.tsx`)
+ * lets the user choose among them. Built lazily (never at module import) so it
+ * runs only when the wallet tab mounts; the rest of the app never touches web3.
  *
  * Signing is `personal_sign` over the SIWE message the backend builds, so the
  * connected chain doesn't gate verification; `mainnet` is here for the provider
