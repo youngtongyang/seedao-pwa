@@ -2,17 +2,22 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AmbientGlow } from "@/components/shared/ambient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useLocalized, useT } from "@/lib/i18n";
-import { heroStats } from "@/lib/mock/stats";
-import { HeroVisual } from "./hero-visual";
+import { useT } from "@/lib/i18n";
+import { MemberCount } from "./member-count";
+
+// Client-only (lottie-web touches `document`); placeholder holds layout.
+const HeroLottie = dynamic(() => import("./hero-lottie"), {
+  ssr: false,
+  loading: () => <div className="aspect-square w-full" />,
+});
 
 export function HeroMobile() {
   const t = useT();
-  const L = useLocalized();
   const slogan = [t.hero.slogan1, t.hero.slogan2, t.hero.slogan3];
 
   return (
@@ -25,7 +30,7 @@ export function HeroMobile() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="mx-auto mb-6 w-52"
       >
-        <HeroVisual />
+        <HeroLottie />
       </motion.div>
 
       <div className="flex flex-col items-center text-center">
@@ -63,16 +68,9 @@ export function HeroMobile() {
           </Button>
         </div>
 
-        <dl className="mt-8 grid w-full grid-cols-1 gap-2 rounded-2xl border border-border bg-card/60 py-4">
-          {heroStats.map((s) => (
-            <div key={s.value} className="flex flex-col items-center">
-              <dt className="text-xl font-bold tracking-tight">{s.value}</dt>
-              <dd className="text-center text-[11px] leading-tight text-muted-foreground">
-                {L(s.label)}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <div className="mt-8 flex justify-center">
+          <MemberCount />
+        </div>
       </div>
     </section>
   );

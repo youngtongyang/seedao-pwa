@@ -2,17 +2,23 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { AmbientGlow } from "@/components/shared/ambient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useLocalized, useT } from "@/lib/i18n";
-import { heroStats } from "@/lib/mock/stats";
-import { HeroVisual } from "./hero-visual";
+import { useT } from "@/lib/i18n";
+import { MemberCount } from "./member-count";
+
+// Client-only: lottie-web touches `document`, and this keeps the animation JSON
+// out of the main bundle. The square placeholder holds layout while it loads.
+const HeroLottie = dynamic(() => import("./hero-lottie"), {
+  ssr: false,
+  loading: () => <div className="aspect-square w-full" />,
+});
 
 export function HeroDesktop() {
   const t = useT();
-  const L = useLocalized();
   const slogan = [t.hero.slogan1, t.hero.slogan2, t.hero.slogan3];
 
   return (
@@ -78,19 +84,14 @@ export function HeroDesktop() {
             </Button>
           </motion.div>
 
-          <motion.dl
-            className="mt-2 flex gap-10"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+          <motion.div
+            className="mt-2"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.9 }}
           >
-            {heroStats.map((s) => (
-              <div key={s.value} className="flex flex-col">
-                <dt className="text-3xl font-bold tracking-tight">{s.value}</dt>
-                <dd className="text-sm text-muted-foreground">{L(s.label)}</dd>
-              </div>
-            ))}
-          </motion.dl>
+            <MemberCount />
+          </motion.div>
         </div>
 
         <motion.div
@@ -99,7 +100,7 @@ export function HeroDesktop() {
           transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className="flex justify-center"
         >
-          <HeroVisual className="w-full max-w-md" />
+          <HeroLottie className="w-full max-w-md" />
         </motion.div>
       </div>
 

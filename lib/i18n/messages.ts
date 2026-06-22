@@ -77,23 +77,34 @@ const zh = {
     priceLabel: "年度会员",
     perYear: "/ 年",
     currency: "¥",
-    howTitle: "加入流程",
-    step1Short: "支付",
-    step2Short: "添加小助手",
-    step3Short: "发送截图",
-    step1Title: "微信扫码支付",
-    step1Desc: "使用微信扫描下方二维码，完成 ¥365 年度会员支付。",
-    step1Cta: "已完成支付",
-    step2Title: "添加社区小助手",
-    step2Desc: "扫描下方二维码，在微信上添加社区小助手。",
-    step2Cta: "已添加小助手",
-    step3Title: "发送支付截图",
-    step3Desc:
-      "把支付成功的截图发给小助手，后续的新手引导将由 ta 一对一协助完成。",
+    tabJoin: "加入",
+    tabSpectate: "围观",
+
+    // 围观：先扫码进飞书群感受氛围
+    spectateTitle: "先来围观一下",
+    spectateDesc:
+      "还没准备好加入？扫码进入飞书交流群，先感受社区氛围，随时可以正式加入。",
+    spectateQrAlt: "飞书交流群二维码",
+    spectateQrHint: "用飞书扫一扫，加入交流群",
+
+    // 加入 · 第一步：像买域名一样挑选名称
+    nameStepTitle: "选择你的 SEEDAO 名称",
+    nameStepDesc: "这是你在社区的唯一身份，支付后即归你所有。",
+    nameNextCta: "下一步 · 去支付",
+
+    // 加入 · 第二步：微信扫码支付，自动确认
+    payReservedFor: (name: string) => `已为你保留：${name}`,
+    payStepTitle: "微信扫码支付",
+    payStepDesc: "使用微信扫描下方二维码，完成 ¥365 年度会员支付。",
+    payAutoNote: "支付成功后会自动确认，无需手动操作，我们会带你进入个人主页。",
+    payCreating: "正在生成支付二维码…",
+    payWaiting: "等待支付…扫码完成后会自动跳转。",
+    paySuccess: "支付成功，正在进入个人主页…",
+    payExpired: "二维码已过期，请重新生成。",
+    payError: "支付发起失败，请稍后重试。",
+    payRetry: "重新生成二维码",
+    payBack: "返回修改名称",
     payQrAlt: "微信支付二维码",
-    assistantQrAlt: "社区小助手微信二维码",
-    delegatedNote: "后续引导全部在微信上由小助手协助完成，无需在网站继续操作。",
-    afterPayCta: "前往手机号登录",
   },
 
   community: {
@@ -223,6 +234,17 @@ const zh = {
     joinedAt: "加入于",
     bio: "简介",
     noBio: "还没有填写简介。",
+    todosTitle: "待办清单",
+    todosSubtitle: "完成下面的步骤，正式开启你的社区之旅。",
+    todoStatusDone: "已完成",
+    todoMarkDone: "标记完成",
+    todoAssistantTitle: "添加社区小助手",
+    todoAssistantDesc: "用微信扫码添加社区小助手，ta 会一对一协助你完成新手引导。",
+    todoAssistantQrAlt: "社区小助手微信二维码",
+    todoAssistantQrHint: "微信扫一扫，添加小助手",
+    todoAgentTitle: "领取你的个人智能体",
+    todoAgentDesc: "跟随新手引导，创建并养成属于你的 AI 伙伴。",
+    todoAgentCta: "前往新手引导",
     reputation: "社区声望",
     reputationDesc: "你在社区中累积的积分与徽章。",
     reputationSoon: "声望系统正在建设中，敬请期待。",
@@ -326,26 +348,36 @@ const en: typeof zh = {
     priceLabel: "Annual membership",
     perYear: "/ year",
     currency: "¥",
-    howTitle: "How to join",
-    step1Short: "Pay",
-    step2Short: "Add assistant",
-    step3Short: "Screenshot",
-    step1Title: "Pay with WeChat",
-    step1Desc:
+    tabJoin: "Join",
+    tabSpectate: "Look around",
+
+    // Look around: scan into the Feishu group to feel the vibe first
+    spectateTitle: "Just looking around?",
+    spectateDesc:
+      "Not ready to join yet? Scan to enter our Feishu chat group, feel the community first — you can join for real anytime.",
+    spectateQrAlt: "Feishu chat group QR code",
+    spectateQrHint: "Scan with Feishu to join the group",
+
+    // Join · step 1: pick a name, like buying a domain
+    nameStepTitle: "Choose your SEEDAO name",
+    nameStepDesc: "Your unique identity in the community — it's yours once you pay.",
+    nameNextCta: "Next · Pay",
+
+    // Join · step 2: pay with WeChat, confirmed automatically
+    payReservedFor: (name: string) => `Reserved for you: ${name}`,
+    payStepTitle: "Pay with WeChat",
+    payStepDesc:
       "Scan the QR code below with WeChat to pay the ¥365 annual membership.",
-    step1Cta: "I've paid",
-    step2Title: "Add our community assistant",
-    step2Desc:
-      "Scan the QR code below to add our community assistant on WeChat.",
-    step2Cta: "I've added them",
-    step3Title: "Send your payment screenshot",
-    step3Desc:
-      "Send the successful-payment screenshot to the assistant — they'll guide you through onboarding one-on-one.",
+    payAutoNote:
+      "Payment is confirmed automatically — nothing to do by hand. We'll take you to your profile.",
+    payCreating: "Generating your payment QR code…",
+    payWaiting: "Waiting for payment… you'll be redirected once it's done.",
+    paySuccess: "Paid — taking you to your profile…",
+    payExpired: "This QR code has expired. Please generate a new one.",
+    payError: "Couldn't start the payment. Please try again.",
+    payRetry: "Generate a new QR code",
+    payBack: "Back to edit name",
     payQrAlt: "WeChat Pay QR code",
-    assistantQrAlt: "Community assistant WeChat QR code",
-    delegatedNote:
-      "Onboarding happens entirely on WeChat with the assistant — nothing more to do on the site.",
-    afterPayCta: "Continue to phone login",
   },
 
   community: {
@@ -478,6 +510,18 @@ const en: typeof zh = {
     joinedAt: "Joined",
     bio: "Bio",
     noBio: "No bio yet.",
+    todosTitle: "To-do list",
+    todosSubtitle: "Complete the steps below to truly begin your community journey.",
+    todoStatusDone: "Done",
+    todoMarkDone: "Mark as done",
+    todoAssistantTitle: "Add our community assistant",
+    todoAssistantDesc:
+      "Scan with WeChat to add our community assistant — they'll guide you through onboarding one-on-one.",
+    todoAssistantQrAlt: "Community assistant WeChat QR code",
+    todoAssistantQrHint: "Scan with WeChat to add the assistant",
+    todoAgentTitle: "Claim your personal agent",
+    todoAgentDesc: "Follow the guide to create and nurture your own AI companion.",
+    todoAgentCta: "Go to onboarding",
     reputation: "Community reputation",
     reputationDesc: "Points and badges you've earned in the community.",
     reputationSoon: "The reputation system is under construction — stay tuned.",

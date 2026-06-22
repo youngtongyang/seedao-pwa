@@ -132,6 +132,11 @@ export type VerifySnsResult = {
   claimable: boolean;
 };
 
+// ── Stats ─────────────────────────────────────────────────────────────────────
+
+/** Live count of registered users (`GET /v1/stats/users`). Public, no auth. */
+export type UserCountResult = { count: number };
+
 // ── Profile ───────────────────────────────────────────────────────────────────
 
 /** Read-only profile (`GET /v1/user/profile`). Phone is masked server-side. */

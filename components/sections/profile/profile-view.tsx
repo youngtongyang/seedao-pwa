@@ -8,6 +8,7 @@ import type { ProfileResult } from "@/lib/api/types";
 import { logout } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
+import { ProfileTodos } from "./profile-todos";
 
 function Avatar({ profile, size = 96 }: { profile: ProfileResult; size?: number }) {
   const initial = (profile.sns_name || "?").slice(0, 1).toUpperCase();
@@ -118,6 +119,9 @@ export function ProfileView() {
           <p className="mt-1 text-sm text-muted-foreground">{t.profile.snsNameHint}</p>
         </div>
       </section>
+
+      {/* New-member checklist — first todo is adding the community assistant. */}
+      <ProfileTodos />
 
       {/* Account details (read-only) */}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">

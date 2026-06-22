@@ -12,6 +12,7 @@ import {
   type SendSmsResult,
   type SnsCheckReason,
   type SnsCheckResult,
+  type UserCountResult,
   type VerifySnsRequest,
   type VerifySnsResult,
   type WalletNonceRequest,
@@ -175,6 +176,12 @@ export function userProfile(token: string): Promise<ApiResult<ProfileResult>> {
   return call<ProfileResult>("/user/profile", { token });
 }
 
+/** Live count of registered users. Public; the hero adds the seed base on top. */
+export function userCount(): Promise<ApiResult<UserCountResult>> {
+  if (USE_MOCK) return mock.userCount();
+  return call<UserCountResult>("/stats/users");
+}
+
 export async function health(): Promise<ApiResult<{ status: string }>> {
   if (USE_MOCK) return { ok: true, data: { status: "ok" } };
   // /health sits at the root, outside the /v1 prefix, so it bypasses apiUrl().
@@ -249,5 +256,8 @@ const mock = {
         created_at: "2026-06-15T08:00:00Z",
       },
     });
+  },
+  userCount(): Promise<ApiResult<UserCountResult>> {
+    return Promise.resolve({ ok: true, data: { count: 248 } });
   },
 };
