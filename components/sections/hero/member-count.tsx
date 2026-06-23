@@ -3,7 +3,6 @@
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
-import { MEMBER_BASE } from "@/lib/mock/stats";
 import { fetchMemberCount } from "@/lib/stats/client";
 import { cn } from "@/lib/utils";
 
@@ -21,18 +20,18 @@ function format(n: number): string {
 }
 
 /**
- * Hero "active members" figure. Starts from the seed base and, once the live
- * count loads, settles on `base + backend users` with a gentle count-up. The
- * cluster of member avatars turns a bare number into social proof — fitting for
- * a community that's "about relationships".
+ * Hero "active members" figure. Counts up to the live total reported by the
+ * backend (which owns all the accounting) once it loads. The cluster of member
+ * avatars turns a bare number into social proof — fitting for a community that's
+ * "about relationships".
  */
 export function MemberCount({ className }: { className?: string }) {
   const t = useT();
   const reduced = useReducedMotion();
-  const [total, setTotal] = useState(MEMBER_BASE);
+  const [total, setTotal] = useState(0);
 
   // Pull the live total; setState only inside the async resolution (never
-  // synchronously in an effect). Falls back to the seed base on failure.
+  // synchronously in an effect). Stays at 0 if the backend is unavailable.
   useEffect(() => {
     let active = true;
     fetchMemberCount().then((n) => {
