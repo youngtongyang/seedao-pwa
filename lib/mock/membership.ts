@@ -17,7 +17,7 @@ export type Benefit = {
 };
 
 export const membershipPrice = {
-  amount: 365,
+  amount: 35,
   currency: "¥",
 };
 

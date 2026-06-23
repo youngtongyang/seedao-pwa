@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, Info, Loader2, XCircle } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { QrCode } from "@/components/shared/qr-code";
 import { QRFrame } from "@/components/shared/qr-frame";
 import { Button } from "@/components/ui/button";
@@ -10,20 +11,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccount } from "@/lib/account";
-import type { SnsCheckResult } from "@/lib/api/types";
+import { useHydrated } from "@/lib/use-hydrated";
+import type { AuthUser, SnsCheckResult } from "@/lib/api/types";
+import { registerNewSns } from "@/lib/auth/phone";
+import { refreshAuth } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 import { membershipPrice } from "@/lib/mock/membership";
-import { createPaymentOrder, pollPaymentStatus } from "@/lib/payment/client";
+import {
+  type PendingOrder,
+  clearPendingOrder,
+  createPaymentOrder,
+  pickPayChannel,
+  pollPaymentStatus,
+  readPendingOrder,
+  savePendingOrder,
+} from "@/lib/payment/client";
 import type { PaymentOrder } from "@/lib/payment/types";
 import { isValidUsername, snsNameFor } from "@/lib/profile/types";
 import { checkSns } from "@/lib/sns/client";
 import { cn } from "@/lib/utils";
-import { useAuthSuccess } from "../login/login-shared";
+import { PhoneCodeFields, useErrorText, usePhoneCode } from "../login/login-shared";
 
 const POLL_INTERVAL_MS = 3000;
 
 export function PaymentPanel({ className }: { className?: string }) {
   const t = useT();
+  // An H5 payer bounced back from WeChat lands here with a stashed order. Read it
+  // only after hydration (sessionStorage is client-only) so the tab defaults to
+  // Join and we resume polling — no SSR mismatch, no setState-in-effect.
+  const hydrated = useHydrated();
+  const pending = useMemo<PendingOrder | null>(
+    () => (hydrated ? readPendingOrder() : null),
+    [hydrated],
+  );
 
   return (
     <div
@@ -32,7 +52,8 @@ export function PaymentPanel({ className }: { className?: string }) {
         className,
       )}
     >
-      <Tabs defaultValue="spectate">
+      {/* Remount once hydrated so a returning H5 payer opens on the Join tab. */}
+      <Tabs defaultValue={pending ? "join" : "spectate"} key={hydrated ? "h" : "s"}>
         <TabsList className="mx-auto flex w-full max-w-xs">
           <TabsTrigger value="spectate" className="flex-1">
             {t.membership.tabSpectate}
@@ -46,7 +67,7 @@ export function PaymentPanel({ className }: { className?: string }) {
           <SpectatePanel />
         </TabsContent>
         <TabsContent value="join">
-          <JoinFlow />
+          <JoinFlow initialPending={pending} />
         </TabsContent>
       </Tabs>
     </div>
@@ -68,16 +89,19 @@ function SpectatePanel() {
 
 // ── 加入 (join) ─────────────────────────────────────────────────────────────────
 
-type Phase = "name" | "pay";
+type Phase = "name" | "verify" | "pay";
 
-function JoinFlow() {
+function JoinFlow({ initialPending }: { initialPending?: PendingOrder | null }) {
   const t = useT();
-  const [phase, setPhase] = useState<Phase>("name");
-  const [snsName, setSnsName] = useState<string>("");
+  const [phase, setPhase] = useState<Phase>(initialPending ? "pay" : "name");
+  const [snsName, setSnsName] = useState<string>(initialPending?.sns_name ?? "");
+  // Resume an H5 order only on the first pay-phase entry (the round-trip back);
+  // a fresh name→verify→pay run leaves this undefined so PayStep opens a new one.
+  const [resumeOrderNo] = useState<string | undefined>(initialPending?.order_no);
 
   return (
     <div className="flex flex-col gap-6 pt-4">
-      {/* Price — the "list price" of the name, like a domain. */}
+      {/* Price — the "list price" of membership, like a domain. */}
       <div>
         <div className="flex items-end justify-center gap-1">
           <span className="text-2xl font-semibold text-muted-foreground">
@@ -101,15 +125,93 @@ function JoinFlow() {
             <NameStep
               onContinue={(name) => {
                 setSnsName(name);
-                setPhase("pay");
+                setPhase("verify");
               }}
             />
+          ) : phase === "verify" ? (
+            // Registration is free and mints the session; payment then renews
+            // *this* user's membership (the backend requires a JWT to pay), so
+            // phone verification must precede the QR.
+            <VerifyStep
+              snsName={snsName}
+              onRegistered={() => setPhase("pay")}
+              onBack={() => setPhase("name")}
+            />
           ) : (
-            <PayStep snsName={snsName} onBack={() => setPhase("name")} />
+            <PayStep snsName={snsName} resumeOrderNo={resumeOrderNo} />
           )}
         </motion.div>
       </AnimatePresence>
     </div>
+  );
+}
+
+/** Step 2 — verify phone + code, which registers the name and mints the session. */
+function VerifyStep({
+  snsName,
+  onRegistered,
+  onBack,
+}: {
+  snsName: string;
+  onRegistered: (user: AuthUser) => void;
+  onBack: () => void;
+}) {
+  const t = useT();
+  const account = useAccount();
+  const errorText = useErrorText();
+  const pc = usePhoneCode();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!pc.phoneOk) return setError(t.login.invalidPhone);
+    if (!pc.codeOk) return setError(t.login.invalidCode);
+    setBusy(true);
+    try {
+      const result = await registerNewSns(pc.phone, pc.code, snsName);
+      if (result.ok) {
+        // Session cookie is set by the register route; reflect it client-side
+        // so the user is signed in before we open the (JWT-only) payment order.
+        account.setUser(result.user);
+        refreshAuth();
+        onRegistered(result.user);
+      } else {
+        setError(errorText(result.error));
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <StepHeading title={t.membership.verifyStepTitle} desc={t.membership.verifyStepDesc} />
+
+      <p className="mx-auto rounded-full bg-primary/10 px-3.5 py-1 text-sm font-medium text-primary">
+        {t.membership.payReservedFor(snsName)}
+      </p>
+
+      <PhoneCodeFields pc={pc} />
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={busy || !pc.phoneOk || !pc.codeOk}
+      >
+        {busy ? <Loader2 className="size-4 animate-spin" /> : null}
+        {busy ? t.membership.verifying : t.membership.verifyCta}
+        {!busy && <ArrowRight className="size-4" />}
+      </Button>
+
+      <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground">
+        <ArrowLeft className="size-4" />
+        {t.membership.verifyBack}
+      </Button>
+    </form>
   );
 }
 
@@ -179,58 +281,95 @@ function NameStep({ onContinue }: { onContinue: (snsName: string) => void }) {
   );
 }
 
-type PayState = "creating" | "waiting" | "paid" | "expired" | "error";
+type PayState =
+  | "creating"
+  | "waiting" // Native: QR shown, polling
+  | "redirecting" // H5: leaving for WeChat
+  | "confirming" // H5: back from WeChat, polling
+  | "paid"
+  | "expired"
+  | "error";
 
-/** Show the WeChat Native QR for the reserved name and poll until paid. */
-function PayStep({ snsName, onBack }: { snsName: string; onBack: () => void }) {
+/**
+ * Renew membership. On desktop this shows a WeChat Native QR and polls; on
+ * mobile it opens an H5 order and redirects into WeChat, stashing the order so
+ * polling resumes when the user is bounced back (`resumeOrderNo`).
+ */
+function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: string }) {
   const t = useT();
+  const router = useRouter();
   const account = useAccount();
-  const onAuthSuccess = useAuthSuccess();
   const [order, setOrder] = useState<PaymentOrder | null>(null);
-  const [state, setState] = useState<PayState>("creating");
+  // The id we poll — a freshly created order, or the stashed one we resumed.
+  const [orderNo, setOrderNo] = useState<string | null>(resumeOrderNo ?? null);
+  const [state, setState] = useState<PayState>(resumeOrderNo ? "confirming" : "creating");
 
-  // Open the order when this step mounts (and on explicit retry via `nonce`).
-  // The "creating" reset lives in the retry handler, not here, so the effect
-  // only sets state asynchronously once the order resolves.
+  // Open an order whenever we don't have one (mount, retry). Skipped on resume,
+  // where `orderNo` is already set and we go straight to polling. The user is
+  // signed in (verify step), so the JWT-only create uses the session cookie.
   const [nonce, setNonce] = useState(0);
   useEffect(() => {
+    if (orderNo) return;
     let active = true;
-    createPaymentOrder(snsName).then((res) => {
+    const channel = pickPayChannel();
+    createPaymentOrder({ pay_channel: channel }).then((res) => {
       if (!active) return;
-      if (res.ok) {
-        setOrder(res.order);
-        setState("waiting");
-      } else {
+      if (!res.ok) {
         setState("error");
+        return;
+      }
+      const o = res.order;
+      setOrder(o);
+      setOrderNo(o.order_no);
+      if (channel === "wechat_h5" && o.h5_url) {
+        // Stash, then hand off to WeChat — we'll resume polling on the way back.
+        savePendingOrder(o.order_no, snsName);
+        setState("redirecting");
+        window.location.href = o.h5_url;
+      } else {
+        setState("waiting");
       }
     });
     return () => {
       active = false;
     };
-  }, [snsName, nonce]);
+  }, [orderNo, snsName, nonce]);
 
   function retry() {
+    clearPendingOrder();
     setOrder(null);
+    setOrderNo(null); // → triggers a fresh create
     setState("creating");
     setNonce((n) => n + 1);
   }
 
-  // Poll order status while waiting. WeChat's notify webhook drives the backend;
-  // we just read it back here and hand off to the profile once paid.
+  // Poll order status while waiting (Native) or confirming (H5 round-trip).
+  // WeChat's notify webhook drives the backend; we read it back and hand off.
   useEffect(() => {
-    if (state !== "waiting" || !order) return;
+    if ((state !== "waiting" && state !== "confirming") || !orderNo) return;
     let active = true;
     const id = window.setInterval(async () => {
-      const res = await pollPaymentStatus(order.out_trade_no);
-      if (!active || !res.ok) return;
+      const res = await pollPaymentStatus(orderNo);
+      if (!active) return;
+      if (!res.ok) {
+        // Lost session can't recover by polling; transient errors keep trying.
+        if (res.error === "unauthorized") {
+          window.clearInterval(id);
+          clearPendingOrder();
+          setState("error");
+        }
+        return;
+      }
       if (res.status === "paid") {
         window.clearInterval(id);
+        clearPendingOrder();
         setState("paid");
         account.activateMembership();
-        if (res.user) onAuthSuccess(res.user); // sets user, refreshes auth, → /profile
+        router.push("/profile"); // already signed in from the verify step
       } else if (res.status === "closed") {
-        // Code no longer payable (expired / closed / failed) — offer a fresh one.
+        // Order no longer payable (expired / closed / failed) — offer a fresh one.
         window.clearInterval(id);
+        clearPendingOrder();
         setState("expired");
       }
     }, POLL_INTERVAL_MS);
@@ -238,7 +377,7 @@ function PayStep({ snsName, onBack }: { snsName: string; onBack: () => void }) {
       active = false;
       window.clearInterval(id);
     };
-  }, [state, order, account, onAuthSuccess]);
+  }, [state, orderNo, account, router]);
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
@@ -248,12 +387,12 @@ function PayStep({ snsName, onBack }: { snsName: string; onBack: () => void }) {
         {t.membership.payReservedFor(snsName)}
       </p>
 
-      {state === "creating" ? (
+      {state === "waiting" && order?.code_url ? (
+        <QrCode key={order.code_url} value={order.code_url} alt={t.membership.payQrAlt} size={172} />
+      ) : state === "creating" || state === "redirecting" || state === "confirming" ? (
         <div className="flex h-[204px] w-[204px] items-center justify-center">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
-      ) : order ? (
-        <QrCode key={order.code_url} value={order.code_url} alt={t.membership.payQrAlt} size={172} />
       ) : null}
 
       <PayStatusLine state={state} />
@@ -268,13 +407,6 @@ function PayStep({ snsName, onBack }: { snsName: string; onBack: () => void }) {
         <Info className="mt-0.5 size-4 shrink-0 text-primary" />
         {t.membership.payAutoNote}
       </p>
-
-      {state !== "paid" && (
-        <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground">
-          <ArrowLeft className="size-4" />
-          {t.membership.payBack}
-        </Button>
-      )}
     </div>
   );
 }
@@ -286,6 +418,13 @@ function PayStatusLine({ state }: { state: PayState }) {
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin" />
         {t.membership.payWaiting}
+      </p>
+    );
+  if (state === "redirecting" || state === "confirming")
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+        {state === "redirecting" ? t.membership.payRedirecting : t.membership.payConfirming}
       </p>
     );
   if (state === "paid")

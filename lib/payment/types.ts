@@ -1,67 +1,99 @@
 /**
- * Wire types for the membership payment flow — WeChat Pay v3 **Native**, direct
- * merchant (直连商户). Field names and shapes follow the official v3 docs so the
- * SeeDAO backend can pass WeChat's data through with minimal translation:
+ * Wire types for the **membership-renewal** payment flow (API v2.5).
  *
- *   Create:  POST https://api.mch.weixin.qq.com/v3/pay/transactions/native
- *            body { appid, mchid, description, out_trade_no, notify_url,
- *                   amount: { total (分/cents), currency: "CNY" } }
- *            → response { code_url }                       (docs 4012714902)
- *   Query:   GET  /v3/pay/transactions/out-trade-no/{out_trade_no}?mchid=…
- *            → { trade_state, transaction_id, amount, … }  (docs 4012526919)
- *   Notify:  WeChat POSTs `event_type:"TRANSACTION.SUCCESS"` with an
- *            AEAD_AES_256_GCM-encrypted `resource`                (docs 4012071382)
+ * Unlike a one-off purchase, every payment endpoint here is JWT-authenticated and
+ * renews membership for the *already-registered* caller — the backend owns the
+ * WeChat merchant keys and does all of WeChat's request signing / notify
+ * decryption. The frontend only ever sees the documented envelope fields.
  *
- * `code_url` is a `weixin://wxpay/bizpayurl?pr=…` **string**, not an image — the
- * frontend renders it into a scannable QR (see `components/shared/qr-code.tsx`),
- * so the backend only passes the raw string through. All of WeChat's signing
- * (request) and decryption/signature-verification (notify) happen on the
- * backend, which owns the merchant private key + APIv3 key — never in this
- * frontend.
+ *   Create:  POST /v1/payments/orders
+ *            body { product_type, days?, pay_channel? }
+ *            → Native: { order_no, amount, code_url, expired_at, … }  (code_url → QR)
+ *              H5:     { order_no, amount, h5_url, expired_at, … }     (redirect)
+ *   List:    GET  /v1/payments/orders?limit=…
+ *   Query:   GET  /v1/payments/orders/:order_no
+ *            → pending: keeps code_url/h5_url · paid: + membership_expires_at, paid_at, wx_transaction_id
+ *   Close:   POST /v1/payments/orders/:order_no/close
+ *   Notify:  POST /v1/payments/wechat/notify       (WeChat → backend; not our concern)
  *
- * Types stay snake_case to match the JSON the backend emits, like `@/lib/api/types`.
+ * Field names stay snake_case to match the JSON the backend emits, like
+ * `@/lib/api/types`. `amount` is an integer in **分 (cents)** (top-level, not an
+ * object), with `currency` alongside it.
  */
-import type { AuthUser } from "@/lib/api/types";
+
+/** WeChat sub-channels the backend supports. */
+export type PayChannel = "wechat_native" | "wechat_h5";
+
+/** The only product today; kept as a string union so adding SKUs is one edit. */
+export type ProductType = "membership_renew";
 
 /**
- * The subset of WeChat's `trade_state` the UI acts on. The backend maps:
- *   SUCCESS                    → "paid"
- *   NOTPAY | USERPAYING        → "pending"
- *   CLOSED | REVOKED | PAYERROR → "closed"  (code no longer payable; regenerate)
+ * Order lifecycle as the backend reports it. `paid` is the terminal success
+ * state (membership extended); `closed` covers expired / closed / failed orders
+ * that are no longer payable and need a fresh one.
  */
 export type PaymentStatus = "pending" | "paid" | "closed";
 
-/** WeChat amount object — `total` is an integer in **分 (cents)**. */
-export type PaymentAmount = {
-  total: number;
-  currency: string;
-};
-
-/** Created by the Native order placement — what we need to draw the QR. */
-export type PaymentOrder = {
-  /** Our merchant order number = WeChat `out_trade_no` (≤32 chars). */
-  out_trade_no: string;
-  sns_name: string;
-  amount: PaymentAmount;
-  /** Raw WeChat Native `code_url` (`weixin://wxpay/bizpayurl?pr=…`), rendered to a QR client-side. */
-  code_url: string;
-  /** Unix seconds; mirrors WeChat's `time_expire` for the code. */
-  expire_at: number;
+/** Body for `POST /v1/payments/orders`. All fields optional — see defaults. */
+export type CreateOrderInput = {
+  /** Defaults to `membership_renew`. */
+  product_type?: ProductType;
+  /** Days of membership to add; defaults to `365` server-side (request field). */
+  days?: number;
+  /** Defaults to `wechat_native`. */
+  pay_channel?: PayChannel;
 };
 
 /**
- * Result of polling the order. `status` is mapped from WeChat `trade_state`
- * (also passed through verbatim for logging). When first `paid`, the backend
- * has minted the account for the reserved name and returns the session.
+ * Created order — what we need to start the payment. For `wechat_native` the
+ * backend returns `code_url` (a `weixin://…` string we render to a QR); for
+ * `wechat_h5` it returns `h5_url` (a page to redirect to). The frontend never
+ * sends the amount — it's set server-side from `wechat_pay.membership_price_fen`.
  */
-export type PaymentStatusResult = {
-  out_trade_no: string;
+export type PaymentOrder = {
+  /** Merchant order number; the id used to query / close this order. */
+  order_no: string;
+  product_type: string;
+  /** Membership days the order grants (response field; the request sends `days`). */
+  product_days?: number;
+  pay_channel: PayChannel;
   status: PaymentStatus;
-  /** WeChat `trade_state` verbatim (SUCCESS/NOTPAY/…), for logging/debug. */
-  trade_state?: string;
-  transaction_id?: string;
-  /** Present only once paid: the session to establish before redirecting. */
-  token?: string;
-  token_exp?: number;
-  user?: AuthUser;
+  /** Order amount in **分 (cents)** — e.g. `9900` is ¥99. */
+  amount: number;
+  /** ISO 4217 currency, e.g. `"CNY"`. */
+  currency?: string;
+  /** Native: raw `weixin://wxpay/bizpayurl?pr=…`, rendered to a QR client-side. Also returned while `pending`. */
+  code_url?: string;
+  /** H5: the page to redirect the browser to. Also returned while `pending`. */
+  h5_url?: string;
+  /** RFC3339 UTC instant the order/code expires. */
+  expired_at?: string;
+};
+
+/**
+ * Result of querying an order — the order plus, once `paid`, the new
+ * `membership_expires_at`, `paid_at` and `wx_transaction_id`. While `pending` it
+ * still carries `code_url`/`h5_url` so a refreshed page can keep paying.
+ */
+export type OrderStatusResult = PaymentOrder & {
+  /** RFC3339 UTC; present once the order is `paid`. */
+  membership_expires_at?: string | null;
+  /** RFC3339 UTC payment instant; present once `paid`. */
+  paid_at?: string;
+  /** WeChat transaction id; present once `paid`. */
+  wx_transaction_id?: string;
+};
+
+/** A row in the order list (`GET /v1/payments/orders?limit=…`). */
+export type OrderListItem = PaymentOrder & {
+  /** RFC3339 UTC creation time, when the backend includes it. */
+  created_at?: string;
+};
+
+/**
+ * `GET /v1/payments/orders` response. The exact envelope shape isn't pinned down
+ * in the test doc, so `orders` is kept tolerant; the UI doesn't depend on it yet.
+ */
+export type OrderListResult = {
+  orders: OrderListItem[];
 };

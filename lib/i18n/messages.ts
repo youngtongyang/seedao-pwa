@@ -89,16 +89,25 @@ const zh = {
 
     // 加入 · 第一步：像买域名一样挑选名称
     nameStepTitle: "选择你的 SEEDAO 名称",
-    nameStepDesc: "这是你在社区的唯一身份，支付后即归你所有。",
-    nameNextCta: "下一步 · 去支付",
+    nameStepDesc: "这是你在社区的唯一身份，注册后即归你所有。",
+    nameNextCta: "下一步 · 验证手机号",
 
-    // 加入 · 第二步：微信扫码支付，自动确认
+    // 加入 · 第二步：验证手机号完成注册（证明你是真实用户）
+    verifyStepTitle: "验证手机号",
+    verifyStepDesc: "输入手机号与验证码完成注册，确认你是真实用户，随后即可支付会员。",
+    verifyCta: "验证并继续支付",
+    verifying: "验证中…",
+    verifyBack: "返回修改名称",
+
+    // 加入 · 第三步：微信扫码支付，自动确认
     payReservedFor: (name: string) => `已为你保留：${name}`,
     payStepTitle: "微信扫码支付",
-    payStepDesc: "使用微信扫描下方二维码，完成 ¥365 年度会员支付。",
+    payStepDesc: "使用微信扫描下方二维码，完成 ¥35 年度会员支付。",
     payAutoNote: "支付成功后会自动确认，无需手动操作，我们会带你进入个人主页。",
     payCreating: "正在生成支付二维码…",
     payWaiting: "等待支付…扫码完成后会自动跳转。",
+    payRedirecting: "正在跳转到微信支付…",
+    payConfirming: "正在确认支付结果…",
     paySuccess: "支付成功，正在进入个人主页…",
     payExpired: "二维码已过期，请重新生成。",
     payError: "支付发起失败，请稍后重试。",
@@ -232,6 +241,8 @@ const zh = {
     sourceNewSns: "新建名称",
     sourceExistingSns: "认领链上 SNS",
     joinedAt: "加入于",
+    membershipExpires: "会员到期",
+    membershipNone: "尚未开通",
     bio: "简介",
     noBio: "还没有填写简介。",
     todosTitle: "待办清单",
@@ -360,18 +371,28 @@ const en: typeof zh = {
 
     // Join · step 1: pick a name, like buying a domain
     nameStepTitle: "Choose your SEEDAO name",
-    nameStepDesc: "Your unique identity in the community — it's yours once you pay.",
-    nameNextCta: "Next · Pay",
+    nameStepDesc: "Your unique identity in the community — it's yours once you sign up.",
+    nameNextCta: "Next · Verify phone",
 
-    // Join · step 2: pay with WeChat, confirmed automatically
+    // Join · step 2: verify phone to finish sign-up (prove you're a real person)
+    verifyStepTitle: "Verify your phone",
+    verifyStepDesc:
+      "Enter your phone and code to finish sign-up and confirm you're a real person — then you can pay.",
+    verifyCta: "Verify & continue to pay",
+    verifying: "Verifying…",
+    verifyBack: "Back to edit name",
+
+    // Join · step 3: pay with WeChat, confirmed automatically
     payReservedFor: (name: string) => `Reserved for you: ${name}`,
     payStepTitle: "Pay with WeChat",
     payStepDesc:
-      "Scan the QR code below with WeChat to pay the ¥365 annual membership.",
+      "Scan the QR code below with WeChat to pay the ¥35 annual membership.",
     payAutoNote:
       "Payment is confirmed automatically — nothing to do by hand. We'll take you to your profile.",
     payCreating: "Generating your payment QR code…",
     payWaiting: "Waiting for payment… you'll be redirected once it's done.",
+    payRedirecting: "Taking you to WeChat Pay…",
+    payConfirming: "Confirming your payment…",
     paySuccess: "Paid — taking you to your profile…",
     payExpired: "This QR code has expired. Please generate a new one.",
     payError: "Couldn't start the payment. Please try again.",
@@ -508,6 +529,8 @@ const en: typeof zh = {
     sourceNewSns: "New name",
     sourceExistingSns: "Claimed on-chain SNS",
     joinedAt: "Joined",
+    membershipExpires: "Membership expires",
+    membershipNone: "Not a member yet",
     bio: "Bio",
     noBio: "No bio yet.",
     todosTitle: "To-do list",

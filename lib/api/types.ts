@@ -26,6 +26,10 @@ export const ErrCode = {
   WALLET_VERIFY_FAILED: 40004,
   WALLET_NO_SNS: 40005,
   PHONE_ALREADY_EXISTS: 40006,
+  /** Payment order not found, or not owned by the caller. */
+  PAYMENT_ORDER_NOT_FOUND: 40007,
+  /** Payment order is in a state that forbids the requested action. */
+  PAYMENT_ORDER_INVALID_STATE: 40008,
   UNAUTHORIZED: 40100,
   TOO_MANY_REQUESTS: 42901,
   INTERNAL: 50000,
@@ -44,6 +48,8 @@ export type ApiErrorKey =
   | "wallet_verify_failed"
   | "wallet_no_sns"
   | "phone_exists"
+  | "payment_order_not_found"
+  | "payment_order_invalid_state"
   | "unauthorized"
   | "rate_limited"
   | "internal"
@@ -58,6 +64,11 @@ export type AuthUser = {
   id: number;
   sns_name: string;
   register_source: RegisterSource | string;
+  /**
+   * Membership expiry (RFC3339 UTC, e.g. `2027-06-15T08:00:00Z`), or null when
+   * the user has never held membership. Added in API v2.5.
+   */
+  membership_expires_at?: string | null;
 };
 
 /** Returned by both login and register. */
@@ -134,8 +145,8 @@ export type VerifySnsResult = {
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 
-/** Live count of registered users (`GET /v1/stats/users`). Public, no auth. */
-export type UserCountResult = { count: number };
+/** Live count of registered users (`GET /v1/stats/user-count`). Public, no auth. */
+export type UserCountResult = { total_user_count: number };
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 
@@ -147,6 +158,11 @@ export type ProfileResult = {
   register_source: RegisterSource | string;
   avatar: string;
   bio: string;
+  /**
+   * Membership expiry (RFC3339 UTC), or null when the user has never held
+   * membership. Added in API v2.5.
+   */
+  membership_expires_at?: string | null;
   /** RFC3339 UTC, e.g. `2026-06-15T08:00:00Z`. */
   created_at: string;
 };

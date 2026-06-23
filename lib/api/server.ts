@@ -56,6 +56,10 @@ function errorKeyForCode(code: number): ApiErrorKey {
       return "wallet_no_sns";
     case ErrCode.PHONE_ALREADY_EXISTS:
       return "phone_exists";
+    case ErrCode.PAYMENT_ORDER_NOT_FOUND:
+      return "payment_order_not_found";
+    case ErrCode.PAYMENT_ORDER_INVALID_STATE:
+      return "payment_order_invalid_state";
     case ErrCode.UNAUTHORIZED:
       return "unauthorized";
     case ErrCode.TOO_MANY_REQUESTS:
@@ -72,13 +76,13 @@ function errorKeyForCode(code: number): ApiErrorKey {
  * The UI collects an 11-digit mainland-China national number; prepend `+86`.
  * Numbers already in `+…` form pass through unchanged.
  */
-function toE164(phone: string): string {
+export function toE164(phone: string): string {
   const trimmed = phone.trim();
   if (trimmed.startsWith("+")) return trimmed;
   return `+86${trimmed.replace(/\D/g, "")}`;
 }
 
-type CallOptions = {
+export type CallOptions = {
   method?: "GET" | "POST";
   query?: Record<string, string | undefined>;
   body?: unknown;
@@ -86,7 +90,12 @@ type CallOptions = {
   token?: string;
 };
 
-async function call<T>(path: string, opts: CallOptions = {}): Promise<ApiResult<T>> {
+/**
+ * Low-level call into the SeeDAO backend (`/v1` prefix), unwrapping the
+ * `{code,message,data}` envelope. Exported so sibling clients (e.g.
+ * `lib/payment/server`) hit the same transport, error mapping, and base URL.
+ */
+export async function call<T>(path: string, opts: CallOptions = {}): Promise<ApiResult<T>> {
   const { method = "GET", query, body, token } = opts;
 
   let url = apiUrl(path);
@@ -179,7 +188,7 @@ export function userProfile(token: string): Promise<ApiResult<ProfileResult>> {
 /** Live count of registered users. Public; the hero adds the seed base on top. */
 export function userCount(): Promise<ApiResult<UserCountResult>> {
   if (USE_MOCK) return mock.userCount();
-  return call<UserCountResult>("/stats/users");
+  return call<UserCountResult>("/stats/user-count");
 }
 
 export async function health(): Promise<ApiResult<{ status: string }>> {
@@ -204,7 +213,8 @@ function mockAuthResult(snsName: string, source: string): AuthResult {
   return {
     token: "mock-session",
     token_exp: 4102444800, // 2100-01-01
-    user: { id: 1001, sns_name: snsName, register_source: source },
+    // Fresh registrations have no membership yet — it's activated by payment.
+    user: { id: 1001, sns_name: snsName, register_source: source, membership_expires_at: null },
   };
 }
 
@@ -253,11 +263,12 @@ const mock = {
         register_source: "new_sns",
         avatar: "",
         bio: "",
+        membership_expires_at: "2027-06-15T08:00:00Z",
         created_at: "2026-06-15T08:00:00Z",
       },
     });
   },
   userCount(): Promise<ApiResult<UserCountResult>> {
-    return Promise.resolve({ ok: true, data: { count: 248 } });
+    return Promise.resolve({ ok: true, data: { total_user_count: 248 } });
   },
 };

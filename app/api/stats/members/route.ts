@@ -10,6 +10,6 @@ import { MEMBER_BASE } from "@/lib/mock/stats";
  */
 export async function GET() {
   const result = await userCount();
-  const count = MEMBER_BASE + (result.ok ? result.data.count : 0);
+  const count = MEMBER_BASE + (result.ok ? result.data.total_user_count : 0);
   return Response.json({ count });
 }

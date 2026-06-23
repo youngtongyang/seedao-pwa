@@ -1,143 +1,186 @@
 import "server-only";
 
-import type { ApiResult } from "@/lib/api/server";
+import { type ApiResult, call } from "@/lib/api/server";
 import { USE_MOCK } from "@/lib/api/config";
-import type { PaymentOrder, PaymentStatus, PaymentStatusResult } from "./types";
+import type {
+  CreateOrderInput,
+  OrderListResult,
+  OrderStatusResult,
+  PaymentOrder,
+  PaymentStatus,
+} from "./types";
 
 /**
- * Server-only client for WeChat Pay v3 Native membership orders. The BFF route
- * handlers (`/api/payment/*`) call these wrappers; nothing here reaches the
+ * Server-only client for the membership-renewal payment endpoints (API v2.5).
+ * The BFF route handlers (`/api/payment/*`) call these; nothing here reaches the
  * client bundle (`server-only` guard).
  *
- * These wrappers talk to the **SeeDAO backend** (`/v1/payment/*`), not to WeChat
- * directly — the backend owns the merchant private key + APIv3 key and is the
- * only place that may do WeChat's request signing and notify decryption. The
- * backend, in turn, performs the real WeChat v3 calls (direct merchant):
+ * Every endpoint is JWT-authenticated: the caller must already have a session
+ * (registration is free and mints one), and payment renews *their* membership.
+ * These wrappers talk to the **SeeDAO backend** under `/v1/payments/*`; the
+ * backend owns the WeChat merchant key + APIv3 key and performs all of WeChat's
+ * request signing and notify decryption. The frontend only renders `code_url`
+ * (Native, → QR via `components/shared/qr-code.tsx`) or redirects to `h5_url`.
  *
- *   1. Create — `POST https://api.mch.weixin.qq.com/v3/pay/transactions/native`
- *      Authorization: `WECHATPAY2-SHA256-RSA2048` (RSA-SHA256 over
- *      `method\nurl\ntimestamp\nnonce\nbody\n`, signed with the merchant key).
- *      body { appid, mchid, description, out_trade_no, notify_url,
- *             amount: { total: <分>, currency: "CNY" } } → { code_url }.
- *      The backend passes `code_url` straight through; the frontend renders the
- *      QR (see `components/shared/qr-code.tsx`).
- *
- *   2. Notify — WeChat POSTs to the backend's `notify_url` with
- *      `event_type: "TRANSACTION.SUCCESS"` and an AEAD_AES_256_GCM-encrypted
- *      `resource` (decrypt with the APIv3 key; nonce + associated_data from the
- *      resource). The backend verifies the `Wechatpay-Signature` header against
- *      the WeChat platform certificate, then marks the order paid and mints the
- *      account for the reserved `sns_name`.
- *
- *   3. Query — fallback to
- *      `GET /v3/pay/transactions/out-trade-no/{out_trade_no}?mchid=…`; map
- *      `trade_state` (SUCCESS / NOTPAY / USERPAYING / CLOSED / REVOKED /
- *      PAYERROR) onto our `PaymentStatus`.
- *
- * Until that backend lands, `USE_MOCK` (the same switch the auth client uses)
- * drives an in-process simulation so the whole flow is exercisable locally.
+ * `USE_MOCK` (the same switch the auth client uses) drives an in-process
+ * simulation so the whole flow is exercisable locally without WeChat.
  */
 
-// The real branch is intentionally a thin stub — wire it to `call()` from
-// `@/lib/api/server` once the backend endpoints exist.
-
-export async function createOrder(snsName: string): Promise<ApiResult<PaymentOrder>> {
-  if (USE_MOCK) return mock.createOrder(snsName);
-  // Real: return call<PaymentOrder>("/payment/wechat/native", { method: "POST", body: { sns_name: snsName } });
-  return { ok: false, error: "upstream_unreachable", status: 502 };
+/** `POST /v1/payments/orders` — open a renewal order. */
+export function createOrder(input: CreateOrderInput, token: string): Promise<ApiResult<PaymentOrder>> {
+  if (USE_MOCK) return mock.createOrder(input);
+  return call<PaymentOrder>("/payments/orders", {
+    method: "POST",
+    token,
+    body: {
+      product_type: input.product_type ?? "membership_renew",
+      days: input.days,
+      pay_channel: input.pay_channel,
+    },
+  });
 }
 
-export async function queryOrder(outTradeNo: string): Promise<ApiResult<PaymentStatusResult>> {
-  if (USE_MOCK) return mock.queryOrder(outTradeNo);
-  // Real: return call<PaymentStatusResult>(`/payment/order/${encodeURIComponent(outTradeNo)}`);
-  return { ok: false, error: "upstream_unreachable", status: 502 };
+/** `GET /v1/payments/orders?limit=…` — the caller's order history. */
+export function listOrders(token: string, limit?: number): Promise<ApiResult<OrderListResult>> {
+  if (USE_MOCK) return mock.listOrders();
+  return call<OrderListResult>("/payments/orders", {
+    token,
+    query: { limit: limit !== undefined ? String(limit) : undefined },
+  });
+}
+
+/** `GET /v1/payments/orders/:order_no` — poll one order (frontend polls until paid). */
+export function queryOrder(orderNo: string, token: string): Promise<ApiResult<OrderStatusResult>> {
+  if (USE_MOCK) return mock.queryOrder(orderNo);
+  return call<OrderStatusResult>(`/payments/orders/${encodeURIComponent(orderNo)}`, { token });
+}
+
+/** `POST /v1/payments/orders/:order_no/close` — close an unpaid order. */
+export function closeOrder(orderNo: string, token: string): Promise<ApiResult<OrderStatusResult>> {
+  if (USE_MOCK) return mock.closeOrder(orderNo);
+  return call<OrderStatusResult>(`/payments/orders/${encodeURIComponent(orderNo)}/close`, {
+    method: "POST",
+    token,
+  });
+}
+
+/**
+ * `POST /v1/payments/dev/simulate-pay` — mark an order paid without WeChat.
+ * Backend only honors this when `wechat_pay.dev_mode` is true; in prod it 404s.
+ */
+export function simulatePay(orderNo: string, token: string): Promise<ApiResult<OrderStatusResult>> {
+  if (USE_MOCK) return mock.simulatePay(orderNo);
+  return call<OrderStatusResult>("/payments/dev/simulate-pay", {
+    method: "POST",
+    token,
+    body: { order_no: orderNo },
+  });
 }
 
 // ── Mock branch (SEEDAO_USE_MOCK=1) ───────────────────────────────────────────
 
 /**
- * The mock encodes the reserved name and a creation timestamp into `out_trade_no`
- * so status can be derived statelessly (route handlers don't share memory across
- * requests). It returns WeChat's real `trade_state` strings — `NOTPAY` until a
- * few seconds pass, then `SUCCESS` — standing in for the user scanning the code
- * and WeChat firing the `TRANSACTION.SUCCESS` notify.
+ * Route handlers don't share memory across requests, so the mock encodes the
+ * creation time, renewal length and channel into `order_no` and derives status
+ * from elapsed wall-clock — `pending` for a few seconds (the user scanning),
+ * then `paid`. `membership_expires_at` is computed as now + `days`.
  */
-const MEMBERSHIP_FEE_CENTS = 36500; // ¥365.00, WeChat amount is in 分
+// Matches the displayed ¥35 price (`lib/mock/membership`). NB: the real backend
+// default is 9900 分 (¥99); the charged amount is server-side config
+// (`wechat_pay.membership_price_fen`), not anything the frontend sends.
+const MEMBERSHIP_FEE_CENTS = 3500;
 const PAY_AFTER_MS = 6000; // simulated time-to-scan-and-pay
-const EXPIRE_AFTER_MS = 5 * 60 * 1000; // simulated `time_expire`
+const EXPIRE_AFTER_MS = 5 * 60 * 1000; // simulated order expiry
+const DEFAULT_DAYS = 365;
 
-function mockOutTradeNo(snsName: string, createdAt: number): string {
-  // `wxmock_<createdAt>_<base64url(sns_name)>` — stays within WeChat's 32-char
-  // limit for realistic names.
-  const name = Buffer.from(snsName).toString("base64url");
-  return `wxmock_${createdAt}_${name}`;
+type ParsedOrder = { createdAt: number; days: number; channel: "wechat_native" | "wechat_h5" };
+
+function mockOrderNo(createdAt: number, days: number, channel: "wechat_native" | "wechat_h5"): string {
+  return `wxmock_${createdAt}_${days}_${channel === "wechat_h5" ? "h" : "n"}`;
 }
 
-function parseOutTradeNo(outTradeNo: string): { snsName: string; createdAt: number } | null {
-  const m = /^wxmock_(\d+)_([A-Za-z0-9_-]+)$/.exec(outTradeNo);
+function parseOrderNo(orderNo: string): ParsedOrder | null {
+  const m = /^wxmock_(\d+)_(\d+)_([nh])$/.exec(orderNo);
   if (!m) return null;
-  try {
-    return { createdAt: Number(m[1]), snsName: Buffer.from(m[2], "base64url").toString("utf8") };
-  } catch {
-    return null;
-  }
+  return {
+    createdAt: Number(m[1]),
+    days: Number(m[2]),
+    channel: m[3] === "h" ? "wechat_h5" : "wechat_native",
+  };
 }
 
-/** Map a WeChat `trade_state` onto the UI's `PaymentStatus`. */
-function mapTradeState(tradeState: string): PaymentStatus {
-  switch (tradeState) {
-    case "SUCCESS":
-      return "paid";
-    case "NOTPAY":
-    case "USERPAYING":
-      return "pending";
-    default: // CLOSED, REVOKED, PAYERROR
-      return "closed";
+function isoFromNow(ms: number): string {
+  return new Date(Date.now() + ms).toISOString();
+}
+
+/** Build the order object shared by create + query (channel-appropriate links). */
+function mockOrder(orderNo: string, p: ParsedOrder, status: PaymentStatus): PaymentOrder {
+  const order: PaymentOrder = {
+    order_no: orderNo,
+    product_type: "membership_renew",
+    product_days: p.days,
+    pay_channel: p.channel,
+    status,
+    amount: MEMBERSHIP_FEE_CENTS,
+    currency: "CNY",
+    expired_at: new Date(p.createdAt + EXPIRE_AFTER_MS).toISOString(),
+  };
+  // Pay links are still returned while pending so a refreshed page keeps paying.
+  if (status === "pending") {
+    if (p.channel === "wechat_h5") order.h5_url = `https://wx.tenpay.com/MOCK/${orderNo}`;
+    else order.code_url = `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`;
   }
+  return order;
 }
 
 const mock = {
-  createOrder(snsName: string): Promise<ApiResult<PaymentOrder>> {
+  createOrder(input: CreateOrderInput): Promise<ApiResult<PaymentOrder>> {
     const now = Date.now();
-    const outTradeNo = mockOutTradeNo(snsName, now);
+    const p: ParsedOrder = {
+      createdAt: now,
+      days: input.days ?? DEFAULT_DAYS,
+      channel: input.pay_channel ?? "wechat_native",
+    };
+    const orderNo = mockOrderNo(p.createdAt, p.days, p.channel);
+    return Promise.resolve({ ok: true, data: mockOrder(orderNo, p, "pending") });
+  },
+  queryOrder(orderNo: string): Promise<ApiResult<OrderStatusResult>> {
+    const p = parseOrderNo(orderNo);
+    if (!p) return Promise.resolve({ ok: false, error: "payment_order_not_found", status: 404 });
+
+    const elapsed = Date.now() - p.createdAt;
+    let status: PaymentStatus;
+    if (elapsed >= EXPIRE_AFTER_MS) status = "closed";
+    else if (elapsed >= PAY_AFTER_MS) status = "paid";
+    else status = "pending";
+
+    const data: OrderStatusResult = mockOrder(orderNo, p, status);
+    if (status === "paid") {
+      data.membership_expires_at = isoFromNow(p.days * 24 * 60 * 60 * 1000);
+      data.paid_at = new Date().toISOString();
+      data.wx_transaction_id = `4200mock${p.createdAt}`;
+    }
+    return Promise.resolve({ ok: true, data });
+  },
+  listOrders(): Promise<ApiResult<OrderListResult>> {
+    return Promise.resolve({ ok: true, data: { orders: [] } });
+  },
+  closeOrder(orderNo: string): Promise<ApiResult<OrderStatusResult>> {
+    const p = parseOrderNo(orderNo);
+    if (!p) return Promise.resolve({ ok: false, error: "payment_order_not_found", status: 404 });
+    return Promise.resolve({ ok: true, data: mockOrder(orderNo, p, "closed") });
+  },
+  simulatePay(orderNo: string): Promise<ApiResult<OrderStatusResult>> {
+    const p = parseOrderNo(orderNo);
+    if (!p) return Promise.resolve({ ok: false, error: "payment_order_not_found", status: 404 });
     return Promise.resolve({
       ok: true,
       data: {
-        out_trade_no: outTradeNo,
-        sns_name: snsName,
-        amount: { total: MEMBERSHIP_FEE_CENTS, currency: "CNY" },
-        // A realistic-looking `weixin://` code_url; the real backend gets this
-        // from WeChat. The frontend renders it into a QR, so the mock value
-        // encodes into a genuine (if non-functional) QR too.
-        code_url: `weixin://wxpay/bizpayurl?pr=MOCK${outTradeNo}`,
-        expire_at: Math.floor((now + EXPIRE_AFTER_MS) / 1000),
+        ...mockOrder(orderNo, p, "paid"),
+        membership_expires_at: isoFromNow(p.days * 24 * 60 * 60 * 1000),
+        paid_at: new Date().toISOString(),
+        wx_transaction_id: `4200mock${p.createdAt}`,
       },
     });
-  },
-  queryOrder(outTradeNo: string): Promise<ApiResult<PaymentStatusResult>> {
-    const parsed = parseOutTradeNo(outTradeNo);
-    if (!parsed) return Promise.resolve({ ok: false, error: "invalid_param", status: 400 });
-
-    const elapsed = Date.now() - parsed.createdAt;
-    let tradeState: string;
-    if (elapsed >= EXPIRE_AFTER_MS) tradeState = "CLOSED";
-    else if (elapsed >= PAY_AFTER_MS) tradeState = "SUCCESS";
-    else tradeState = "NOTPAY";
-
-    const status = mapTradeState(tradeState);
-    const base: PaymentStatusResult = { out_trade_no: outTradeNo, status, trade_state: tradeState };
-    if (status === "paid") {
-      return Promise.resolve({
-        ok: true,
-        data: {
-          ...base,
-          transaction_id: `4200mock${parsed.createdAt}`,
-          token: "mock-session",
-          token_exp: 4102444800, // 2100-01-01
-          user: { id: 1001, sns_name: parsed.snsName, register_source: "new_sns" },
-        },
-      });
-    }
-    return Promise.resolve({ ok: true, data: base });
   },
 };

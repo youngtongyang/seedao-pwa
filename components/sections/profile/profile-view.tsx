@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, CalendarDays, Loader2, Lock, LogOut, Phone, ShieldCheck } from "lucide-react";
+import { Award, CalendarDays, Crown, Loader2, Lock, LogOut, Phone, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -100,6 +100,8 @@ export function ProfileView() {
   // created_at is RFC3339 (e.g. 2026-06-15T08:00:00Z) — show the date part as-is
   // to stay locale- and hydration-stable.
   const joined = profile.created_at?.slice(0, 10) || "—";
+  // membership_expires_at is RFC3339; null when the user has never paid.
+  const membershipExpires = profile.membership_expires_at?.slice(0, 10) || null;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-12">
@@ -130,6 +132,11 @@ export function ProfileView() {
         )}
         <Field icon={<ShieldCheck className="size-4" />} label={t.profile.registerSource} value={sourceLabel} />
         <Field icon={<CalendarDays className="size-4" />} label={t.profile.joinedAt} value={joined} />
+        <Field
+          icon={<Crown className="size-4" />}
+          label={t.profile.membershipExpires}
+          value={membershipExpires ?? t.profile.membershipNone}
+        />
       </div>
 
       {/* Bio */}
