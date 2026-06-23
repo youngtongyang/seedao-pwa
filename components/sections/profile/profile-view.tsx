@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, CalendarDays, Crown, Loader2, Lock, LogOut, Phone, ShieldCheck } from "lucide-react";
+import { Award, CalendarDays, Crown, Loader2, Lock, LogOut, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import type { ProfileResult } from "@/lib/api/types";
 import { logout } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
+import { cn } from "@/lib/utils";
 import { ProfileTodos } from "./profile-todos";
 
 function Avatar({ profile, size = 96 }: { profile: ProfileResult; size?: number }) {
@@ -27,23 +28,33 @@ function Avatar({ profile, size = 96 }: { profile: ProfileResult; size?: number 
   );
 }
 
-function Field({
+/** Compact label/value stat shown inside the identity card. */
+function Stat({
   icon,
   label,
   value,
+  accent,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  accent?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+    <div className="flex items-center gap-2.5 text-left">
+      <span
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg",
+          accent ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+        )}
+      >
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="truncate text-sm font-medium">{value}</p>
+        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
+        <p className="truncate text-sm font-semibold">{value}</p>
       </div>
     </div>
   );
@@ -90,13 +101,6 @@ export function ProfileView() {
     );
   }
 
-  const sourceLabel =
-    profile.register_source === "new_sns"
-      ? t.profile.sourceNewSns
-      : profile.register_source === "existing_sns"
-        ? t.profile.sourceExistingSns
-        : profile.register_source;
-
   // created_at is RFC3339 (e.g. 2026-06-15T08:00:00Z) — show the date part as-is
   // to stay locale- and hydration-stable.
   const joined = profile.created_at?.slice(0, 10) || "—";
@@ -110,34 +114,35 @@ export function ProfileView() {
         <p className="mt-1 text-sm text-muted-foreground">{t.profile.subtitle}</p>
       </header>
 
-      {/* Identity: avatar + SNS name */}
-      <section className="flex flex-col items-center gap-5 rounded-3xl border border-border bg-card p-8 text-center sm:flex-row sm:text-left">
-        <Avatar profile={profile} />
-        <div className="flex-1">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {t.profile.snsName}
-          </p>
-          <p className="text-xl font-bold">{profile.sns_name}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{t.profile.snsNameHint}</p>
+      {/* Identity: avatar + SNS name, with account details folded in below. */}
+      <section className="rounded-3xl border border-border bg-card p-8">
+        <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+          <Avatar profile={profile} />
+          <div className="flex-1">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {t.profile.snsName}
+            </p>
+            <p className="text-xl font-bold">{profile.sns_name}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t.profile.snsNameHint}</p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 border-t border-border pt-6 sm:grid-cols-3">
+          {profile.phone && (
+            <Stat icon={<Phone className="size-4" />} label={t.profile.phoneLabel} value={profile.phone} />
+          )}
+          <Stat icon={<CalendarDays className="size-4" />} label={t.profile.joinedAt} value={joined} />
+          <Stat
+            icon={<Crown className="size-4" />}
+            label={t.profile.membershipExpires}
+            value={membershipExpires ?? t.profile.membershipNone}
+            accent={!!membershipExpires}
+          />
         </div>
       </section>
 
       {/* New-member checklist — first todo is adding the community assistant. */}
       <ProfileTodos />
-
-      {/* Account details (read-only) */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {profile.phone && (
-          <Field icon={<Phone className="size-4" />} label={t.profile.phoneLabel} value={profile.phone} />
-        )}
-        <Field icon={<ShieldCheck className="size-4" />} label={t.profile.registerSource} value={sourceLabel} />
-        <Field icon={<CalendarDays className="size-4" />} label={t.profile.joinedAt} value={joined} />
-        <Field
-          icon={<Crown className="size-4" />}
-          label={t.profile.membershipExpires}
-          value={membershipExpires ?? t.profile.membershipNone}
-        />
-      </div>
 
       {/* Bio */}
       <section className="mt-3 rounded-2xl border border-border bg-card px-4 py-3">
