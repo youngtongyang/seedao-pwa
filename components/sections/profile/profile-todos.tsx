@@ -1,7 +1,6 @@
 "use client";
 
-import { ArrowRight, Bot, Check, MessageCircle } from "lucide-react";
-import Link from "next/link";
+import { Bot, Check, MessageCircle } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { QRFrame } from "@/components/shared/qr-frame";
 import { Button } from "@/components/ui/button";
@@ -90,11 +89,9 @@ export function ProfileTodos() {
         >
           {!account.agentClaimed && (
             <div className="mt-4">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/onboarding">
-                  {t.profile.todoAgentCta}
-                  <ArrowRight className="size-4" />
-                </Link>
+              {/* Onboarding isn't ready yet — disabled placeholder, route is 404'd. */}
+              <Button variant="outline" size="sm" disabled>
+                {t.profile.todoAgentSoon}
               </Button>
             </div>
           )}
