@@ -18,7 +18,7 @@ export type NavItem = {
 };
 
 /** External community wiki (Feishu). Docs entries link here directly. */
-const DOCS_URL = "https://seedao2049.feishu.cn/wiki/";
+const DOCS_URL = "https://seedao2049.feishu.cn/wiki/Dgh2w1AJiieOgWk1eKRcWQBenSb";
 
 /** Primary navigation shown in the desktop header. */
 export const primaryNav: NavItem[] = [

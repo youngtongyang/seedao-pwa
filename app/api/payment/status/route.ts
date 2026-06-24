@@ -1,5 +1,5 @@
 import { jsonError } from "@/lib/api/http";
-import { getToken } from "@/lib/auth/session";
+import { getToken, markMember } from "@/lib/auth/session";
 import { queryOrder } from "@/lib/payment/server";
 
 /**
@@ -20,6 +20,10 @@ export async function GET(request: Request) {
 
   const result = await queryOrder(orderNo, token);
   if (!result.ok) return jsonError(result);
+
+  // Payment succeeded → the user is now an active member, so promote the session
+  // to "logged in" (sets the `authed` cookie the profile gate and header read).
+  if (result.data.status === "paid") await markMember();
 
   // Pass the order through verbatim — status + (once paid) membership_expires_at,
   // and code_url/h5_url while pending so a refreshed page can keep paying.

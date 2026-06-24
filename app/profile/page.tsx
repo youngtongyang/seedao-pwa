@@ -10,9 +10,13 @@ export const metadata = {
 };
 
 export default async function ProfilePage() {
-  // Gate: only reachable after a successful login established the session.
-  const session = (await cookies()).get("seedao.session");
-  if (!session) redirect("/login");
+  // Gate: members only. `seedao.authed` is set only for an active paid member;
+  // a registered-but-unpaid user has a session token but no `authed`, so send
+  // them to finish payment. A user with neither goes to log in.
+  const store = await cookies();
+  if (!store.get("seedao.authed")) {
+    redirect(store.get("seedao.session") ? "/?join=1#membership" : "/login");
+  }
 
   return (
     <Responsive

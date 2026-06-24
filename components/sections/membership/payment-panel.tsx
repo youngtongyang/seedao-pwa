@@ -1,16 +1,35 @@
 "use client";
 
-import { QRFrame } from "@/components/shared/qr-frame";
+import { Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { QRFrame } from "@/components/shared/qr-frame";
+import { useAccount } from "@/lib/account";
 import { useT } from "@/lib/i18n";
+import type { PendingOrder } from "@/lib/payment/client";
 import { cn } from "@/lib/utils";
-import { JoinFlow, StepHeading, usePendingJoin } from "./join-flow";
+import { JoinFlow, StepHeading, useJoinIntent, usePendingJoin } from "./join-flow";
+
+// The wallet stack (wagmi) loads only when the on-chain SNS option is opened —
+// Radix mounts inactive tab content lazily, so the chunk is fetched on click.
+const WalletLogin = dynamic(() => import("../login/wallet-login"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex justify-center py-10">
+      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+    </div>
+  ),
+});
 
 export function PaymentPanel({ className }: { className?: string }) {
   const t = useT();
-  // A returning H5 payer comes back with a stashed order — default to the Join
-  // tab and resume polling. Re-key so the new default applies post-hydration.
+  // Open the Join tab when a returning H5 payer comes back with a stashed order,
+  // or when sent here from the login page (`?join=1`). Re-key so the new default
+  // applies post-hydration.
   const pending = usePendingJoin();
+  const joinIntent = useJoinIntent();
+  const openJoin = !!pending || joinIntent;
 
   return (
     <div
@@ -19,7 +38,7 @@ export function PaymentPanel({ className }: { className?: string }) {
         className,
       )}
     >
-      <Tabs defaultValue={pending ? "join" : "spectate"} key={pending?.order_no ?? "default"}>
+      <Tabs defaultValue={openJoin ? "join" : "spectate"} key={`${openJoin}:${pending?.order_no ?? ""}`}>
         <TabsList className="mx-auto flex w-full max-w-xs">
           <TabsTrigger value="spectate" className="flex-1">
             {t.membership.tabSpectate}
@@ -33,10 +52,49 @@ export function PaymentPanel({ className }: { className?: string }) {
           <SpectatePanel />
         </TabsContent>
         <TabsContent value="join">
-          <JoinFlow initialPending={pending} />
+          <JoinOptions pending={pending} />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// ── 加入 (join) — new SNS, or claim an existing on-chain one ─────────────────────
+
+function JoinOptions({ pending }: { pending: PendingOrder | null }) {
+  const t = useT();
+  const account = useAccount();
+  // A signed-in user without active membership just needs to pay — open the New
+  // flow straight at the QR step. Captured at hydration so it doesn't re-trigger
+  // mid-flow (a fresh registrant proceeds to pay via the normal step change).
+  const resumePay = useMemo(
+    () => account.hydrated && !!account.user && !account.isMember,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [account.hydrated],
+  );
+
+  return (
+    <Tabs defaultValue="new" className="text-center">
+      <TabsList className="mx-auto mt-4 flex w-full max-w-xs">
+        <TabsTrigger value="new" className="flex-1">
+          {t.membership.joinNewTab}
+        </TabsTrigger>
+        <TabsTrigger value="existing" className="flex-1">
+          {t.membership.joinExistingTab}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="new">
+        <JoinFlow
+          key={`${resumePay}:${pending?.order_no ?? ""}`}
+          initialPending={pending}
+          resumePay={resumePay}
+          resumeSnsName={account.user?.sns_name}
+        />
+      </TabsContent>
+      <TabsContent value="existing">
+        <WalletLogin />
+      </TabsContent>
+    </Tabs>
   );
 }
 

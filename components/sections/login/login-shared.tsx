@@ -11,6 +11,7 @@ import type { AuthUser } from "@/lib/api/types";
 import { isValidCode, isValidPhone, requestSmsCode } from "@/lib/auth/phone";
 import { refreshAuth } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
+import { isMembershipActive } from "@/lib/membership";
 
 /**
  * Pieces shared by the login / join / wallet forms. Kept in their own module so
@@ -138,13 +139,21 @@ export function useErrorText() {
   };
 }
 
-/** Shared post-auth handoff: remember the user, refresh UI, go to profile. */
+/**
+ * Shared post-auth handoff for flows that land an *active member* on the profile
+ * (member phone login, on-chain claim the backend grants membership to). Mirrors
+ * membership into the account so the UI agrees with the server's `authed` cookie.
+ * Non-members must not be sent here — route them to payment instead.
+ */
 export function useAuthSuccess() {
   const router = useRouter();
   const account = useAccount();
   return useCallback(
     (user: AuthUser) => {
-      if (user) account.setUser(user);
+      if (user) {
+        account.setUser(user);
+        if (isMembershipActive(user.membership_expires_at)) account.activateMembership();
+      }
       refreshAuth();
       router.push("/profile");
     },

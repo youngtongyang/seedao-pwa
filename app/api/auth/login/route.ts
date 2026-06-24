@@ -1,6 +1,7 @@
 import { jsonError, readJson } from "@/lib/api/http";
 import { login } from "@/lib/api/server";
 import { setSession } from "@/lib/auth/session";
+import { isMembershipActive } from "@/lib/membership";
 
 /** POST /api/auth/login — existing user logs in with phone + OTP. */
 export async function POST(request: Request) {
@@ -12,6 +13,10 @@ export async function POST(request: Request) {
   const result = await login({ phone, code });
   if (!result.ok) return jsonError(result);
 
-  await setSession(result.data.token, result.data.token_exp);
-  return Response.json({ ok: true, user: result.data.user });
+  // Only an active member is "logged in". A registered-but-unpaid user still
+  // gets the session token (so they can complete payment), but no `authed` flag,
+  // so they can't reach the profile until they pay.
+  const member = isMembershipActive(result.data.user.membership_expires_at);
+  await setSession(result.data.token, result.data.token_exp, member);
+  return Response.json({ ok: true, user: result.data.user, member });
 }

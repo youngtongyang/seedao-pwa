@@ -1,13 +1,14 @@
 "use client";
 
 import { KeyRound, Loader2, Smartphone } from "lucide-react";
-import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAccount } from "@/lib/account";
 import { loginWithCode } from "@/lib/auth/phone";
 import { useT } from "@/lib/i18n";
-import { JoinFlow, usePendingJoin } from "../membership/join-flow";
+import { isMembershipActive } from "@/lib/membership";
 import {
   PanelHeader,
   PhoneCodeFields,
@@ -16,75 +17,36 @@ import {
   usePhoneCode,
 } from "./login-shared";
 
-// The wallet stack (wagmi/RainbowKit) loads only when this tab is opened — Radix
-// mounts inactive tab content lazily, so the chunk is fetched on first click.
-const WalletLogin = dynamic(() => import("./wallet-login"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex justify-center py-10">
-      <Loader2 className="size-5 animate-spin text-muted-foreground" />
-    </div>
-  ),
-});
+/**
+ * Header login — phone number only. Registration lives on the home page's Join
+ * panel, so a phone with no account is sent there (`REGISTER_HREF`).
+ */
+
+// Where unregistered phones (and the "no account?" link) go: the home membership
+// section, with the Join tab pre-opened.
+const REGISTER_HREF = "/?join=1#membership";
+
+// Failures that mean "fix it and retry here" rather than "you have no account".
+const STAY_ERRORS = new Set([
+  "invalid_code",
+  "rate_limited",
+  "invalid_param",
+  "upstream_unreachable",
+  "internal",
+]);
 
 export function LoginPanel() {
-  const t = useT();
-  // A returning H5 payer (who joined from here) comes back with a stashed order
-  // — default to the Join tab and resume. Re-key so it applies post-hydration.
-  const pending = usePendingJoin();
-
   return (
     <div className="rounded-3xl border border-border bg-card p-8">
-      <Tabs defaultValue={pending ? "join" : "login"} key={pending?.order_no ?? "default"}>
-        <TabsList className="mx-auto flex w-full max-w-xs">
-          <TabsTrigger value="login" className="flex-1">
-            {t.login.tabLogin}
-          </TabsTrigger>
-          <TabsTrigger value="join" className="flex-1">
-            {t.login.tabJoin}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="login">
-          <LoginForms />
-        </TabsContent>
-        <TabsContent value="join">
-          {/* Same register→pay→profile flow as the home membership panel. */}
-          <JoinFlow initialPending={pending} />
-        </TabsContent>
-      </Tabs>
+      <PhoneLoginForm />
     </div>
-  );
-}
-
-// ── Login (existing user) ──────────────────────────────────────────────────────
-
-/** Two ways to log in: with a phone number, or by proving an on-chain SNS. */
-function LoginForms() {
-  const t = useT();
-  return (
-    <Tabs defaultValue="phone" className="text-center">
-      <PanelHeader icon={<Smartphone className="size-7" />} title={t.login.loginTitle} subtitle={t.login.loginSubtitle} />
-      <TabsList className="mx-auto mt-4 flex w-full max-w-xs">
-        <TabsTrigger value="phone" className="flex-1">
-          {t.login.loginPhoneTab}
-        </TabsTrigger>
-        <TabsTrigger value="wallet" className="flex-1">
-          {t.login.loginWalletTab}
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="phone">
-        <PhoneLoginForm />
-      </TabsContent>
-      <TabsContent value="wallet">
-        <WalletLogin />
-      </TabsContent>
-    </Tabs>
   );
 }
 
 function PhoneLoginForm() {
   const t = useT();
+  const router = useRouter();
+  const account = useAccount();
   const pc = usePhoneCode();
   const errorText = useErrorText();
   const onSuccess = useAuthSuccess();
@@ -99,8 +61,19 @@ function PhoneLoginForm() {
     setBusy(true);
     try {
       const result = await loginWithCode(pc.phone, pc.code);
-      if (result.ok) onSuccess(result.user);
-      else setError(errorText(result.error));
+      if (result.ok && isMembershipActive(result.user.membership_expires_at)) {
+        onSuccess(result.user); // active member → profile
+      } else if (result.ok) {
+        // Registered but not a paying member — can't log in; remember who they
+        // are and send them to finish payment (the Join flow resumes at the QR).
+        account.setUser(result.user);
+        router.push(REGISTER_HREF);
+      } else if (result.error && STAY_ERRORS.has(result.error)) {
+        setError(errorText(result.error));
+      } else {
+        // No account for this phone — send them to register.
+        router.push(REGISTER_HREF);
+      }
     } finally {
       setBusy(false);
     }
@@ -108,12 +81,26 @@ function PhoneLoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5 text-center">
+      <PanelHeader
+        icon={<Smartphone className="size-7" />}
+        title={t.login.loginTitle}
+        subtitle={t.login.loginSubtitle}
+      />
       <PhoneCodeFields pc={pc} />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button type="submit" size="lg" className="w-full" disabled={busy || !pc.phoneOk || !pc.codeOk}>
         {busy ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
         {busy ? t.login.loggingIn : t.login.loginCta}
       </Button>
+      <p className="text-sm text-muted-foreground">
+        {t.login.noAccount}{" "}
+        <Link
+          href={REGISTER_HREF}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          {t.login.noAccountCta}
+        </Link>
+      </p>
     </form>
   );
 }

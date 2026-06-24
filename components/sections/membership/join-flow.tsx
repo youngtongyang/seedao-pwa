@@ -48,12 +48,40 @@ export function usePendingJoin(): PendingOrder | null {
   return useMemo(() => (hydrated ? readPendingOrder() : null), [hydrated]);
 }
 
+/**
+ * True when the URL carries `?join=1` (e.g. the login page sends an unregistered
+ * phone to `/?join=1#membership`), so a host can open the Join tab. Read after
+ * hydration to stay SSR-safe — same reasoning as {@link usePendingJoin}.
+ */
+export function useJoinIntent(): boolean {
+  const hydrated = useHydrated();
+  return useMemo(() => {
+    if (!hydrated) return false;
+    try {
+      return new URLSearchParams(window.location.search).get("join") === "1";
+    } catch {
+      return false;
+    }
+  }, [hydrated]);
+}
+
 type Phase = "name" | "verify" | "pay";
 
-export function JoinFlow({ initialPending }: { initialPending?: PendingOrder | null }) {
+export function JoinFlow({
+  initialPending,
+  resumePay,
+  resumeSnsName,
+}: {
+  initialPending?: PendingOrder | null;
+  /** Signed-in non-member who just needs to pay — start at the QR step. */
+  resumePay?: boolean;
+  resumeSnsName?: string;
+}) {
   const t = useT();
-  const [phase, setPhase] = useState<Phase>(initialPending ? "pay" : "name");
-  const [snsName, setSnsName] = useState<string>(initialPending?.sns_name ?? "");
+  const [phase, setPhase] = useState<Phase>(initialPending || resumePay ? "pay" : "name");
+  const [snsName, setSnsName] = useState<string>(
+    initialPending?.sns_name ?? (resumePay ? resumeSnsName ?? "" : ""),
+  );
   // Resume an H5 order only on the first pay-phase entry (the round-trip back);
   // a fresh name→verify→pay run leaves this undefined so PayStep opens a new one.
   const [resumeOrderNo] = useState<string | undefined>(initialPending?.order_no);
@@ -131,10 +159,10 @@ function VerifyStep({
     try {
       const result = await registerNewSns(pc.phone, pc.code, snsName);
       if (result.ok) {
-        // Session cookie is set by the register route; reflect it client-side
-        // so the user is signed in before we open the (JWT-only) payment order.
+        // Registration mints the session token (needed to open the JWT-only
+        // payment order) but does NOT log the user in — membership, and thus
+        // profile access, only comes after payment succeeds.
         account.setUser(result.user);
-        refreshAuth();
         onRegistered(result.user);
       } else {
         setError(errorText(result.error));
@@ -273,6 +301,11 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
     createPaymentOrder({ pay_channel: channel }).then((res) => {
       if (!active) return;
       if (!res.ok) {
+        // No valid session (e.g. resuming pay after it expired) → re-authenticate.
+        if (res.error === "unauthorized") {
+          router.push("/login");
+          return;
+        }
         setState("error");
         return;
       }
@@ -291,7 +324,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
     return () => {
       active = false;
     };
-  }, [orderNo, snsName, nonce]);
+  }, [orderNo, snsName, nonce, router]);
 
   function retry() {
     clearPendingOrder();
@@ -322,8 +355,11 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
         window.clearInterval(id);
         clearPendingOrder();
         setState("paid");
+        // Payment promoted the session to a member (the status route set the
+        // `authed` cookie); mirror it client-side and refresh the header.
         account.activateMembership();
-        router.push("/profile"); // already signed in from the verify step
+        refreshAuth();
+        router.push("/profile");
       } else if (res.status === "closed") {
         // Order no longer payable (expired / closed / failed) — offer a fresh one.
         window.clearInterval(id);
@@ -341,9 +377,11 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
     <div className="flex flex-col items-center gap-4 text-center">
       <StepHeading title={t.membership.payStepTitle} desc={t.membership.payStepDesc} />
 
-      <p className="rounded-full bg-primary/10 px-3.5 py-1 text-sm font-medium text-primary">
-        {t.membership.payReservedFor(snsName)}
-      </p>
+      {snsName && (
+        <p className="rounded-full bg-primary/10 px-3.5 py-1 text-sm font-medium text-primary">
+          {t.membership.payReservedFor(snsName)}
+        </p>
+      )}
 
       {state === "waiting" && order?.code_url ? (
         <QrCode key={order.code_url} value={order.code_url} alt={t.membership.payQrAlt} size={172} />

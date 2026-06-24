@@ -3,12 +3,12 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Reactive client view of login state.
- *
- * The real session is an httpOnly cookie the client can't read, so `/auth/verify`
- * also sets a readable `seedao.authed` hint cookie. This hook reads that hint via
- * `useSyncExternalStore` (SSR-safe: the server snapshot is always `false`, so
- * there's no hydration mismatch) and re-reads when `refreshAuth`/`logout` fire.
+ * Reactive client view of login state. "Logged in" means **active paid member**:
+ * the auth routes set the readable `seedao.authed` cookie only for members (a
+ * registered-but-unpaid user holds the httpOnly session token but no `authed`).
+ * This hook reads that hint via `useSyncExternalStore` (SSR-safe: the server
+ * snapshot is always `false`, so no hydration mismatch) and re-reads when
+ * `refreshAuth`/`logout` fire.
  */
 const AUTHED_COOKIE = "seedao.authed";
 const listeners = new Set<() => void>();
