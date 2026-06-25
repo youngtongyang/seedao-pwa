@@ -14,7 +14,9 @@ component → client helper (lib/) → Next route handler (app/api/*) → typed 
 - **Wire types** live once in `lib/api/types.ts` (snake_case, mirroring the Go DTOs). Change them there.
 - **Config**: `SEEDAO_API_BASE` (default `https://api.seedao.xyz`), and `SEEDAO_USE_MOCK=1` to exercise
   the whole flow locally without real SMS/network (`lib/api/config.ts`, mock branch in `lib/api/server.ts`).
-- Wallet (SIWE) connect/sign uses wagmi + RainbowKit (`NEXT_PUBLIC_WC_PROJECT_ID` for WalletConnect).
+- Wallet (SIWE) connect/sign uses wagmi with **injected connectors only (EIP-6963)** — no
+  WalletConnect, so there is no `projectId` to configure (`lib/wallet/config.ts`). The wallet
+  stack loads lazily, only inside the login page's on-chain SNS tab.
 
 ## Endpoint coverage
 
@@ -31,6 +33,12 @@ Every backend endpoint now has a BFF route. Usage by a user-facing feature:
 | `POST /v1/wallet/nonce` | `/api/wallet/nonce` | Yes — wallet flow |
 | `POST /v1/wallet/verify-sns` | `/api/wallet/verify-sns` | Yes — wallet ownership preview |
 | `GET /v1/user/profile` | `/api/profile` | Yes — Profile page |
+| `POST /v1/payments/orders` | `/api/payment/order` | Yes — Join → WeChat Pay |
+| `GET /v1/payments/orders/:order_no` | `/api/payment/status` | Yes — poll until paid |
+| `GET /v1/payments/orders` | `/api/payment/orders` | Yes — order history |
+| `POST /v1/payments/orders/:order_no/close` | `/api/payment/order/close` | Yes — cancel unpaid order |
+| `POST /v1/payments/dev/simulate-pay` | `/api/payment/simulate-pay` | Dev-only (`dev_mode`) |
+| `GET /v1/stats/user-count` | `/api/stats/members` | Yes — homepage hero count |
 
 ### Wallet flow caveat
 The wallet **nonce is single-use (45s TTL)** and consumed by *both* `verify-sns` and
@@ -53,9 +61,12 @@ Two features to build next; each needs a new backend endpoint:
 2. **Reputation system.** The profile shows a "coming soon" reputation card with no data source. Needs
    reputation/points/badges endpoints.
 
-Dropped from scope (and their dead mocks removed from the repo): membership/payment (`lib/payment/*`),
-personal-agent backend persistence (the onboarding game stays client-only via `localStorage`), and
-Feishu social login (`lib/auth/{index,mock,types}.ts`).
+**Note (2026-06):** membership/payment was later *re-introduced* as a real flow — WeChat Pay
+membership renewal (`lib/payment/*`, `app/api/payment/*`, `/v1/payments/*`), now live and wired into
+the home Join flow. Earlier revisions of this doc described it as dropped; that is no longer accurate.
+
+Still out of scope: personal-agent backend persistence (the onboarding game stays client-only via
+`localStorage`), and Feishu social login (replaced by phone + SMS and wallet SIWE).
 
 ## Local verification
 

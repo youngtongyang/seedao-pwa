@@ -20,7 +20,7 @@ export function MembershipDesktop() {
         />
 
         <div className="mt-14 grid grid-cols-[1.15fr_0.85fr] gap-12">
-          <Reveal>
+          <Reveal className="flex flex-col justify-center">
             <h3 className="mb-6 text-lg font-semibold">
               {t.membership.benefitsTitle}
             </h3>
