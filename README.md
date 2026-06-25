@@ -44,27 +44,16 @@ npm start        # 运行生产版本
 | 1. 英雄区 Hero | 醒目标语「共在 · 涌现 · 逍遥」与号召 | `components/sections/hero/` |
 | 2. 会员与支付 | 会员权益 + 微信扫码（模拟）支付 | `components/sections/membership/`、`lib/payment/`、`lib/mock/membership.ts` |
 | 3. 社区介绍 | 可翻面的交互特性卡片（非静态展示） | `components/sections/community/`、`lib/mock/community.ts` |
-| 4. 社区文档 | 独立页面，移动端友好的文档浏览 | `app/docs/`、`components/sections/docs/`、`lib/mock/docs.ts` |
-| 5. 社区公约 | 可展开的交互式公约 + 承诺互动 | `components/sections/rules/`、`lib/mock/rules.ts` |
-| 6. 飞书登录 | 付费会员专属，模拟飞书 OAuth | `app/login/`、`components/sections/login/`、`lib/auth/` |
-| 7. 新手引导 | 游戏化教程：领取个人智能体，逐步验证 | `app/onboarding/`、`components/sections/onboarding/`、`lib/mock/onboarding.ts` |
-| 8. 帮助 | 一键可达的悬浮按钮 + 精美微信二维码 | `components/help/`、`public/qr/wechat-help.svg` |
+| 4. 新手引导 | 游戏化教程：领取个人智能体，逐步验证 | `app/onboarding/`、`components/sections/onboarding/`、`lib/mock/onboarding.ts` |
+| 5. 帮助 | 一键可达的悬浮按钮 + 精美微信二维码 | `components/help/`、`public/qr/wechat-help.svg` |
 | 设计系统 / Token | 调色板、字体、暗色变体 | `app/globals.css` |
 | 双语 i18n | 字典、Provider、语言切换 | `lib/i18n/`、`components/i18n/` |
 | 设备系统 | UA 预判 + 视口自校正 + 选择器 | `lib/device/`、`components/layout/responsive.tsx` |
 | 桌面 / 移动外壳 | 头部、底部导航、页脚、菜单 | `components/layout/desktop/`、`components/layout/mobile/` |
 | 主题切换 | 浅色 / 深色 | `components/theme/` |
-| 账户状态 | 会员 / 登录 / 智能体 持久化 | `lib/account/` |
+| 账户状态 | 会员 / 登录 | `lib/account/` |
 | UI 组件 | shadcn 风格基础组件 | `components/ui/` |
 | PWA | Manifest、SW、安装提示、响应头 | `app/manifest.ts`、`public/sw.js`、`components/pwa/`、`next.config.ts` |
-
-### 🔌 接入真实服务
-
-实现是模块化的，替换非常简单：
-
-- **微信支付**：实现 `lib/payment/types.ts` 的 `PaymentProvider`，把 `lib/payment/index.ts` 里的绑定从 `mockPaymentProvider` 换成真实实现，UI 无需改动。
-- **飞书登录**：实现 `lib/auth/types.ts` 的 `AuthProvider`，替换 `lib/auth/index.ts` 的绑定。
-- **数据库**：当前内容为 `lib/mock/*` 的静态数据；接入数据库时把这些读取替换为查询即可（未预设 DB 接口）。
 
 ### 📁 目录结构
 
@@ -124,11 +113,8 @@ npm start
 | 1. Hero | Eye-catching slogan "Coexist · Emerge · Roam Free" + CTAs | `components/sections/hero/` |
 | 2. Membership & Payment | Benefits + WeChat QR (mock) payment | `components/sections/membership/`, `lib/payment/`, `lib/mock/membership.ts` |
 | 3. Community intro | Interactive flip cards (not static content) | `components/sections/community/`, `lib/mock/community.ts` |
-| 4. Community docs | Separate page, mobile-careful doc browsing | `app/docs/`, `components/sections/docs/`, `lib/mock/docs.ts` |
-| 5. Covenant (rules) | Expandable interactive covenant + pledge | `components/sections/rules/`, `lib/mock/rules.ts` |
-| 6. Feishu login | Paid-members only, mock Feishu OAuth | `app/login/`, `components/sections/login/`, `lib/auth/` |
-| 7. Onboarding | Gamified tutorial to claim a personal agent, step verification | `app/onboarding/`, `components/sections/onboarding/`, `lib/mock/onboarding.ts` |
-| 8. Help | One-click floating button + beautiful WeChat QR | `components/help/`, `public/qr/wechat-help.svg` |
+| 4. Onboarding | Gamified tutorial to claim a personal agent, step verification | `app/onboarding/`, `components/sections/onboarding/`, `lib/mock/onboarding.ts` |
+| 5. Help | One-click floating button + beautiful WeChat QR | `components/help/`, `public/qr/wechat-help.svg` |
 | Design system / tokens | Palette, fonts, dark variant | `app/globals.css` |
 | Bilingual i18n | Dictionaries, provider, switcher | `lib/i18n/`, `components/i18n/` |
 | Device system | UA guess + viewport self-correct + selector | `lib/device/`, `components/layout/responsive.tsx` |
@@ -137,14 +123,6 @@ npm start
 | Account state | Member / login / agent persistence | `lib/account/` |
 | UI components | shadcn-style primitives | `components/ui/` |
 | PWA | Manifest, SW, install prompt, headers | `app/manifest.ts`, `public/sw.js`, `components/pwa/`, `next.config.ts` |
-
-### 🔌 Going live
-
-The implementation is modular and trivial to swap:
-
-- **WeChat Pay** — implement `PaymentProvider` (`lib/payment/types.ts`) and change the binding in `lib/payment/index.ts` from `mockPaymentProvider` to your real one. No UI changes.
-- **Feishu login** — implement `AuthProvider` (`lib/auth/types.ts`) and swap the binding in `lib/auth/index.ts`.
-- **Database** — content currently comes from static `lib/mock/*` data; replace those reads with queries when a DB is chosen (no DB interface assumed yet).
 
 ### 📁 Structure
 
