@@ -32,7 +32,7 @@ export function SiteHeader() {
         </Link>
 
         <div className="flex">
-          <nav className="hidden items-center gap-1 lg:flex border-r">
+          <nav className="hidden items-center gap-1 lg:flex border-r mr-4 pr-4">
             {primaryNav.map((item) => {
               const active =
                 item.href === "/"
