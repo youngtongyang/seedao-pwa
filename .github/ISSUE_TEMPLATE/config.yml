@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability · 安全漏洞
+    url: https://github.com/seedao/seedao-pwa/security/advisories/new
+    about: Please report security issues privately, not as a public issue. 请私下报告安全问题，勿公开提交。
+  - name: Community docs (Feishu) · 社区文档（飞书）
+    url: https://seedao2049.feishu.cn/wiki/Dgh2w1AJiieOgWk1eKRcWQBenSb
+    about: Read the community wiki before opening a question. 提问前可先查阅社区 wiki。

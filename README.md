@@ -7,6 +7,19 @@
 
 ---
 
+## 📚 文档 · Documentation
+
+| 文档 · Doc | 说明 · Description |
+| --- | --- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 系统架构与核心模式 · System architecture & core patterns |
+| [docs/api-reference.md](docs/api-reference.md) | BFF 接口参考 · BFF API reference |
+| [docs/seedao-api-integration.md](docs/seedao-api-integration.md) | 后端集成现状 · Backend integration status |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南 · How to contribute |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | 行为准则 · Code of conduct |
+| [LICENSE](LICENSE) | Apache-2.0 |
+
+---
+
 ## 中文
 
 SEEDAO 是一个聚焦「关系」的社区。我们相信，比起为了金钱而学习与建造，关系的生长更值得珍视。这个仓库是它的落地页 / 渐进式 Web 应用（PWA）。
@@ -19,7 +32,7 @@ SEEDAO 是一个聚焦「关系」的社区。我们相信，比起为了金钱�
 - **设计系统**：「紫罗兰 × 暖琥珀」语义化 Token，白底浅色模式，优雅克制，无廉价渐变。
 - **自托管字体**：Geist + Noto Sans SC，通过 `next/font` 构建期自托管，不实时拉取。
 - **微交互**：`framer-motion` 驱动的入场、翻牌、进度与庆祝动效。
-- **可插拔的支付 / 登录**：模拟微信支付与飞书登录，替换单个 Provider 即可接入真实服务。
+- **真实支付 / 登录**：手机号 + 短信验证码登录、钱包（SIWE，注入式 / EIP-6963）领取链上 SNS，以及微信扫码 / H5 会员续费支付；经 BFF 接入 SeeDAO 后端。
 - **PWA**：Web App Manifest、Service Worker（离线外壳 + 推送）、iOS 安装提示、安全响应头。
 
 ### 🧱 技术栈
@@ -42,7 +55,7 @@ npm start        # 运行生产版本
 | 功能 | 说明 | 主要代码路径 |
 | --- | --- | --- |
 | 1. 英雄区 Hero | 醒目标语「共在 · 涌现 · 逍遥」与号召 | `components/sections/hero/` |
-| 2. 会员与支付 | 会员权益 + 微信扫码（模拟）支付 | `components/sections/membership/`、`lib/payment/`、`lib/mock/membership.ts` |
+| 2. 会员与支付 | 会员权益 + 微信扫码 / H5 续费支付（真实，经 BFF） | `components/sections/membership/`、`lib/payment/`、`app/api/payment/` |
 | 3. 社区介绍 | 可翻面的交互特性卡片（非静态展示） | `components/sections/community/`、`lib/mock/community.ts` |
 | 4. 新手引导 | 游戏化教程：领取个人智能体，逐步验证 | `app/onboarding/`、`components/sections/onboarding/`、`lib/mock/onboarding.ts` |
 | 5. 帮助 | 一键可达的悬浮按钮 + 精美微信二维码 | `components/help/`、`public/qr/wechat-help.svg` |
@@ -69,7 +82,7 @@ lib/
   i18n/              字典与 Provider
   device/            设备检测
   account/           账户状态
-  payment/ auth/     可插拔 Provider
+  api/ payment/ auth/  BFF 客户端、wire 类型、会话
   mock/              双语内容数据
 public/              图标、Service Worker、二维码
 ```
@@ -88,7 +101,7 @@ SEEDAO is a community centered on **relationships**. We believe the growth of re
 - **Design system** — semantic "Violet × Warm Amber" tokens, white light mode, elegant and restrained, no cheap gradients.
 - **Self-hosted fonts** — Geist + Noto Sans SC, self-hosted at build time via `next/font` (no live fetching).
 - **Micro-interactions** — entrance, card-flip, progress and celebration animations with `framer-motion`.
-- **Swappable payment / login** — mock WeChat Pay and Feishu login; swap a single provider to go live.
+- **Real payment / login** — phone + SMS OTP login, wallet (SIWE, injected / EIP-6963) to claim an on-chain SNS, and WeChat QR / H5 membership-renewal payment; wired to the SeeDAO backend through a BFF.
 - **PWA** — Web App Manifest, Service Worker (offline shell + push), iOS install prompt, security headers.
 
 ### 🧱 Stack
@@ -111,7 +124,7 @@ npm start
 | Feature | Notes | Key paths |
 | --- | --- | --- |
 | 1. Hero | Eye-catching slogan "Coexist · Emerge · Roam Free" + CTAs | `components/sections/hero/` |
-| 2. Membership & Payment | Benefits + WeChat QR (mock) payment | `components/sections/membership/`, `lib/payment/`, `lib/mock/membership.ts` |
+| 2. Membership & Payment | Benefits + WeChat QR / H5 renewal payment (real, via BFF) | `components/sections/membership/`, `lib/payment/`, `app/api/payment/` |
 | 3. Community intro | Interactive flip cards (not static content) | `components/sections/community/`, `lib/mock/community.ts` |
 | 4. Onboarding | Gamified tutorial to claim a personal agent, step verification | `app/onboarding/`, `components/sections/onboarding/`, `lib/mock/onboarding.ts` |
 | 5. Help | One-click floating button + beautiful WeChat QR | `components/help/`, `public/qr/wechat-help.svg` |
@@ -138,7 +151,13 @@ lib/
   i18n/              dictionaries & provider
   device/            device detection
   account/           account state
-  payment/ auth/     swappable providers
+  api/ payment/ auth/  BFF clients, wire types, session
   mock/              bilingual content data
 public/              icons, service worker, QR codes
 ```
+
+---
+
+## License · 许可证
+
+Licensed under the [Apache License 2.0](LICENSE). · 本项目以 [Apache-2.0](LICENSE) 许可证开源。

@@ -31,59 +31,71 @@ export function SiteHeader() {
           <Wordmark />
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
-          {primaryNav.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href.split("#")[0]) &&
-                  item.href.startsWith("/" + (pathname.split("/")[1] || ""));
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                target={item.external ? "_blank" : undefined}
-                rel={item.external ? "noopener noreferrer" : undefined}
-                className={cn(
-                  "rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                  active && "text-foreground",
-                )}
-              >
-                {t.nav[item.labelKey]}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="flex items-center gap-1.5">
-          <LangToggle />
-          <ThemeToggle />
-          {authed ? (
-            <>
-              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-                <Link href="/profile">
-                  <UserRound className="size-4" />
-                  {t.nav.my}
+        <div className="flex">
+          <nav className="hidden items-center gap-1 lg:flex border-r">
+            {primaryNav.map((item) => {
+              const active =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href.split("#")[0]) &&
+                    item.href.startsWith("/" + (pathname.split("/")[1] || ""));
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  className={cn(
+                    "rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                    active && "text-foreground",
+                  )}
+                >
+                  {t.nav[item.labelKey]}
                 </Link>
-              </Button>
+              );
+            })}
+          </nav>
+
+          <div className="flex items-center gap-1.5">
+            <LangToggle />
+            <ThemeToggle />
+            {authed ? (
+              <>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="hidden sm:inline-flex"
+                >
+                  <Link href="/profile">
+                    <UserRound className="size-4" />
+                    {t.nav.my}
+                  </Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="hidden sm:inline-flex"
+                >
+                  <LogOut className="size-4" />
+                  {t.nav.logout}
+                </Button>
+              </>
+            ) : (
               <Button
+                asChild
                 variant="ghost"
                 size="sm"
-                onClick={handleLogout}
                 className="hidden sm:inline-flex"
               >
-                <LogOut className="size-4" />
-                {t.nav.logout}
+                <Link href="/login">{t.nav.login}</Link>
               </Button>
-            </>
-          ) : (
-            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
-              <Link href="/login">{t.nav.login}</Link>
+            )}
+            <Button asChild size="sm" className="hidden sm:inline-flex">
+              <Link href="/#membership">{t.nav.membership}</Link>
             </Button>
-          )}
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/#membership">{t.nav.membership}</Link>
-          </Button>
+          </div>
         </div>
       </div>
     </header>
