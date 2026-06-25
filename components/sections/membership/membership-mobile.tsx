@@ -26,13 +26,17 @@ export function MembershipMobile() {
         <h3 className="mb-4 text-base font-semibold">
           {t.membership.benefitsTitle}
         </h3>
-        <div className="flex flex-col gap-5">
-          {benefits.map((b, i) => (
-            <Reveal key={b.id} delay={i * 0.04}>
-              <BenefitItem benefit={b} />
-            </Reveal>
-          ))}
-        </div>
+        <Reveal>
+          {/* Swipeable cards — peek the neighbours so the gesture is discoverable.
+              Bleed past the section padding so cards reach both screen edges. */}
+          <div className="-mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {benefits.map((b) => (
+              <div key={b.id} className="w-[78%] shrink-0 snap-center">
+                <BenefitItem benefit={b} className="h-72 w-full" />
+              </div>
+            ))}
+          </div>
+        </Reveal>
       </div>
     </section>
   );

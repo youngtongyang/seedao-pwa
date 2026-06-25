@@ -13,13 +13,20 @@ export function BenefitItem({
 }) {
   const L = useLocalized();
   return (
-    <div className={cn("flex gap-3.5", className)}>
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        <benefit.icon className="size-5" />
-      </span>
-      <div className="flex flex-col gap-0.5">
+    <div
+      className={cn(
+        "group flex h-full w-64 shrink-0 flex-col overflow-hidden rounded-3xl border border-border bg-card transition-colors duration-300 hover:border-foreground/25",
+        className,
+      )}
+    >
+      {/* Placeholder illustration — top three-quarters. */}
+      <div className="flex flex-[3] items-center justify-center bg-muted/40">
+        <benefit.icon className="size-12 text-primary/50" />
+      </div>
+      {/* Title + description — bottom quarter. */}
+      <div className="flex flex-1 flex-col justify-center gap-1 p-5">
         <h3 className="font-semibold leading-snug">{L(benefit.title)}</h3>
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
           {L(benefit.desc)}
         </p>
       </div>
