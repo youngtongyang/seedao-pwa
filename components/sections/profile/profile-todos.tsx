@@ -66,7 +66,7 @@ export function ProfileTodos() {
           {!assistantDone && (
             <div className="mt-4 flex flex-col items-center gap-3 text-center">
               <QRFrame
-                src="/qr/wechat-help.svg"
+                src="/qr/wechat-help.png"
                 alt={t.profile.todoAssistantQrAlt}
                 size={172}
                 withBadge={false}

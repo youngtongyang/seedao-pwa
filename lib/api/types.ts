@@ -30,6 +30,8 @@ export const ErrCode = {
   PAYMENT_ORDER_NOT_FOUND: 40007,
   /** Payment order is in a state that forbids the requested action. */
   PAYMENT_ORDER_INVALID_STATE: 40008,
+  /** Login attempted with a phone that has no account yet. */
+  PHONE_NOT_REGISTERED: 40009,
   UNAUTHORIZED: 40100,
   TOO_MANY_REQUESTS: 42901,
   INTERNAL: 50000,
@@ -48,6 +50,7 @@ export type ApiErrorKey =
   | "wallet_verify_failed"
   | "wallet_no_sns"
   | "phone_exists"
+  | "phone_not_registered"
   | "payment_order_not_found"
   | "payment_order_invalid_state"
   | "unauthorized"

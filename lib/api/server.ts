@@ -56,6 +56,8 @@ function errorKeyForCode(code: number): ApiErrorKey {
       return "wallet_no_sns";
     case ErrCode.PHONE_ALREADY_EXISTS:
       return "phone_exists";
+    case ErrCode.PHONE_NOT_REGISTERED:
+      return "phone_not_registered";
     case ErrCode.PAYMENT_ORDER_NOT_FOUND:
       return "payment_order_not_found";
     case ErrCode.PAYMENT_ORDER_INVALID_STATE:

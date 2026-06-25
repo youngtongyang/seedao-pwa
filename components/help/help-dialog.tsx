@@ -32,7 +32,7 @@ export function HelpDialog({
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-3 pt-1">
-          <QRFrame src="/qr/wechat-help.svg" alt={t.help.qrHint} size={188} />
+          <QRFrame src="/qr/wechat-help.png" alt={t.help.qrHint} size={188} withBadge={false} />
           <p className="text-sm font-medium">{t.help.qrHint}</p>
           <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="size-3.5" />

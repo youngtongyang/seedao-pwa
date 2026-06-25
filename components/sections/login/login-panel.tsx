@@ -27,12 +27,15 @@ import {
 const REGISTER_HREF = "/?join=1#membership";
 
 // Failures that mean "fix it and retry here" rather than "you have no account".
+// `phone_not_registered` (40009) stays put too: we show the message and let the
+// user follow the "Register" link below, rather than redirecting silently.
 const STAY_ERRORS = new Set([
   "invalid_code",
   "rate_limited",
   "invalid_param",
   "upstream_unreachable",
   "internal",
+  "phone_not_registered",
 ]);
 
 export function LoginPanel() {

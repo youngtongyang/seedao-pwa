@@ -106,7 +106,7 @@ function SpectatePanel() {
   return (
     <div className="flex flex-col items-center gap-4 pt-6 text-center">
       <StepHeading title={t.membership.spectateTitle} desc={t.membership.spectateDesc} />
-      <QRFrame src="/qr/feishu-group.svg" alt={t.membership.spectateQrAlt} size={172} withBadge={false} />
+      <QRFrame src="/qr/community-channel.png" alt={t.membership.spectateQrAlt} size={172} withBadge={false} />
       <p className="text-sm text-muted-foreground">{t.membership.spectateQrHint}</p>
     </div>
   );
