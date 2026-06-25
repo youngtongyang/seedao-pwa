@@ -75,7 +75,8 @@ function JoinOptions({ pending }: { pending: PendingOrder | null }) {
 
   return (
     <Tabs defaultValue="new" className="text-center">
-      <TabsList className="mx-auto mt-4 flex w-full max-w-xs">
+      {/* Lighter than the main Spectate/Join list above, so the nesting reads. */}
+      <TabsList className="mx-auto mt-4 flex w-full max-w-xs bg-muted/50">
         <TabsTrigger value="new" className="flex-1">
           {t.membership.joinNewTab}
         </TabsTrigger>
