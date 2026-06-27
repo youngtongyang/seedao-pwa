@@ -117,6 +117,7 @@ const zh = {
     payRetry: "重新生成二维码",
     payBack: "返回修改名称",
     payQrAlt: "微信支付二维码",
+    payQrMobileHint: "在本机支付：长按上方二维码，选择「识别图中二维码」即可在微信中完成支付。",
   },
 
   community: {
@@ -470,6 +471,8 @@ const en: typeof zh = {
     payRetry: "Generate a new QR code",
     payBack: "Back to edit name",
     payQrAlt: "WeChat Pay QR code",
+    payQrMobileHint:
+      "Paying on this phone? Press and hold the QR code above, then choose “Scan QR Code in image” to pay in WeChat.",
   },
 
   community: {

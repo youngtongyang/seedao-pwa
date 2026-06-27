@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAccount } from "@/lib/account";
 import type { AuthUser, SnsCheckResult } from "@/lib/api/types";
+import { useDevice } from "@/lib/device";
 import { registerNewSns } from "@/lib/auth/phone";
 import { refreshAuth } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
@@ -285,6 +286,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   const t = useT();
   const router = useRouter();
   const account = useAccount();
+  const { device } = useDevice();
   const [order, setOrder] = useState<PaymentOrder | null>(null);
   // The id we poll — a freshly created order, or the stashed one we resumed.
   const [orderNo, setOrderNo] = useState<string | null>(resumeOrderNo ?? null);
@@ -390,6 +392,10 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       ) : null}
+
+      {state === "waiting" && order?.code_url && device === "mobile" && (
+        <p className="text-sm text-muted-foreground">{t.membership.payQrMobileHint}</p>
+      )}
 
       <PayStatusLine state={state} />
 

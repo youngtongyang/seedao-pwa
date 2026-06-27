@@ -24,14 +24,20 @@ function errorOf(data: Record<string, unknown>): string | undefined {
 }
 
 /**
- * Pick the WeChat sub-channel by device: phones get `wechat_h5` (redirect into
- * the WeChat app, since scanning your own screen doesn't work), desktops get
- * `wechat_native` (a QR to scan with a second device). Mirrors the test-doc
- * snippet. Defaults to native off the client (SSR).
+ * Pick the WeChat pay channel. We always use `wechat_native` and render its
+ * `code_url` as a QR — on desktop it's scanned with a phone, and on a phone it's
+ * long-pressed ("识别图中二维码") to pay in WeChat on the same device.
+ *
+ * We deliberately do *not* use `wechat_h5` for phones: order creation with
+ * `pay_channel: "wechat_h5"` fails against the backend (H5 pay isn't enabled for
+ * the merchant), which surfaced as "couldn't start the payment" on mobile/PWA
+ * while desktop's native order worked. Routing phones through native too makes
+ * the create request identical to the one desktop already succeeds with. The H5
+ * path in `join-flow` is left intact, so re-enabling it is just this one line
+ * once the backend supports H5 orders.
  */
 export function pickPayChannel(): PayChannel {
-  if (typeof navigator === "undefined") return "wechat_native";
-  return /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "wechat_h5" : "wechat_native";
+  return "wechat_native";
 }
 
 /**
