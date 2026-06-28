@@ -148,10 +148,17 @@ export async function call<T>(path: string, opts: CallOptions = {}): Promise<Api
     };
   }
 
-  // No parseable envelope — fall back to HTTP status.
+  // No parseable envelope — fall back to HTTP status. The backend also signals
+  // rate limiting with a bare 429 (not just business code 42901), so map that to
+  // `rate_limited` rather than letting it read as an upstream outage.
   return {
     ok: false,
-    error: res.status === 401 ? "unauthorized" : "upstream_unreachable",
+    error:
+      res.status === 401
+        ? "unauthorized"
+        : res.status === 429
+          ? "rate_limited"
+          : "upstream_unreachable",
     status: res.status || 502,
   };
 }
