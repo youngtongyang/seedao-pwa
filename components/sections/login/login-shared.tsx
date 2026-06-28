@@ -21,6 +21,42 @@ import { isMembershipActive } from "@/lib/membership";
 
 export const RESEND_SECONDS = 60;
 
+// The resend cooldown is mirrored in localStorage (scoped to the phone it was
+// sent to) so a page refresh doesn't reset the timer and let the user re-trigger
+// the server's still-active 1-min limit — which would surface as a confusing
+// rate-limit error. See `usePhoneCode`.
+const RESEND_KEY = "sms:resend-until";
+
+/** Read the persisted resend deadline (epoch ms) for `phone`, or 0 if none. */
+function readResendUntil(phone: string): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = window.localStorage.getItem(RESEND_KEY);
+    if (!raw) return 0;
+    const saved = JSON.parse(raw) as { phone?: string; until?: number };
+    return saved.phone === phone && typeof saved.until === "number" ? saved.until : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Persist a resend deadline `RESEND_SECONDS` from now, scoped to `phone`. */
+function writeResendUntil(phone: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const until = Date.now() + RESEND_SECONDS * 1000;
+    window.localStorage.setItem(RESEND_KEY, JSON.stringify({ phone, until }));
+  } catch {
+    // Storage unavailable (private mode etc.) — fall back to in-memory only.
+  }
+}
+
+/** Seconds left before `phone` may resend, reconstructed from storage. */
+function remainingResend(phone: string): number {
+  const until = readResendUntil(phone);
+  return until > 0 ? Math.max(0, Math.ceil((until - Date.now()) / 1000)) : 0;
+}
+
 /** The current page's host, used as the SIWE `domain`. */
 export function currentDomain(): string {
   return typeof window !== "undefined" ? window.location.host : "";
@@ -28,6 +64,7 @@ export function currentDomain(): string {
 
 export function usePhoneCode() {
   const t = useT();
+  const errorText = useErrorText();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
@@ -40,6 +77,14 @@ export function usePhoneCode() {
     const id = window.setTimeout(() => setCountdown((s) => s - 1), 1000);
     return () => window.clearTimeout(id);
   }, [countdown]);
+
+  // Restore the cooldown from storage whenever the number changes, so retyping a
+  // number after a refresh resumes any timer the server's 1-min limit is still
+  // enforcing (and clears it for a different number).
+  const changePhone = useCallback((value: string) => {
+    setPhone(value);
+    setCountdown(remainingResend(value));
+  }, []);
 
   const phoneOk = isValidPhone(phone);
   const codeOk = isValidCode(code);
@@ -55,17 +100,25 @@ export function usePhoneCode() {
     try {
       const result = await requestSmsCode(phone);
       if (result.ok) {
+        writeResendUntil(phone);
         setCountdown(RESEND_SECONDS);
         setNotice(t.login.codeSent);
       } else {
-        setSendError(t.login.sendFailed);
+        // If the server is rate-limiting us, its 1-min window is still open —
+        // mirror it locally (and persist) so the button stays disabled.
+        if (result.error === "rate_limited") {
+          writeResendUntil(phone);
+          setCountdown(RESEND_SECONDS);
+        }
+        // Surface the backend's specific reason rather than a generic message.
+        setSendError(result.error ? errorText(result.error) : t.login.sendFailed);
       }
     } finally {
       setSending(false);
     }
-  }, [phone, phoneOk, t]);
+  }, [phone, phoneOk, t, errorText]);
 
-  return { phone, setPhone, code, setCode, phoneOk, codeOk, sending, countdown, notice, sendError, send };
+  return { phone, setPhone: changePhone, code, setCode, phoneOk, codeOk, sending, countdown, notice, sendError, send };
 }
 
 export type PhoneCode = ReturnType<typeof usePhoneCode>;

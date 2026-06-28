@@ -24,10 +24,13 @@ function errorOf(data: Record<string, unknown>): string | undefined {
 }
 
 /**
- * Pick the WeChat sub-channel by device: phones get `wechat_h5` (redirect into
- * the WeChat app, since scanning your own screen doesn't work), desktops get
- * `wechat_native` (a QR to scan with a second device). Mirrors the test-doc
- * snippet. Defaults to native off the client (SSR).
+ * Pick the WeChat pay channel by device. Desktop gets `wechat_native` — a QR the
+ * user scans with their phone. Phones get `wechat_h5`: a Native QR can't be paid
+ * on the *same* device (WeChat blocks long-press/recognise on its own pay codes),
+ * so phones hand off to the WeChat app via the H5 `h5_url` instead, which is the
+ * only channel that supports paying on the device you're browsing from.
+ *
+ * Defaults to native off the client (SSR), where there's no user agent to read.
  */
 export function pickPayChannel(): PayChannel {
   if (typeof navigator === "undefined") return "wechat_native";
@@ -83,6 +86,36 @@ export async function createPaymentOrder(input: CreateOrderInput = {}): Promise<
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) return { ok: false, error: errorOf(data) };
     return { ok: true, order: data as unknown as PaymentOrder };
+  } catch {
+    return { ok: false, error: "upstream_unreachable" };
+  }
+}
+
+/**
+ * Find the caller's still-live renewal order, if any — the basis for resuming a
+ * payment when the local trail is gone (an H5 payer whose WeChat return landed in
+ * a different browser context loses the stashed `order_no`, but the session
+ * cookie still identifies them). We take the order whose `expired_at` is still in
+ * the future: only the current in-flight order qualifies, so a `paid` one here
+ * means "just paid, go to profile" and a `pending` one means "keep paying" —
+ * while old paid renewals from past years are excluded, so we never create a
+ * duplicate order or falsely report an already-paid membership.
+ */
+export async function findInFlightOrder(): Promise<
+  { ok: true; order: PaymentOrder | null } | { ok: false; error?: string }
+> {
+  try {
+    const res = await fetch("/api/payment/orders?limit=5", { cache: "no-store" });
+    const data = (await res.json().catch(() => ({}))) as { orders?: unknown };
+    if (!res.ok) return { ok: false, error: errorOf(data as Record<string, unknown>) };
+    const orders = Array.isArray(data.orders) ? (data.orders as PaymentOrder[]) : [];
+    const now = Date.now();
+    const live = orders
+      .filter((o): o is PaymentOrder & { expired_at: string } => {
+        return typeof o.expired_at === "string" && Date.parse(o.expired_at) > now;
+      })
+      .sort((a, b) => Date.parse(b.expired_at) - Date.parse(a.expired_at));
+    return { ok: true, order: live[0] ?? null };
   } catch {
     return { ok: false, error: "upstream_unreachable" };
   }

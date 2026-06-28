@@ -103,19 +103,22 @@ const zh = {
 
     // 加入 · 第三步：微信扫码支付，自动确认
     payReservedFor: (name: string) => `已为你保留：${name}`,
-    payStepTitle: "微信扫码支付",
-    payStepDesc: "使用微信扫描下方二维码，完成 ¥35 年度会员支付。",
+    payStepTitle: "微信支付",
+    payStepDesc: "使用微信完成 ¥35 年度会员支付。",
+    payStepDescNative: "使用微信扫描下方二维码，完成 ¥35 年度会员支付。",
+    payStepDescH5: "点按下方按钮，前往微信完成 ¥35 年度会员支付。",
     payAutoNote: "支付成功后会自动确认，无需手动操作，我们会带你进入个人主页。",
-    payCreating: "正在生成支付二维码…",
+    payCreating: "正在生成订单…",
     payWaiting: "等待支付…扫码完成后会自动跳转。",
     payRedirecting: "正在跳转到微信支付…",
-    payConfirming: "正在确认支付结果…",
+    payConfirming: "请在微信中完成支付，完成后会自动确认。",
     paySuccess: "支付成功，正在进入个人主页…",
-    payExpired: "二维码已过期，请重新生成。",
+    payExpired: "订单已过期，请重新发起。",
     payError: "支付发起失败，请稍后重试。",
-    payRetry: "重新生成二维码",
+    payRetry: "重新发起支付",
     payBack: "返回修改名称",
     payQrAlt: "微信支付二维码",
+    payH5Cta: "前往微信支付",
   },
 
   community: {
@@ -385,20 +388,22 @@ const en: typeof zh = {
     // Join · step 3: pay with WeChat, confirmed automatically
     payReservedFor: (name: string) => `Reserved for you: ${name}`,
     payStepTitle: "Pay with WeChat",
-    payStepDesc:
-      "Scan the QR code below with WeChat to pay the ¥35 annual membership.",
+    payStepDesc: "Pay the ¥35 annual membership with WeChat.",
+    payStepDescNative: "Scan the QR code below with WeChat to pay the ¥35 annual membership.",
+    payStepDescH5: "Tap the button below to pay the ¥35 annual membership in WeChat.",
     payAutoNote:
       "Payment is confirmed automatically — nothing to do by hand. We'll take you to your profile.",
-    payCreating: "Generating your payment QR code…",
+    payCreating: "Opening your order…",
     payWaiting: "Waiting for payment… you'll be redirected once it's done.",
     payRedirecting: "Taking you to WeChat Pay…",
-    payConfirming: "Confirming your payment…",
+    payConfirming: "Finish paying in WeChat — we'll confirm automatically.",
     paySuccess: "Paid — taking you to your profile…",
-    payExpired: "This QR code has expired. Please generate a new one.",
+    payExpired: "This order has expired. Please start a new one.",
     payError: "Couldn't start the payment. Please try again.",
-    payRetry: "Generate a new QR code",
+    payRetry: "Try payment again",
     payBack: "Back to edit name",
     payQrAlt: "WeChat Pay QR code",
+    payH5Cta: "Pay in WeChat",
   },
 
   community: {

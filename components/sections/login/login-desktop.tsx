@@ -3,8 +3,7 @@
 import { AmbientGlow } from "@/components/shared/ambient";
 import { Badge } from "@/components/ui/badge";
 import { useT } from "@/lib/i18n";
-import { benefits } from "@/lib/mock/membership";
-import { BenefitItem } from "@/components/sections/membership/benefit-item";
+import { BenefitRail } from "@/components/sections/membership/benefit-rail";
 import { LoginPanel } from "./login-panel";
 
 export function LoginDesktop() {
@@ -21,11 +20,7 @@ export function LoginDesktop() {
             {t.meta.tagline}
           </h1>
           <p className="max-w-md text-muted-foreground">{t.login.subtitle}</p>
-          <div className="mt-2 flex flex-col gap-5">
-            {benefits.slice(0, 3).map((b) => (
-              <BenefitItem key={b.id} benefit={b} />
-            ))}
-          </div>
+          <BenefitRail className="mt-2 h-80" />
         </div>
         <div className="mx-auto w-full max-w-md">
           <LoginPanel />

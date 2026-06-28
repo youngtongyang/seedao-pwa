@@ -18,6 +18,7 @@ import {
   type PendingOrder,
   clearPendingOrder,
   createPaymentOrder,
+  findInFlightOrder,
   pickPayChannel,
   pollPaymentStatus,
   readPendingOrder,
@@ -270,16 +271,17 @@ function NameStep({ onContinue }: { onContinue: (snsName: string) => void }) {
 type PayState =
   | "creating"
   | "waiting" // Native: QR shown, polling
-  | "redirecting" // H5: leaving for WeChat
-  | "confirming" // H5: back from WeChat, polling
+  | "h5Ready" // H5: order open, waiting for the user to tap through to WeChat
+  | "confirming" // H5: handed off to WeChat, polling for the result
   | "paid"
   | "expired"
   | "error";
 
 /**
- * Renew membership. On desktop this shows a WeChat Native QR and polls; on
- * mobile it opens an H5 order and redirects into WeChat, stashing the order so
- * polling resumes when the user is bounced back (`resumeOrderNo`).
+ * Renew membership. On desktop this shows a WeChat Native QR and polls. On mobile
+ * it opens an H5 order and hands off to the WeChat app on a tap — without tearing
+ * down this page (so polling keeps running and confirms the moment the user comes
+ * back), stashing the order so a full-reload return resumes too (`resumeOrderNo`).
  */
 function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: string }) {
   const t = useT();
@@ -297,8 +299,38 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   useEffect(() => {
     if (orderNo) return;
     let active = true;
-    const channel = pickPayChannel();
-    createPaymentOrder({ pay_channel: channel }).then((res) => {
+
+    (async () => {
+      // Bulletproof resume: before opening a new order, adopt any still-live one
+      // the backend already has for this signed-in user. An H5 payer can return
+      // in a fresh context (iOS often hands WeChat's return to Safari, not the
+      // PWA), losing the stashed `order_no` — without this they'd be charged
+      // again. A `paid` live order means they just paid → go to profile; a
+      // `pending` one means resume paying it.
+      const existing = await findInFlightOrder();
+      if (!active) return;
+      if (existing.ok && existing.order) {
+        const o = existing.order;
+        if (o.status === "paid") {
+          clearPendingOrder();
+          setOrder(o);
+          setOrderNo(o.order_no);
+          setState("paid");
+          account.activateMembership();
+          refreshAuth();
+          router.push("/profile");
+          return;
+        }
+        if (o.status === "pending" && (o.code_url || o.h5_url)) {
+          setOrder(o);
+          setOrderNo(o.order_no);
+          setState(o.h5_url ? "h5Ready" : "waiting");
+          return;
+        }
+      }
+
+      const channel = pickPayChannel();
+      const res = await createPaymentOrder({ pay_channel: channel });
       if (!active) return;
       if (!res.ok) {
         // No valid session (e.g. resuming pay after it expired) → re-authenticate.
@@ -312,19 +344,30 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
       const o = res.order;
       setOrder(o);
       setOrderNo(o.order_no);
-      if (channel === "wechat_h5" && o.h5_url) {
-        // Stash, then hand off to WeChat — we'll resume polling on the way back.
-        savePendingOrder(o.order_no, snsName);
-        setState("redirecting");
-        window.location.href = o.h5_url;
-      } else {
-        setState("waiting");
-      }
-    });
+      // H5 (mobile): show a tap-through to WeChat. Native (desktop): show the QR.
+      setState(channel === "wechat_h5" && o.h5_url ? "h5Ready" : "waiting");
+    })();
+
     return () => {
       active = false;
     };
-  }, [orderNo, snsName, nonce, router]);
+  }, [orderNo, snsName, nonce, account, router]);
+
+  // Hand off to the WeChat app to pay. Driven by a tap so the browser treats it
+  // as a user gesture (an async-opened window would be popup-blocked). We open in
+  // a new context rather than navigating this page away: an installed PWA has a
+  // single web view, so `location.href` would tear down the app — losing the
+  // poller and the in-memory order — and WeChat's post-pay return often lands in
+  // Safari, a different context. Keeping the page alive lets us confirm the
+  // instant the user switches back. `location.href` is the fallback when the new
+  // window is blocked (same-context browsers still resume via the stashed order).
+  function handoff() {
+    if (!order?.h5_url) return;
+    savePendingOrder(order.order_no, snsName);
+    setState("confirming");
+    const win = window.open(order.h5_url, "_blank");
+    if (!win) window.location.href = order.h5_url;
+  }
 
   function retry() {
     clearPendingOrder();
@@ -334,25 +377,34 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
     setNonce((n) => n + 1);
   }
 
-  // Poll order status while waiting (Native) or confirming (H5 round-trip).
-  // WeChat's notify webhook drives the backend; we read it back and hand off.
+  // Poll order status whenever an order is open: the Native QR is up (`waiting`),
+  // the H5 tap-through is shown (`h5Ready` — a resumed order may already be paid),
+  // or we've handed off to WeChat (`confirming`). WeChat's notify webhook drives
+  // the backend; we read it back. We poll once immediately (instant confirm on
+  // entry/resume) and again whenever the tab becomes visible — so returning from
+  // the WeChat app confirms at once instead of waiting out the interval — on top
+  // of the steady poll.
   useEffect(() => {
-    if ((state !== "waiting" && state !== "confirming") || !orderNo) return;
+    if ((state !== "waiting" && state !== "h5Ready" && state !== "confirming") || !orderNo) return;
+    const pollOrderNo = orderNo; // narrowed to string for the closures below
     let active = true;
-    const id = window.setInterval(async () => {
-      const res = await pollPaymentStatus(orderNo);
-      if (!active) return;
+    let settled = false; // guard against a racing interval + visibility check
+
+    async function check() {
+      if (settled) return;
+      const res = await pollPaymentStatus(pollOrderNo);
+      if (!active || settled) return;
       if (!res.ok) {
         // Lost session can't recover by polling; transient errors keep trying.
         if (res.error === "unauthorized") {
-          window.clearInterval(id);
+          settled = true;
           clearPendingOrder();
           setState("error");
         }
         return;
       }
       if (res.status === "paid") {
-        window.clearInterval(id);
+        settled = true;
         clearPendingOrder();
         setState("paid");
         // Payment promoted the session to a member (the status route set the
@@ -362,20 +414,37 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
         router.push("/profile");
       } else if (res.status === "closed") {
         // Order no longer payable (expired / closed / failed) — offer a fresh one.
-        window.clearInterval(id);
+        settled = true;
         clearPendingOrder();
         setState("expired");
       }
-    }, POLL_INTERVAL_MS);
+    }
+
+    check();
+    const id = window.setInterval(check, POLL_INTERVAL_MS);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") check();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
       window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [state, orderNo, account, router]);
 
+  // Match the heading to what's actually on screen: the QR to scan (Native), the
+  // tap-through to WeChat (H5), or a neutral line before either is up.
+  const payDesc =
+    state === "waiting"
+      ? t.membership.payStepDescNative
+      : state === "h5Ready" || state === "confirming"
+        ? t.membership.payStepDescH5
+        : t.membership.payStepDesc;
+
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <StepHeading title={t.membership.payStepTitle} desc={t.membership.payStepDesc} />
+      <StepHeading title={t.membership.payStepTitle} desc={payDesc} />
 
       {snsName && (
         <p className="rounded-full bg-primary/10 px-3.5 py-1 text-sm font-medium text-primary">
@@ -385,7 +454,11 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
 
       {state === "waiting" && order?.code_url ? (
         <QrCode key={order.code_url} value={order.code_url} alt={t.membership.payQrAlt} size={172} />
-      ) : state === "creating" || state === "redirecting" || state === "confirming" ? (
+      ) : state === "h5Ready" ? (
+        <Button size="lg" className="w-full" onClick={handoff}>
+          {t.membership.payH5Cta}
+        </Button>
+      ) : state === "creating" || state === "confirming" ? (
         <div className="flex h-[204px] w-[204px] items-center justify-center">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
@@ -416,11 +489,11 @@ function PayStatusLine({ state }: { state: PayState }) {
         {t.membership.payWaiting}
       </p>
     );
-  if (state === "redirecting" || state === "confirming")
+  if (state === "confirming")
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin" />
-        {state === "redirecting" ? t.membership.payRedirecting : t.membership.payConfirming}
+        {t.membership.payConfirming}
       </p>
     );
   if (state === "paid")
