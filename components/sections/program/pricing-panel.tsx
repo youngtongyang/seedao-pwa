@@ -38,35 +38,37 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
   const account = useAccount();
   const [phase, setPhase] = useState<PayPhase>("idle");
   const [preview, setPreview] = useState<CheckoutPreviewResult | null>(null);
-  const [previewLoading, setPreviewLoading] = useState(true);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewAttempt, setPreviewAttempt] = useState(0);
   const [order, setOrder] = useState<CourseOrder | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
 
-  // ── 首次加载：课程价格试算（无渠道码）──
-  const loadPreview = useCallback(() => {
-    setPreviewLoading(true);
-    setPreviewError(null);
+  // ── 课程价格试算（无渠道码）；会员态水合后自动按会员价重算 ──
+  useEffect(() => {
+    let stale = false;
     previewCheckout({
       course_id: courseId,
       sku_id: skuId,
       apply_member_discount: account.isMember,
     }).then((outcome) => {
-      setPreviewLoading(false);
+      if (stale) return;
       if (outcome.ok) {
         setPreview(outcome.data);
       } else {
         setPreviewError(outcome.error ?? t.program.priceComputeError);
       }
     });
-  }, [t]);
+    return () => {
+      stale = true;
+    };
+  }, [previewAttempt, account.isMember, t]);
 
-  const loadedRef = useRef(false);
-  useEffect(() => {
-    if (loadedRef.current) return;
-    loadedRef.current = true;
-    loadPreview();
-  }, [loadPreview]);
+  const retryPreview = useCallback(() => {
+    setPreviewError(null);
+    setPreviewAttempt((n) => n + 1);
+  }, []);
+
+  const previewLoading = !preview && !previewError;
 
   // ── 实付金额（分 → 元）──
   const finalPriceYuan = preview ? preview.final_amount / 100 : null;
@@ -93,7 +95,7 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
   }, [account.isMember]);
 
   // ── 轮询支付状态 ──
-  const pollRef = useRef<ReturnType<typeof setInterval>>();
+  const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   useEffect(() => {
     if (phase !== "waiting" || !order) return;
     pollRef.current = setInterval(() => {
@@ -110,7 +112,7 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
   }, [phase, order, onPaid]);
 
   // ── 加载态 ──
-  if (previewLoading && !preview) {
+  if (previewLoading) {
     return (
       <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card p-7">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -123,7 +125,7 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
     return (
       <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card p-7">
         <p className="text-sm text-destructive">{previewError}</p>
-        <Button variant="outline" size="sm" onClick={loadPreview}>{t.common.retry}</Button>
+        <Button variant="outline" size="sm" onClick={retryPreview}>{t.common.retry}</Button>
       </div>
     );
   }

@@ -153,7 +153,7 @@ function mockOrder(orderNo: string, p: ParsedOrder, status: PaymentStatus): Paym
 const mock = {
   previewCoupon(input: CouponPreviewInput): Promise<ApiResult<CouponPreviewResult>> {
     const code = input.coupon_code.trim().toUpperCase();
-    // Same valid codes as cross-border mock for local dev consistency
+    // Fixed set of valid codes for local dev
     const VALID_COUPONS: Record<string, number> = {
       AI2025: 2000, CROSS20: 2000, SEEDAO20: 2000, CROSSBORDER: 2000,
       SAVE500: 500,
