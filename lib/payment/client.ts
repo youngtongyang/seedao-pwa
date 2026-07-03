@@ -1,4 +1,4 @@
-import type { CreateOrderInput, PayChannel, PaymentOrder, PaymentStatus } from "./types";
+import type { CouponPreviewResult, CreateOrderInput, PayChannel, PaymentOrder, PaymentStatus } from "./types";
 
 /**
  * Client entry points for the membership-renewal payment flow. These call our
@@ -105,6 +105,36 @@ export async function pollPaymentStatus(orderNo: string): Promise<PollOutcome> {
       status: data.status as PaymentStatus,
       membershipExpiresAt: data.membership_expires_at as string | null | undefined,
     };
+  } catch {
+    return { ok: false, error: "upstream_unreachable" };
+  }
+}
+
+export type CouponPreviewOutcome =
+  | { ok: true; data: CouponPreviewResult }
+  | { ok: false; error?: string };
+
+const COUPON_PREVIEW_URL = "https://api.seedao.xyz/v1/payments/coupons/preview";
+
+/**
+ * 优惠券码试算 — 直调后端，不走 BFF 代理。
+ * JWT 可选：登录用户通过 credentials: 'include' 自动带 cookie。
+ */
+export async function previewCouponCode(
+  couponCode: string,
+): Promise<CouponPreviewOutcome> {
+  try {
+    const res = await fetch(COUPON_PREVIEW_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ coupon_code: couponCode }),
+      credentials: "include",
+    });
+    const env = (await res.json().catch(() => ({}))) as { code?: number; data?: CouponPreviewResult };
+    if (env.code === 0 && env.data) {
+      return { ok: true, data: env.data };
+    }
+    return { ok: false, error: "invalid_param" };
   } catch {
     return { ok: false, error: "upstream_unreachable" };
   }

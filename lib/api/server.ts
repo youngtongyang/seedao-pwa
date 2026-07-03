@@ -58,6 +58,12 @@ function errorKeyForCode(code: number): ApiErrorKey {
       return "phone_exists";
     case ErrCode.PHONE_NOT_REGISTERED:
       return "phone_not_registered";
+    case ErrCode.COURSE_NOT_FOUND:
+      return "course_not_found";
+    case ErrCode.COURSE_SKU_NOT_ON_SALE:
+      return "course_sku_not_on_sale";
+    case ErrCode.COURSE_MEMBER_LOGIN_REQUIRED:
+      return "course_member_login_required";
     case ErrCode.PAYMENT_ORDER_NOT_FOUND:
       return "payment_order_not_found";
     case ErrCode.PAYMENT_ORDER_INVALID_STATE:

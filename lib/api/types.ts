@@ -32,6 +32,18 @@ export const ErrCode = {
   PAYMENT_ORDER_INVALID_STATE: 40008,
   /** Login attempted with a phone that has no account yet. */
   PHONE_NOT_REGISTERED: 40009,
+  /** Course not found. */
+  COURSE_NOT_FOUND: 40014,
+  /** Course SKU is not on sale. */
+  COURSE_SKU_NOT_ON_SALE: 40015,
+  /** Member discount requires login. */
+  COURSE_MEMBER_LOGIN_REQUIRED: 40016,
+  /** Order token missing for anonymous order query. */
+  COURSE_ORDER_TOKEN_REQUIRED: 40017,
+  /** Order token invalid. */
+  COURSE_ORDER_TOKEN_INVALID: 40018,
+  /** Order already claimed by another user. */
+  COURSE_ORDER_ALREADY_CLAIMED: 40019,
   UNAUTHORIZED: 40100,
   TOO_MANY_REQUESTS: 42901,
   INTERNAL: 50000,
@@ -53,6 +65,9 @@ export type ApiErrorKey =
   | "phone_not_registered"
   | "payment_order_not_found"
   | "payment_order_invalid_state"
+  | "course_not_found"
+  | "course_sku_not_on_sale"
+  | "course_member_login_required"
   | "unauthorized"
   | "rate_limited"
   | "internal"
