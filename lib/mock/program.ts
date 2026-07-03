@@ -1,5 +1,3 @@
-import type { Localized } from "@/lib/i18n/config";
-
 /** 活动付费项目配置 */
 
 export const programProject = {
