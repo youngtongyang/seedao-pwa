@@ -239,6 +239,7 @@ const zh = {
   program: {
     eyebrow: "SeeDAO AI 共学课",
     title: "30天做跨境电商，发展AI第二副业",
+    headline: "30天，把 AI 变成你的第二双手",
     subtitle: "从零开始做跨境电商。不囤货、不交保证金，用 AI 跑通选品→上架→出单全流程。",
 
     // Hero stats
@@ -597,6 +598,7 @@ const en: typeof zh = {
   program: {
     eyebrow: "SeeDAO AI Co-Learning",
     title: "30-Day Cross-Border E-Commerce — Build Your AI Side Hustle",
+    headline: "30 days to turn AI into your second pair of hands",
     subtitle: "Start cross-border e-commerce from zero. No inventory, no deposit — run the full pipeline from product selection to sales with AI.",
 
     // Hero stats

@@ -22,14 +22,12 @@ export function PricingPanel() {
     <div className="flex flex-col gap-6 rounded-3xl border border-border bg-card p-7">
       <h3 className="text-center text-xl font-bold">{t.program.pricingTitle}</h3>
 
-      {/* 价格展示 */}
       <div className="space-y-4">
         <div className="flex items-end justify-center gap-1">
           <span className="text-2xl font-semibold text-muted-foreground">¥</span>
           <span className="text-5xl font-black tracking-tight">{finalPrice}</span>
         </div>
 
-        {/* 原价划线 + 早鸟标签 */}
         <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
           <span className="line-through">¥{basePrice}</span>
           <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
@@ -37,7 +35,6 @@ export function PricingPanel() {
           </span>
         </div>
 
-        {/* 会员/非会员提示 */}
         {isMember ? (
           <div className="flex items-start gap-2 rounded-xl bg-accent/8 px-3.5 py-3 text-sm text-accent-foreground">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-accent" />
@@ -64,7 +61,6 @@ export function PricingPanel() {
         )}
       </div>
 
-      {/* 小助手微信 */}
       <div className="flex flex-col items-center gap-3 rounded-xl bg-muted/50 py-4">
         <p className="text-sm font-medium">添加小助手微信完成支付</p>
         <QRFrame src="/qr/ai_aide.png" alt="小助手微信二维码" size={160} withBadge={false} />
