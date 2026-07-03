@@ -3,6 +3,8 @@ import "server-only";
 import { type ApiResult, call } from "@/lib/api/server";
 import { USE_MOCK } from "@/lib/api/config";
 import type {
+  CouponPreviewInput,
+  CouponPreviewResult,
   CreateOrderInput,
   OrderListResult,
   OrderStatusResult,
@@ -26,18 +28,33 @@ import type {
  * simulation so the whole flow is exercisable locally without WeChat.
  */
 
-/** `POST /v1/payments/orders` — open a renewal order. */
-export function createOrder(input: CreateOrderInput, token: string): Promise<ApiResult<PaymentOrder>> {
-  if (USE_MOCK) return mock.createOrder(input);
-  return call<PaymentOrder>("/payments/orders", {
+/** `POST /v1/payments/coupons/preview` [NEW] — trial-run a coupon code. */
+export function previewCoupon(
+  input: CouponPreviewInput,
+  token?: string,
+): Promise<ApiResult<CouponPreviewResult>> {
+  if (USE_MOCK) return mock.previewCoupon(input);
+  return call<CouponPreviewResult>("/payments/coupons/preview", {
     method: "POST",
     token,
     body: {
-      product_type: input.product_type ?? "membership_renew",
+      product_type: input.product_type,
       days: input.days,
-      pay_channel: input.pay_channel,
+      coupon_code: input.coupon_code,
     },
   });
+}
+
+/** `POST /v1/payments/orders` — open a renewal order. */
+export function createOrder(input: CreateOrderInput, token: string): Promise<ApiResult<PaymentOrder>> {
+  if (USE_MOCK) return mock.createOrder(input);
+  const body: Record<string, unknown> = {
+    product_type: input.product_type ?? "membership_renew",
+    days: input.days,
+    pay_channel: input.pay_channel,
+  };
+  if (input.coupon_code) body.coupon_code = input.coupon_code;
+  return call<PaymentOrder>("/payments/orders", { method: "POST", token, body });
 }
 
 /** `GET /v1/payments/orders?limit=…` — the caller's order history. */
@@ -134,6 +151,28 @@ function mockOrder(orderNo: string, p: ParsedOrder, status: PaymentStatus): Paym
 }
 
 const mock = {
+  previewCoupon(input: CouponPreviewInput): Promise<ApiResult<CouponPreviewResult>> {
+    const code = input.coupon_code.trim().toUpperCase();
+    // Same valid codes as cross-border mock for local dev consistency
+    const VALID_COUPONS: Record<string, number> = {
+      AI2025: 2000, CROSS20: 2000, SEEDAO20: 2000, CROSSBORDER: 2000,
+      SAVE500: 500,
+    };
+    const discount = VALID_COUPONS[code];
+    if (discount !== undefined) {
+      return Promise.resolve({
+        ok: true,
+        data: {
+          coupon_code: code,
+          original_amount: MEMBERSHIP_FEE_CENTS,
+          discount_amount: discount,
+          final_amount: MEMBERSHIP_FEE_CENTS - discount,
+          currency: "CNY",
+        },
+      });
+    }
+    return Promise.resolve({ ok: false, error: "invalid_param", status: 400, code: 40001 });
+  },
   createOrder(input: CreateOrderInput): Promise<ApiResult<PaymentOrder>> {
     const now = Date.now();
     const p: ParsedOrder = {

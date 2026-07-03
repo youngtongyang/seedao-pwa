@@ -235,6 +235,75 @@ const zh = {
     },
   },
 
+  program: {
+    eyebrow: "SeeDAO AI 共学课",
+    title: "30天做跨境电商，发展AI第二副业",
+    subtitle: "从零开始做跨境电商。不囤货、不交保证金，用 AI 跑通选品→上架→出单全流程。",
+
+    // Hero stats
+    statDuration: "30 天",
+    statSessions: "7 个关卡",
+
+    // Benefits section
+    benefitsTitle: "你将学到什么",
+    benefitsSubtitle: "六大模块，从 0 到 1 跑通 AI 跨境电商全流程。",
+
+    // Pricing
+    pricingTitle: "报名加入",
+    pricingBase: "原价",
+    pricingEarlyBird: "早鸟价",
+    pricingYouSave: "立省 ¥{amount}",
+    pricingMemberBadge: "SEEDAO 会员 8 折",
+    pricingMemberNote: "检测到你已是 SEEDAO 会员，自动享受 8 折优惠。",
+    pricingNotMember: "还不是 SEEDAO 会员？",
+    pricingNotMemberCta: "注册成为会员，立享 8 折",
+    pricingNotMemberDesc: "会员报名享 8 折优惠后再报名本课程更划算。",
+
+    // Promo code
+    promoLabel: "优惠码",
+    promoPlaceholder: "输入优惠码",
+    promoValidating: "验证中…",
+    promoValid: "优惠码已生效，减免 ¥{deduction}",
+    promoInvalid: "优惠码无效或已过期",
+    promoApply: "验证",
+
+    // Payment
+    payCta: "微信扫码支付",
+    payAmount: (amount: number) => `¥${amount}`,
+    payQrAlt: "微信支付二维码",
+    payCreating: "正在生成支付二维码…",
+    payWaiting: "等待支付… 扫码完成后会自动确认。",
+    paySimulating: "模拟支付中…",
+    paySuccess: "支付成功！",
+    payError: "订单创建失败，请稍后重试。",
+
+    // Success
+    successTitle: "🎉 报名成功！",
+    successDesc: "你已经成功报名 AI 跨境电商共学计划。请完成以下步骤以确保顺利入学。",
+    successScreenshotTitle: "① 截图保存",
+    successScreenshotDesc: "请截屏保存此订单页面，作为你的报名凭证。",
+    successAssistantTitle: "② 添加小助手微信",
+    successAssistantDesc: "扫码添加社区小助手，获取课程通知与一对一支持。",
+    successAssistantQrAlt: "小助手微信二维码",
+    successFormTitle: "③ 填写报名表",
+    successFormDesc: "点击下方按钮，前往飞书表单完善你的个人信息与学习目标。",
+    successFormCta: "前往填写报名表",
+    successFormNote: "报名表将在新标签页中打开。",
+    successMemberTitle: "④ 成为 SEEDAO 会员",
+    successMemberDesc: "还没加入 SEEDAO？会员可享受本次课程及未来所有活动 8 折优惠。",
+    successMemberCta: "了解 SEEDAO 会员",
+    successBackHome: "返回首页",
+
+    // QR payment modal
+    qrDialogTitle: "微信扫码支付",
+    qrDialogHint: "请使用微信扫描下方二维码完成支付",
+    qrDialogSimulate: "模拟支付成功",
+    qrDialogCancel: "取消支付",
+
+    // Errors
+    priceComputeError: "价格计算异常，请刷新后重试。",
+  },
+
   profile: {
     title: "个人主页",
     subtitle: "你的 SEEDAO 身份信息。",
@@ -521,6 +590,75 @@ const en: typeof zh = {
       upstream_unreachable: "Can't reach the service right now. Please try again later.",
       unknown_error: "Something went wrong. Please try again.",
     },
+  },
+
+  program: {
+    eyebrow: "SeeDAO AI Co-Learning",
+    title: "30-Day Cross-Border E-Commerce — Build Your AI Side Hustle",
+    subtitle: "Start cross-border e-commerce from zero. No inventory, no deposit — run the full pipeline from product selection to sales with AI.",
+
+    // Hero stats
+    statDuration: "30 days",
+    statSessions: "7 stages",
+
+    // Benefits section
+    benefitsTitle: "What you'll learn",
+    benefitsSubtitle: "Six modules to take you from zero to one in AI cross-border e-commerce.",
+
+    // Pricing
+    pricingTitle: "Enroll now",
+    pricingBase: "Regular price",
+    pricingEarlyBird: "Early bird",
+    pricingYouSave: "Save ¥{amount}",
+    pricingMemberBadge: "SEEDAO member 20% off",
+    pricingMemberNote: "You're a SEEDAO member — 20% off applied automatically.",
+    pricingNotMember: "Not a SEEDAO member yet?",
+    pricingNotMemberCta: "Join SEEDAO and save 20%",
+    pricingNotMemberDesc: "Become a member for 20% off, then enroll in this program for even more savings.",
+
+    // Promo code
+    promoLabel: "Promo code",
+    promoPlaceholder: "Enter promo code",
+    promoValidating: "Validating…",
+    promoValid: "Promo code applied — ¥{deduction} off",
+    promoInvalid: "Invalid or expired promo code",
+    promoApply: "Apply",
+
+    // Payment
+    payCta: "Pay with WeChat",
+    payAmount: (amount: number) => `¥${amount}`,
+    payQrAlt: "WeChat Pay QR code",
+    payCreating: "Generating payment QR code…",
+    payWaiting: "Waiting for payment… confirmation is automatic.",
+    paySimulating: "Simulating payment…",
+    paySuccess: "Payment successful!",
+    payError: "Failed to create order. Please try again later.",
+
+    // Success
+    successTitle: "🎉 Enrollment confirmed!",
+    successDesc: "You've successfully enrolled in the AI Cross-Border E-Commerce Program. Complete the steps below to get started.",
+    successScreenshotTitle: "① Save a screenshot",
+    successScreenshotDesc: "Take a screenshot of this order page as your enrollment confirmation.",
+    successAssistantTitle: "② Add our WeChat assistant",
+    successAssistantDesc: "Scan to add our community assistant for course updates and 1-on-1 support.",
+    successAssistantQrAlt: "WeChat assistant QR code",
+    successFormTitle: "③ Fill in the registration form",
+    successFormDesc: "Click the button below to complete your profile and learning goals on Feishu.",
+    successFormCta: "Go to registration form",
+    successFormNote: "The form will open in a new tab.",
+    successMemberTitle: "④ Become a SEEDAO member",
+    successMemberDesc: "Not a SEEDAO member yet? Members get 20% off this program and all future events.",
+    successMemberCta: "Learn about SEEDAO membership",
+    successBackHome: "Back to home",
+
+    // QR payment modal
+    qrDialogTitle: "WeChat Pay",
+    qrDialogHint: "Scan the QR code below with WeChat to complete payment",
+    qrDialogSimulate: "Simulate payment success",
+    qrDialogCancel: "Cancel payment",
+
+    // Errors
+    priceComputeError: "Price calculation error. Please refresh and try again.",
   },
 
   profile: {
