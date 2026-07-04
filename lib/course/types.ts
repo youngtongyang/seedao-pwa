@@ -35,7 +35,8 @@ export type CheckoutPreviewResult = {
   course_id: string;
   sku_id: string;
   original_amount: number;       // 分
-  discounts: DiscountItem[];
+  /** 线上后端在无折扣时返回 null，而非空数组 */
+  discounts: DiscountItem[] | null;
   final_amount: number;          // 分（当前身份应付价）
   amount_if_member?: number;     // 分（登录会员价）
   member_discount?: MemberDiscountInfo;
