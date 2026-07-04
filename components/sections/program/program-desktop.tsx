@@ -25,7 +25,7 @@ export function ProgramDesktop() {
               {t.program.eyebrow}
             </span>
             <h1 className="max-w-lg text-4xl font-black leading-[1.15] tracking-tight lg:text-5xl">
-              {t.program.headline || t.program.title}
+              {t.program.headline}
             </h1>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">{t.program.subtitle}</p>
             <div className="mt-8 flex gap-10">

@@ -268,6 +268,7 @@ const zh = {
     promoValid: "优惠码已生效，减免 ¥{deduction}",
     promoInvalid: "优惠码无效或已过期",
     promoApply: "验证",
+    promoRemoveRetry: "移除优惠码重试",
 
     // Payment
     payCta: "微信扫码支付",
@@ -301,9 +302,15 @@ const zh = {
     qrDialogHint: "请使用微信扫描下方二维码完成支付",
     qrDialogSimulate: "模拟支付成功",
     qrDialogCancel: "取消支付",
+    qrReopen: "重新出示二维码",
 
     // Errors
     priceComputeError: "价格计算异常，请刷新后重试。",
+    errors: {
+      course_not_found: "课程不存在或已下架，请刷新后重试。",
+      course_member_login_required: "会员优惠需登录后才能使用，请先登录。",
+      course_order_expired: "支付超时，订单已过期，请重新发起支付。",
+    },
   },
 
   profile: {
@@ -627,6 +634,7 @@ const en: typeof zh = {
     promoValid: "Promo code applied — ¥{deduction} off",
     promoInvalid: "Invalid or expired promo code",
     promoApply: "Apply",
+    promoRemoveRetry: "Remove code & retry",
 
     // Payment
     payCta: "Pay with WeChat",
@@ -660,9 +668,15 @@ const en: typeof zh = {
     qrDialogHint: "Scan the QR code below with WeChat to complete payment",
     qrDialogSimulate: "Simulate payment success",
     qrDialogCancel: "Cancel payment",
+    qrReopen: "Show QR code again",
 
     // Errors
     priceComputeError: "Price calculation error. Please refresh and try again.",
+    errors: {
+      course_not_found: "This course doesn't exist or is no longer available. Please refresh and try again.",
+      course_member_login_required: "The member discount requires logging in first.",
+      course_order_expired: "The order expired before payment completed. Please start again.",
+    },
   },
 
   profile: {

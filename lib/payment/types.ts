@@ -46,26 +46,6 @@ export type CreateOrderInput = {
   coupon_code?: string;
 };
 
-/** Body for `POST /v1/payments/coupons/preview` [NEW] — trial-run a coupon. */
-export type CouponPreviewInput = {
-  product_type: ProductType;
-  days?: number;
-  coupon_code: string;
-};
-
-/** `POST /v1/payments/coupons/preview` response. */
-export type CouponPreviewResult = {
-  coupon_code: string;
-  /** Amount in 分 before coupon (server-side price). */
-  original_amount: number;
-  /** Coupon discount in 分. */
-  discount_amount: number;
-  /** Amount in 分 after coupon. */
-  final_amount: number;
-  /** ISO 4217, e.g. `"CNY"`. */
-  currency?: string;
-};
-
 /**
  * Created order — what we need to start the payment. For `wechat_native` the
  * backend returns `code_url` (a `weixin://…` string we render to a QR); for

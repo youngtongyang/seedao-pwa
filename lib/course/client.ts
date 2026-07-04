@@ -68,6 +68,23 @@ export async function queryCourseOrder(orderNo: string, orderToken?: string): Pr
   }
 }
 
+/** 关闭未支付课程订单 — JWT 或 order_token；用户取消支付时尽力而为地调用 */
+export async function closeCourseOrder(orderNo: string, orderToken?: string): Promise<StatusOutcome> {
+  try {
+    const token = orderToken ?? readOrderToken(orderNo);
+    const res = await fetch(`/api/course/orders/${encodeURIComponent(orderNo)}/close`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(token ? { order_token: token } : {}),
+    });
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: errorOf(data) };
+    return { ok: true, data: data as unknown as CourseOrderStatus };
+  } catch {
+    return { ok: false, error: "upstream_unreachable" };
+  }
+}
+
 /** 认领无主订单 — 登录后绑定到当前账号 */
 export async function claimCourseOrder(orderNo: string, orderToken: string): Promise<StatusOutcome> {
   try {
