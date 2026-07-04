@@ -3,6 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Pin the workspace root (multiple lockfiles exist higher up the tree).
   turbopack: { root: __dirname },
+  async redirects() {
+    return [
+      // Legacy URL — the cross-border course page moved under /program.
+      {
+        source: "/cross-border",
+        destination: "/program/ecommerce",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

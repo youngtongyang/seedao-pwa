@@ -32,7 +32,7 @@ export function ProgramMobile() {
           {t.program.eyebrow}
         </span>
         <h1 className="text-2xl font-black leading-[1.2] tracking-tight">
-          {t.program.headline || t.program.title}
+          {t.program.headline}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{t.program.subtitle}</p>
 

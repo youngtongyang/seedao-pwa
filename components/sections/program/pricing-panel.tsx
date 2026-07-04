@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { QrCode } from "@/components/shared/qr-code";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -18,12 +19,17 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useAccount } from "@/lib/account";
-import { previewCheckout, createCourseOrder, queryCourseOrder } from "@/lib/course/client";
+import { closeCourseOrder, previewCheckout, createCourseOrder, queryCourseOrder } from "@/lib/course/client";
 import type { CheckoutPreviewResult, CourseOrder } from "@/lib/course/types";
 import { useT } from "@/lib/i18n";
+import type { Messages } from "@/lib/i18n/messages";
 import { programProject } from "@/lib/mock/program";
 
 const POLL_INTERVAL_MS = 3000;
+// 客户端轮询超时只做兜底（服务端 paid/closed 状态始终优先），预算按本地时钟的
+// 流逝时间计——直接对比 Date.now() 与服务端 expired_at 会被设备时钟偏差误杀。
+const POLL_MIN_BUDGET_MS = 2 * 60 * 1000;
+const POLL_MAX_BUDGET_MS = 15 * 60 * 1000;
 const { courseId, skuId } = programProject;
 
 /** 格式化金额（元），整数不显示小数位，如 299；非整数保留 2 位，如 0.30 */
@@ -31,56 +37,91 @@ function fmtYuan(yuan: number): string {
   return Number.isInteger(yuan) ? String(yuan) : yuan.toFixed(2);
 }
 
+/** 机器错误码 → 本地化文案；查不到的错误码回退到 fallback */
+function localizeError(t: Messages, key: string | undefined, fallback: string): string {
+  if (!key) return fallback;
+  const program = t.program.errors as Record<string, string>;
+  const login = t.login.errors as Record<string, string>;
+  return program[key] ?? login[key] ?? fallback;
+}
+
 type PayPhase = "idle" | "creating" | "waiting" | "paid" | "error";
+
+/** 一次试算请求的结果，连同它所回答的请求 key（用于识别在途请求与过期结果） */
+type PreviewState =
+  | { status: "ok"; data: CheckoutPreviewResult; key: string }
+  | { status: "error"; errorKey?: string; key: string };
 
 export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) {
   const t = useT();
   const account = useAccount();
   const [phase, setPhase] = useState<PayPhase>("idle");
-  const [preview, setPreview] = useState<CheckoutPreviewResult | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewState, setPreviewState] = useState<PreviewState | null>(null);
   const [previewAttempt, setPreviewAttempt] = useState(0);
+  const [channelCode, setChannelCode] = useState<string | undefined>(undefined);
+  const [payErrorKey, setPayErrorKey] = useState<string | undefined>(undefined);
   const [order, setOrder] = useState<CourseOrder | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
 
-  // ── 课程价格试算（无渠道码）；会员态水合后自动按会员价重算 ──
+  // ── 课程价格试算：等会员态水合后再请求（避免水合前后重复预检）；
+  //    会员态或渠道码变化时按新身份重算，失败时不保留旧价格 ──
+  const requestKey = account.hydrated
+    ? JSON.stringify([previewAttempt, account.isMember, channelCode ?? null])
+    : null;
+
   useEffect(() => {
+    if (requestKey === null) return;
     let stale = false;
     previewCheckout({
       course_id: courseId,
       sku_id: skuId,
+      channel_code: channelCode,
       apply_member_discount: account.isMember,
     }).then((outcome) => {
       if (stale) return;
-      if (outcome.ok) {
-        setPreview(outcome.data);
-      } else {
-        setPreviewError(outcome.error ?? t.program.priceComputeError);
-      }
+      setPreviewState(
+        outcome.ok
+          ? { status: "ok", data: outcome.data, key: requestKey }
+          : { status: "error", errorKey: outcome.error, key: requestKey },
+      );
     });
     return () => {
       stale = true;
     };
-  }, [previewAttempt, account.isMember, t]);
+  }, [requestKey, account.isMember, channelCode]);
 
   const retryPreview = useCallback(() => {
-    setPreviewError(null);
     setPreviewAttempt((n) => n + 1);
   }, []);
 
-  const previewLoading = !preview && !previewError;
+  const applyPromo = useCallback((code: string) => {
+    setChannelCode(code || undefined);
+  }, []);
+
+  const preview = previewState?.status === "ok" ? previewState.data : null;
+  const previewErrorKey = previewState?.status === "error" ? previewState.errorKey : undefined;
+  const previewFailed = previewState?.status === "error";
+  const previewFetching = requestKey !== null && previewState?.key !== requestKey;
 
   // ── 实付金额（分 → 元）──
   const finalPriceYuan = preview ? preview.final_amount / 100 : null;
   const originalPriceYuan = preview ? preview.original_amount / 100 : null;
   const amountIfMemberYuan = preview?.amount_if_member ? preview.amount_if_member / 100 : null;
 
+  // ── 渠道码状态：以试算返回的 discounts 为准，保证展示价与下单价一致 ──
+  const channelDiscount = preview?.discounts?.find((d) => d.type === "channel");
+  const appliedChannelCode = channelDiscount?.applied ? channelCode : undefined;
+  const promoDeductionYuan = channelDiscount?.applied ? channelDiscount.amount / 100 : null;
+  const promoInvalid = !!channelCode && !previewFetching && !!preview && !channelDiscount?.applied;
+
   // ── 创建订单 & 打开 QR ──
   const handlePay = useCallback(() => {
+    setPayErrorKey(undefined);
     setPhase("creating");
     createCourseOrder({
       course_id: courseId,
       sku_id: skuId,
+      channel_code: appliedChannelCode,
       apply_member_discount: account.isMember,
       pay_channel: "wechat_native",
     }).then((outcome) => {
@@ -89,43 +130,96 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
         setPhase("waiting");
         setQrOpen(true);
       } else {
+        setPayErrorKey(outcome.error);
         setPhase("error");
       }
     });
-  }, [account.isMember]);
+  }, [account.isMember, appliedChannelCode]);
 
-  // ── 轮询支付状态 ──
+  const cancelPay = useCallback(() => {
+    const abandoned = order;
+    setQrOpen(false);
+    setOrder(null);
+    setPhase("idle");
+    // 尽力而为地关闭后端订单，避免已展示过的二维码在取消后仍可支付
+    if (abandoned) void closeCourseOrder(abandoned.order_no);
+  }, [order]);
+
+  // ── 轮询支付状态：订单被关闭或超出轮询预算时终止并提示重新发起 ──
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const deadlineRef = useRef<{ orderNo: string; deadline: number } | null>(null);
   useEffect(() => {
     if (phase !== "waiting" || !order) return;
+    let disposed = false;
+    let settled = false;
+    // 截止时间按订单锚定：effect 因父级重渲染重建时不重置轮询预算
+    if (deadlineRef.current?.orderNo !== order.order_no) {
+      const ttlMs = order.expired_at ? Date.parse(order.expired_at) - Date.now() : Number.NaN;
+      const budgetMs = Number.isNaN(ttlMs)
+        ? POLL_MAX_BUDGET_MS
+        : Math.min(Math.max(ttlMs, POLL_MIN_BUDGET_MS), POLL_MAX_BUDGET_MS);
+      deadlineRef.current = { orderNo: order.order_no, deadline: Date.now() + budgetMs };
+    }
+    const deadline = deadlineRef.current.deadline;
+    const stop = () => {
+      settled = true;
+      clearInterval(pollRef.current);
+    };
+    const expire = () => {
+      stop();
+      setQrOpen(false);
+      setOrder(null);
+      setPayErrorKey("course_order_expired");
+      setPhase("error");
+      // 与取消路径对称：本地判定过期后尽力关闭后端订单，避免二维码残留可支付
+      void closeCourseOrder(order.order_no);
+    };
     pollRef.current = setInterval(() => {
       queryCourseOrder(order.order_no).then((r) => {
+        if (disposed || settled) return;
+        // 已支付优先于本地超时判定，避免在到期边界把已付款用户判为过期
         if (r.ok && r.data.status === "paid") {
-          clearInterval(pollRef.current);
-          setPhase("paid");
+          stop();
           setQrOpen(false);
+          setPhase("paid");
           onPaid(order.order_no);
+          return;
+        }
+        if ((r.ok && r.data.status === "closed") || Date.now() > deadline) {
+          expire();
         }
       });
     }, POLL_INTERVAL_MS);
-    return () => clearInterval(pollRef.current);
+    return () => {
+      disposed = true;
+      clearInterval(pollRef.current);
+    };
   }, [phase, order, onPaid]);
 
-  // ── 加载态 ──
-  if (previewLoading) {
+  // ── 加载态 / 试算失败 ──
+  if (!preview) {
+    if (previewFetching || !previewFailed) {
+      return (
+        <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card p-7">
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card p-7">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">{t.common.loading}</p>
-      </div>
-    );
-  }
-
-  if (previewError && !preview) {
-    return (
-      <div className="flex flex-col items-center gap-4 rounded-3xl border border-border bg-card p-7">
-        <p className="text-sm text-destructive">{previewError}</p>
-        <Button variant="outline" size="sm" onClick={retryPreview}>{t.common.retry}</Button>
+        <p className="text-sm text-destructive">
+          {localizeError(t, previewErrorKey, t.program.priceComputeError)}
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={retryPreview}>{t.common.retry}</Button>
+          {/* 渠道码可能正是试算失败的原因；提供移除入口，避免困在错误卡里反复重试 */}
+          {channelCode && (
+            <Button variant="ghost" size="sm" onClick={() => setChannelCode(undefined)}>
+              {t.program.promoRemoveRetry}
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
@@ -150,10 +244,22 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
       </div>
 
       {phase === "idle" && (
-        <Button size="lg" className="w-full text-base" onClick={handlePay}>
-          {finalPriceYuan !== null ? `${t.program.payCta} ¥${fmtYuan(finalPriceYuan)}` : t.program.payCta}
-          <ArrowRight className="size-4" />
-        </Button>
+        <>
+          <PromoCodeField
+            appliedCode={channelCode}
+            onApply={applyPromo}
+            validating={!!channelCode && previewFetching}
+            appliedDeductionYuan={promoDeductionYuan}
+            invalid={promoInvalid}
+            disabled={previewFetching}
+          />
+          <Button size="lg" className="w-full text-base" onClick={handlePay} disabled={previewFetching}>
+            {finalPriceYuan !== null ? `${t.program.payCta} ¥${fmtYuan(finalPriceYuan)}` : t.program.payCta}
+            {previewFetching
+              ? <Loader2 className="size-4 animate-spin" />
+              : <ArrowRight className="size-4" />}
+          </Button>
+        </>
       )}
 
       {(phase === "creating" || phase === "waiting") && (
@@ -162,6 +268,16 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
           <p className="text-sm text-muted-foreground">
             {phase === "creating" ? t.program.payCreating : t.program.payWaiting}
           </p>
+          {phase === "waiting" && !qrOpen && (
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setQrOpen(true)}>
+                {t.program.qrReopen}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={cancelPay}>
+                {t.program.qrDialogCancel}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -175,8 +291,17 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
       {phase === "error" && (
         <div className="flex flex-col items-center gap-3 rounded-xl bg-destructive/10 p-5 text-center">
           <XCircle className="size-10 text-destructive" />
-          <p className="text-sm text-destructive">{t.program.payError || "订单创建失败"}</p>
-          <Button variant="outline" size="sm" onClick={() => setPhase("idle")}>{t.common.retry}</Button>
+          <p className="text-sm text-destructive">
+            {localizeError(t, payErrorKey, t.program.payError)}
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {payErrorKey === "course_member_login_required" && (
+              <Button asChild size="sm">
+                <Link href="/login">{t.nav.login}</Link>
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setPhase("idle")}>{t.common.retry}</Button>
+          </div>
         </div>
       )}
 
@@ -198,6 +323,57 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
           </div>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+// ── PromoCodeField ──────────────────────────────────────────────────────────────
+
+function PromoCodeField({
+  appliedCode,
+  onApply,
+  validating,
+  appliedDeductionYuan,
+  invalid,
+  disabled,
+}: {
+  appliedCode?: string;
+  onApply: (code: string) => void;
+  validating: boolean;
+  appliedDeductionYuan: number | null;
+  invalid: boolean;
+  disabled: boolean;
+}) {
+  const t = useT();
+  // 初值取当前生效的渠道码：字段随支付阶段卸载重挂时不与已生效状态脱节
+  const [value, setValue] = useState(appliedCode ?? "");
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-medium text-muted-foreground">{t.program.promoLabel}</p>
+      <div className="flex gap-2">
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={t.program.promoPlaceholder}
+          disabled={disabled}
+          className="h-10"
+        />
+        <Button
+          variant="outline"
+          className="h-10 shrink-0"
+          onClick={() => onApply(value.trim())}
+          disabled={disabled || validating}
+        >
+          {validating ? t.program.promoValidating : t.program.promoApply}
+        </Button>
+      </div>
+      {appliedDeductionYuan !== null && (
+        <p className="text-xs text-success">
+          {t.program.promoValid.replace("{deduction}", fmtYuan(appliedDeductionYuan))}
+        </p>
+      )}
+      {invalid && <p className="text-xs text-destructive">{t.program.promoInvalid}</p>}
     </div>
   );
 }

@@ -9,36 +9,6 @@ export const programProject = {
   skuId: "standard",
 } as const;
 
-export const programPricing = {
-  /** 原价（单位：元，仅用于展示划线） */
-  basePrice: 599,
-  /** 早鸟价（单位：元，实际计算起点），7/12 前有效 */
-  earlyBirdPrice: 299,
-  /** SEEDAO 会员折扣（8折 = 0.8） */
-  memberDiscountRate: 0.8,
-  /** 有效优惠码减免金额（元） */
-  promoCodeDeduction: 20,
-  /** 显示用的货币符号 */
-  currency: "¥",
-} as const;
-
-export const projectIntro = {
-  title: { zh: "30天做跨境电商，发展AI第二副业", en: "30-Day Cross-Border E-Commerce — Build Your AI Side Hustle" },
-  eyebrow: { zh: "SeeDAO AI 共学课", en: "SeeDAO AI Co-Learning" },
-  headline: {
-    zh: "30天，把 AI 变成你的第二双手",
-    en: "30 days to turn AI into your second pair of hands",
-  },
-  subhead: {
-    zh: "从零开始做跨境电商。不囤货、不交保证金，用 AI 跑通选品→上架→出单全流程。",
-    en: "Start cross-border e-commerce from zero. No inventory, no deposit — run the full pipeline from product selection to sales with AI.",
-  },
-  stats: {
-    duration: { zh: "30 天", en: "30 days" },
-    sessions: { zh: "9 节课", en: "9 sessions" },
-  },
-} as const;
-
 export type ScheduleItem = {
   id: string;
   date: string;      // "7.11 周六"
@@ -160,14 +130,6 @@ export const schedule: ScheduleItem[] = [
     isEvent: true,
   },
 ];
-
-/** 课程表在桌面端展示用的分组标题 */
-export const scheduleLegend = {
-  lesson: "正式课",
-  event: "社区活动",
-  assignment: "作业",
-  instructors: { Jack: "Jack", team: "发起团队" },
-} as const;
 
 /** 讲师信息 */
 export const instructor = {
