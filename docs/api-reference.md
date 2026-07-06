@@ -60,7 +60,7 @@
 | GET | `/api/sns/check` | — | SNS name availability · 名称可用性 |
 | POST | `/api/wallet/nonce` | — | Issue a SIWE nonce + message · 签发 SIWE nonce |
 | POST | `/api/wallet/verify-sns` | — | Verify signature, preview SNS · 验签并预览可领名称 |
-| GET | `/api/profile` | Session | Signed-in user's profile · 当前用户资料 |
+| GET | `/api/profile` | Member | Signed-in user's profile · 当前用户资料 |
 | POST | `/api/payment/order` | Session | Open a renewal order · 开会员续费单 |
 | GET | `/api/payment/status` | Session | Poll one order · 轮询订单状态 |
 | GET | `/api/payment/orders` | Session | Order history · 订单历史 |
@@ -173,12 +173,13 @@ the nonce. 验签并预览该钱包可领取的链上名称；消耗 nonce.
 The signed-in user's read-only profile (phone masked server-side).
 当前用户的只读资料（手机号在服务端脱敏）.
 
-- **Auth:** **Session required** (`401 unauthorized` otherwise)
+- **Auth:** **Active member required** — a session token alone is not enough
+  (`401 unauthorized` with no session; `403 forbidden` for a registered-but-unpaid user).
 - **Query / Body:** none
 - **200:** `ProfileResult` =
   `{ id, sns_name, phone, register_source, avatar, bio, membership_expires_at?, created_at }`
   — timestamps are RFC3339 UTC.
-- **Errors:** `unauthorized`, `internal`.
+- **Errors:** `unauthorized`, `forbidden`, `internal`.
 - Source: [`app/api/profile/route.ts`](../app/api/profile/route.ts)
 
 ---
