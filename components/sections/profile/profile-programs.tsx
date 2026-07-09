@@ -38,7 +38,6 @@ export function ProfilePrograms() {
 
   useEffect(() => {
     let stale = false;
-    setOrders({ status: "loading" });
     listCourseOrders().then((r) => {
       if (stale) return;
       if (r.ok) {
@@ -81,7 +80,11 @@ export function ProfilePrograms() {
   rows.sort((a, b) => Number(b.enrolled) - Number(a.enrolled));
 
   const retry = () => {
-    if (orders.status === "error") setAttempt((n) => n + 1);
+    if (orders.status === "error") {
+      // 重置回 loading 放在事件处理器里（初次挂载时初始值已是 loading）
+      setOrders({ status: "loading" });
+      setAttempt((n) => n + 1);
+    }
     if (bookmarks.status === "error") refresh();
   };
 
