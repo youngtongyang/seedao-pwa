@@ -12,6 +12,7 @@ import {
   type SendSmsResult,
   type SnsCheckReason,
   type SnsCheckResult,
+  type SnsByWalletResult,
   type UserCountResult,
   type VerifySnsRequest,
   type VerifySnsResult,
@@ -91,7 +92,7 @@ export function toE164(phone: string): string {
 }
 
 export type CallOptions = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH";
   query?: Record<string, string | undefined>;
   body?: unknown;
   /** Bearer token for authenticated endpoints. */
@@ -185,6 +186,11 @@ export function snsCheck(snsName: string): Promise<ApiResult<SnsCheckResult>> {
   return call<SnsCheckResult>("/sns/check", { query: { sns_name: snsName } });
 }
 
+export function snsByWallet(wallet: string): Promise<ApiResult<SnsByWalletResult>> {
+  if (USE_MOCK) return mock.snsByWallet(wallet);
+  return call<SnsByWalletResult>("/sns/by-wallet", { query: { wallet } });
+}
+
 export function walletNonce(req: WalletNonceRequest): Promise<ApiResult<WalletNonceResult>> {
   if (USE_MOCK) return mock.walletNonce(req);
   return call<WalletNonceResult>("/wallet/nonce", { method: "POST", body: req });
@@ -253,6 +259,12 @@ const mock = {
       ok: true,
       data: { sns_name: name, available: reason === undefined, reason },
     });
+  },
+  snsByWallet(wallet: string): Promise<ApiResult<SnsByWalletResult>> {
+    const w = wallet.toLowerCase();
+    const sns =
+      w === "0x78f625a65fc316d32d98d249b698fb509a6d98f2" ? "tanghan.seedao" : "demo.seedao";
+    return Promise.resolve({ ok: true, data: { wallet: w, sns_name: sns } });
   },
   walletNonce(req: WalletNonceRequest): Promise<ApiResult<WalletNonceResult>> {
     const nonce = "mocknonce0000";
