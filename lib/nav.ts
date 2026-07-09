@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  GraduationCap,
   Home,
   ScrollText,
   UserRound,
@@ -25,6 +26,7 @@ const DOCS_URL = "https://seedao2049.feishu.cn/wiki/Dgh2w1AJiieOgWk1eKRcWQBenSb"
 export const primaryNav: NavItem[] = [
   { id: "home", href: "/", labelKey: "home", icon: Home },
   { id: "proposals", href: "/proposals", labelKey: "proposals", icon: ScrollText },
+  { id: "program", href: "/program", labelKey: "program", icon: GraduationCap },
   { id: "docs", href: DOCS_URL, labelKey: "docs", icon: BookOpen, external: true },
 ];
 
@@ -32,6 +34,7 @@ export const primaryNav: NavItem[] = [
 export const tabNav: NavItem[] = [
   { id: "home", href: "/", labelKey: "home", icon: Home },
   { id: "proposals", href: "/proposals", labelKey: "proposals", icon: ScrollText },
+  { id: "program", href: "/program", labelKey: "program", icon: GraduationCap },
   { id: "docs", href: DOCS_URL, labelKey: "docs", icon: BookOpen, external: true },
   { id: "login", href: "/login", labelKey: "login", icon: UserRound },
 ];

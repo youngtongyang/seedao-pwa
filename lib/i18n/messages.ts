@@ -17,6 +17,7 @@ const zh = {
 
   nav: {
     home: "首页",
+    program: "共学课",
     membership: "成为会员",
     community: "社区",
     rules: "社区公约",
@@ -237,27 +238,33 @@ const zh = {
   },
 
   program: {
-    eyebrow: "SeeDAO AI 共学课",
-    title: "30天做跨境电商，发展AI第二副业",
-    headline: "30天，把 AI 变成你的第二双手",
-    subtitle: "从零开始做跨境电商。不囤货、不交保证金，用 AI 跑通选品→上架→出单全流程。",
+    // ── 详情页共用 chrome（各项目的营销文案在 lib/mock/programs.ts 中随项目走）──
+    instructorEyebrow: "讲师",
+    instructorTitle: "谁来讲这门课？",
+    instructorLabel: "讲师",
+    scheduleEyebrow: "课程表",
+    scheduleTitle: (lessons: number, events: number) =>
+      `${lessons} 节正式课 + ${events} 场社区活动`,
+    monthLabel: (m: number) => `${m} 月`,
+    colDate: "日期",
+    colTime: "时间",
+    colContent: "内容",
+    typeLesson: "课程",
+    typeEvent: "活动",
+    unitDays: "天",
+    unitLessons: "节课",
+    orderNoLabel: "订单号",
 
-    // Hero stats
-    statDuration: "30 天",
-    statSessions: "7 个关卡",
-
-    // Benefits section
-    benefitsTitle: "你将学到什么",
-    benefitsSubtitle: "六大模块，从 0 到 1 跑通 AI 跨境电商全流程。",
+    // Bookmark（收藏，稍后再看）
+    bookmarkAdd: "收藏，稍后再看",
+    bookmarkRemove: "已收藏",
+    bookmarkLoginHint: "登录后即可收藏课程",
+    bookmarkFailed: "操作失败，请稍后重试。",
 
     // Pricing
     pricingTitle: "报名加入",
-    pricingBase: "原价",
-    pricingEarlyBird: "早鸟价",
-    pricingYouSave: "立省 ¥{amount}",
     pricingMemberBadge: "SEEDAO 会员 8 折",
     pricingMemberNote: "检测到你已是 SEEDAO 会员，自动享受 8 折优惠。",
-    pricingNotMember: "还不是 SEEDAO 会员？",
     pricingNotMemberCta: "注册成为会员，立享 8 折",
     pricingNotMemberDesc: "会员报名享 8 折优惠后再报名本课程更划算。",
 
@@ -272,17 +279,15 @@ const zh = {
 
     // Payment
     payCta: "微信扫码支付",
-    payAmount: (amount: number) => `¥${amount}`,
     payQrAlt: "微信支付二维码",
     payCreating: "正在生成支付二维码…",
     payWaiting: "等待支付… 扫码完成后会自动确认。",
-    paySimulating: "模拟支付中…",
     paySuccess: "支付成功！",
     payError: "订单创建失败，请稍后重试。",
 
     // Success
     successTitle: "🎉 报名成功！",
-    successDesc: "你已经成功报名 AI 跨境电商共学计划。请完成以下步骤以确保顺利入学。",
+    successDesc: "你已经成功报名本次共学项目。请完成以下步骤以确保顺利入学。",
     successScreenshotTitle: "① 截图保存",
     successScreenshotDesc: "请截屏保存此订单页面，作为你的报名凭证。",
     successAssistantTitle: "② 添加小助手微信",
@@ -300,7 +305,6 @@ const zh = {
     // QR payment modal
     qrDialogTitle: "微信扫码支付",
     qrDialogHint: "请使用微信扫描下方二维码完成支付",
-    qrDialogSimulate: "模拟支付成功",
     qrDialogCancel: "取消支付",
     qrReopen: "重新出示二维码",
 
@@ -310,6 +314,20 @@ const zh = {
       course_not_found: "课程不存在或已下架，请刷新后重试。",
       course_member_login_required: "会员优惠需登录后才能使用，请先登录。",
       course_order_expired: "支付超时，订单已过期，请重新发起支付。",
+    },
+  },
+
+  programs: {
+    eyebrow: "共学项目",
+    title: "正在进行的共学项目",
+    subtitle: "和社区伙伴一起，在真实项目里学 AI、用 AI。",
+    indexTitle: "共学项目",
+    indexSubtitle: "浏览全部项目，选择感兴趣的加入。",
+    viewAll: "查看全部项目",
+    status: {
+      enrolling: "报名中",
+      upcoming: "即将开始",
+      ended: "已结束",
     },
   },
 
@@ -339,6 +357,16 @@ const zh = {
     reputationDesc: "你在社区中累积的积分与徽章。",
     reputationSoon: "声望系统正在建设中，敬请期待。",
     loadFailed: "资料加载失败，请稍后重试。",
+
+    // 我的项目（收藏 + 已报名）
+    myProgramsTitle: "我的项目",
+    myProgramsSubtitle: "你收藏和已报名的共学项目。",
+    myProgramsEnrolled: "已报名",
+    myProgramsSaved: "已收藏",
+    myProgramsEmpty: "还没有收藏或报名任何项目。",
+    myProgramsBrowse: "去看看项目",
+    myProgramsLoadFailed: "项目列表加载失败，请稍后重试。",
+    myProgramsRemove: "取消收藏",
   },
 
   proposals: {
@@ -493,6 +521,7 @@ const en: typeof zh = {
 
   nav: {
     home: "Home",
+    program: "Programs",
     membership: "Membership",
     community: "Community",
     rules: "Covenant",
@@ -718,27 +747,37 @@ const en: typeof zh = {
   },
 
   program: {
-    eyebrow: "SeeDAO AI Co-Learning",
-    title: "30-Day Cross-Border E-Commerce — Build Your AI Side Hustle",
-    headline: "30 days to turn AI into your second pair of hands",
-    subtitle: "Start cross-border e-commerce from zero. No inventory, no deposit — run the full pipeline from product selection to sales with AI.",
+    // ── Shared detail-page chrome (per-program marketing copy lives in lib/mock/programs.ts) ──
+    instructorEyebrow: "Instructor",
+    instructorTitle: "Who teaches this program?",
+    instructorLabel: "Instructor",
+    scheduleEyebrow: "Schedule",
+    scheduleTitle: (lessons: number, events: number) =>
+      `${lessons} lessons + ${events} community events`,
+    monthLabel: (m: number) =>
+      [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+      ][m - 1] ?? `Month ${m}`,
+    colDate: "Date",
+    colTime: "Time",
+    colContent: "Content",
+    typeLesson: "Lesson",
+    typeEvent: "Event",
+    unitDays: "days",
+    unitLessons: "lessons",
+    orderNoLabel: "Order no.",
 
-    // Hero stats
-    statDuration: "30 days",
-    statSessions: "7 stages",
-
-    // Benefits section
-    benefitsTitle: "What you'll learn",
-    benefitsSubtitle: "Six modules to take you from zero to one in AI cross-border e-commerce.",
+    // Bookmark (save for later)
+    bookmarkAdd: "Save for later",
+    bookmarkRemove: "Saved",
+    bookmarkLoginHint: "Log in to save programs",
+    bookmarkFailed: "Something went wrong. Please try again.",
 
     // Pricing
     pricingTitle: "Enroll now",
-    pricingBase: "Regular price",
-    pricingEarlyBird: "Early bird",
-    pricingYouSave: "Save ¥{amount}",
     pricingMemberBadge: "SEEDAO member 20% off",
     pricingMemberNote: "You're a SEEDAO member — 20% off applied automatically.",
-    pricingNotMember: "Not a SEEDAO member yet?",
     pricingNotMemberCta: "Join SEEDAO and save 20%",
     pricingNotMemberDesc: "Become a member for 20% off, then enroll in this program for even more savings.",
 
@@ -753,17 +792,15 @@ const en: typeof zh = {
 
     // Payment
     payCta: "Pay with WeChat",
-    payAmount: (amount: number) => `¥${amount}`,
     payQrAlt: "WeChat Pay QR code",
     payCreating: "Generating payment QR code…",
     payWaiting: "Waiting for payment… confirmation is automatic.",
-    paySimulating: "Simulating payment…",
     paySuccess: "Payment successful!",
     payError: "Failed to create order. Please try again later.",
 
     // Success
     successTitle: "🎉 Enrollment confirmed!",
-    successDesc: "You've successfully enrolled in the AI Cross-Border E-Commerce Program. Complete the steps below to get started.",
+    successDesc: "You've successfully enrolled in this program. Complete the steps below to get started.",
     successScreenshotTitle: "① Save a screenshot",
     successScreenshotDesc: "Take a screenshot of this order page as your enrollment confirmation.",
     successAssistantTitle: "② Add our WeChat assistant",
@@ -781,7 +818,6 @@ const en: typeof zh = {
     // QR payment modal
     qrDialogTitle: "WeChat Pay",
     qrDialogHint: "Scan the QR code below with WeChat to complete payment",
-    qrDialogSimulate: "Simulate payment success",
     qrDialogCancel: "Cancel payment",
     qrReopen: "Show QR code again",
 
@@ -791,6 +827,20 @@ const en: typeof zh = {
       course_not_found: "This course doesn't exist or is no longer available. Please refresh and try again.",
       course_member_login_required: "The member discount requires logging in first.",
       course_order_expired: "The order expired before payment completed. Please start again.",
+    },
+  },
+
+  programs: {
+    eyebrow: "Programs",
+    title: "Programs in session",
+    subtitle: "Learn and use AI through real projects, together with the community.",
+    indexTitle: "Programs",
+    indexSubtitle: "Browse all programs and join the ones that speak to you.",
+    viewAll: "View all programs",
+    status: {
+      enrolling: "Enrolling",
+      upcoming: "Upcoming",
+      ended: "Ended",
     },
   },
 
@@ -821,6 +871,16 @@ const en: typeof zh = {
     reputationDesc: "Points and badges you've earned in the community.",
     reputationSoon: "The reputation system is under construction — stay tuned.",
     loadFailed: "Failed to load your profile. Please try again.",
+
+    // My programs (saved + enrolled)
+    myProgramsTitle: "My programs",
+    myProgramsSubtitle: "Programs you've saved or enrolled in.",
+    myProgramsEnrolled: "Enrolled",
+    myProgramsSaved: "Saved",
+    myProgramsEmpty: "You haven't saved or enrolled in any programs yet.",
+    myProgramsBrowse: "Browse programs",
+    myProgramsLoadFailed: "Couldn't load your programs. Please try again.",
+    myProgramsRemove: "Remove bookmark",
   },
 
   proposals: {

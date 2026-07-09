@@ -77,6 +77,8 @@ export type CourseOrderStatus = {
   paid_at?: string;              // RFC3339 UTC
   /** 支付成功且履约后为 "active"；未支付为空。 */
   enrollment_status?: string | null;
+  /** 订单对应课程（规格补充，后端待建；mock 已返回）。 */
+  course_id?: string;
 };
 
 // ── 认领订单 ──────────────────────────────────────────────────────────────────
@@ -84,4 +86,46 @@ export type CourseOrderStatus = {
 export type ClaimOrderInput = {
   order_no: string;
   order_token: string;
+};
+
+// ── 收藏（Bookmarks · 后端待建，当前仅 mock）───────────────────────────────────
+
+/** 单条收藏（`GET /v1/courses/bookmarks`）。 */
+export type CourseBookmark = {
+  course_id: string;
+  created_at: string;            // RFC3339 UTC
+};
+
+/** `GET /v1/courses/bookmarks` 响应。 */
+export type BookmarkListResult = {
+  bookmarks: CourseBookmark[];
+};
+
+/** `PUT|DELETE /v1/courses/bookmarks/:course_id` 响应（幂等）。 */
+export type BookmarkMutationResult = {
+  course_id: string;
+  bookmarked: boolean;
+  created_at?: string;           // PUT 返回
+};
+
+// ── 我的课程订单（`GET /v1/courses/orders` · 后端待建，当前仅 mock）─────────────
+
+/** 订单列表行 — 无主订单在 claim 之前不出现在列表中。 */
+export type CourseOrderListItem = {
+  order_no: string;
+  product_type: "course_purchase";
+  course_id: string;
+  sku_id: string;
+  amount: number;                // 分
+  currency?: string;
+  status: "pending" | "paid" | "closed";
+  /** 支付成功且履约后为 "active"。 */
+  enrollment_status?: string | null;
+  paid_at?: string;              // RFC3339 UTC
+  created_at?: string;           // RFC3339 UTC
+};
+
+/** `GET /v1/courses/orders?status=…&limit=…` 响应。 */
+export type CourseOrderListResult = {
+  orders: CourseOrderListItem[];
 };
