@@ -31,7 +31,7 @@ SEEDAO 是一个聚焦「关系」的社区。我们相信，比起为了金钱�
 | 1. 社区介绍（首页） | 首页整体体验：英雄区标语「共在 · 涌现 · 逍遥」、实时成员计数、社区卡片轮播等 | `app/page.tsx`、`components/home/`、`components/sections/hero/`、`components/sections/community/`、`lib/mock/community.ts` |
 | 2. 会员与支付 | 会员权益 + 微信扫码 / H5 会员续费支付（真实，经 BFF 接入 SeeDAO 后端） | `components/sections/membership/`、`lib/payment/`、`app/api/payment/` |
 | 3. 个人主页 | 会员专属只读资料：手机号脱敏、会员到期、新手待办清单、声望占位 | `app/profile/`、`components/sections/profile/`、`lib/profile/`、`app/api/profile/` |
-| 4. 课程 | 社区课程主场：课程详情、讲师、课程表与报名支付；未来所有课程的落地入口 | `app/program/`、`components/sections/program/`、`lib/course/`、`app/api/course/`、`lib/mock/program.ts` |
+| 4. 课程 | 社区课程主场：项目列表（`/program`）+ 课程详情（`/program/[slug]`）、首页展示位、收藏与报名状态（个人主页「我的项目」） | `app/program/`、`components/sections/program/`、`components/sections/programs/`、`lib/course/`、`app/api/course/`、`lib/mock/programs.ts` |
 
 ### 🎨 设计系统
 
@@ -96,7 +96,7 @@ SEEDAO is a community centered on **relationships**. We believe the growth of re
 | 1. Community intro (home) | The whole homepage experience: hero slogan "Coexist · Emerge · Roam Free", live member count, community card carousel, etc. | `app/page.tsx`, `components/home/`, `components/sections/hero/`, `components/sections/community/`, `lib/mock/community.ts` |
 | 2. Membership & Payment | Benefits + WeChat QR / H5 renewal payment (real, wired to the SeeDAO backend via a BFF) | `components/sections/membership/`, `lib/payment/`, `app/api/payment/` |
 | 3. Profile | Member-only read-only profile: masked phone, membership expiry, onboarding checklist, reputation placeholder | `app/profile/`, `components/sections/profile/`, `lib/profile/`, `app/api/profile/` |
-| 4. Course | Home for community courses: course detail, instructor, schedule and enrollment payment — the landing point for all future courses | `app/program/`, `components/sections/program/`, `lib/course/`, `app/api/course/`, `lib/mock/program.ts` |
+| 4. Course | Home for community courses: programs index (`/program`) + course detail (`/program/[slug]`), homepage showcase, bookmark & enrollment status (profile "My programs") | `app/program/`, `components/sections/program/`, `components/sections/programs/`, `lib/course/`, `app/api/course/`, `lib/mock/programs.ts` |
 
 ### 🎨 Design System
 

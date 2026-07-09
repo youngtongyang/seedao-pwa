@@ -2,11 +2,23 @@ import "server-only";
 
 import { type ApiResult, call } from "@/lib/api/server";
 import { USE_MOCK } from "@/lib/api/config";
+import {
+  appendMockOrder,
+  readMockBookmarks,
+  readMockOrders,
+  updateMockOrder,
+  writeMockBookmarks,
+  type MockOrderRec,
+} from "./mock-state";
 import type {
+  BookmarkListResult,
+  BookmarkMutationResult,
   CheckoutPreviewInput,
   CheckoutPreviewResult,
   ClaimOrderInput,
   CourseOrder,
+  CourseOrderListItem,
+  CourseOrderListResult,
   CourseOrderStatus,
   CreateCourseOrderInput,
 } from "./types";
@@ -29,7 +41,7 @@ export function createCourseOrder(
   input: CreateCourseOrderInput,
   token?: string,
 ): Promise<ApiResult<CourseOrder>> {
-  if (USE_MOCK) return mock.createCourseOrder(input);
+  if (USE_MOCK) return mock.createCourseOrder(input, token);
   return call<CourseOrder>("/courses/orders", {
     method: "POST",
     token,
@@ -74,6 +86,53 @@ export function claimCourseOrder(
     method: "POST",
     token,
     body: input,
+  });
+}
+
+// ── 收藏与订单列表（后端待建 · 规格见 docs/api-reference.md；当前仅 mock 可用）──
+
+/** `GET /v1/courses/bookmarks` — 我的收藏，JWT 必填。 */
+export function listBookmarks(token: string): Promise<ApiResult<BookmarkListResult>> {
+  if (USE_MOCK) return mock.listBookmarks();
+  return call<BookmarkListResult>("/courses/bookmarks", { token });
+}
+
+/** `PUT /v1/courses/bookmarks/:course_id` — 收藏（幂等），JWT 必填。 */
+export function addBookmark(
+  courseId: string,
+  token: string,
+): Promise<ApiResult<BookmarkMutationResult>> {
+  if (USE_MOCK) return mock.addBookmark(courseId);
+  return call<BookmarkMutationResult>(`/courses/bookmarks/${encodeURIComponent(courseId)}`, {
+    method: "PUT",
+    token,
+  });
+}
+
+/** `DELETE /v1/courses/bookmarks/:course_id` — 取消收藏（幂等），JWT 必填。 */
+export function removeBookmark(
+  courseId: string,
+  token: string,
+): Promise<ApiResult<BookmarkMutationResult>> {
+  if (USE_MOCK) return mock.removeBookmark(courseId);
+  return call<BookmarkMutationResult>(`/courses/bookmarks/${encodeURIComponent(courseId)}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+/** `GET /v1/courses/orders` — 我的课程订单列表，JWT 必填；无主订单 claim 后才出现。 */
+export function listCourseOrders(
+  token: string,
+  opts?: { status?: string; limit?: number },
+): Promise<ApiResult<CourseOrderListResult>> {
+  if (USE_MOCK) return mock.listCourseOrders(opts);
+  return call<CourseOrderListResult>("/courses/orders", {
+    token,
+    query: {
+      status: opts?.status,
+      limit: opts?.limit !== undefined ? String(opts.limit) : undefined,
+    },
   });
 }
 
@@ -134,9 +193,22 @@ const mock = {
     });
   },
 
-  createCourseOrder(input: CreateCourseOrderInput): Promise<ApiResult<CourseOrder>> {
+  async createCourseOrder(
+    input: CreateCourseOrderInput,
+    token?: string,
+  ): Promise<ApiResult<CourseOrder>> {
     const orderNo = `C${Date.now()}mock`;
-    return Promise.resolve({
+    const amount =
+      MOCK_ORIGINAL_CENTS - MOCK_EARLY_BIRD_CENTS - (input.channel_code ? MOCK_CHANNEL_CENTS : 0);
+    // 记入 Cookie：带 JWT 创建的订单立即归属当前用户，无主订单待 claim
+    await appendMockOrder({
+      n: orderNo,
+      c: input.course_id,
+      s: input.sku_id,
+      a: amount,
+      o: !!token,
+    });
+    return {
       ok: true,
       data: {
         order_no: orderNo,
@@ -146,37 +218,116 @@ const mock = {
         sku_id: input.sku_id,
         original_amount: MOCK_ORIGINAL_CENTS,
         discount_amount: MOCK_EARLY_BIRD_CENTS + (input.channel_code ? MOCK_CHANNEL_CENTS : 0),
-        amount: MOCK_ORIGINAL_CENTS - MOCK_EARLY_BIRD_CENTS - (input.channel_code ? MOCK_CHANNEL_CENTS : 0),
+        amount,
         status: "pending",
         code_url: `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`,
         expired_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
       },
-    });
+    };
   },
 
-  queryCourseOrder(orderNo: string): Promise<ApiResult<CourseOrderStatus>> {
-    const elapsed = Date.now() - Number(orderNo.match(/(\d{13})/)?.[1] ?? 0);
-    const paid = elapsed > PAY_AFTER_MS;
-    return Promise.resolve({
+  async queryCourseOrder(orderNo: string): Promise<ApiResult<CourseOrderStatus>> {
+    const rec = (await readMockOrders()).find((r) => r.n === orderNo);
+    const status = mockOrderStatus(orderNo, rec);
+    const paid = status === "paid";
+    return {
       ok: true,
       data: {
         order_no: orderNo,
-        status: paid ? "paid" : "pending",
-        amount: MOCK_ORIGINAL_CENTS - MOCK_EARLY_BIRD_CENTS,
+        status,
+        amount: rec?.a ?? MOCK_ORIGINAL_CENTS - MOCK_EARLY_BIRD_CENTS,
         paid_at: paid ? new Date().toISOString() : undefined,
         enrollment_status: paid ? "active" : undefined,
+        course_id: rec?.c ?? MOCK_COURSE_ID,
       },
-    });
+    };
   },
 
-  closeCourseOrder(_orderNo: string): Promise<ApiResult<CourseOrderStatus>> {
-    return Promise.resolve({ ok: true, data: { order_no: _orderNo, status: "closed", amount: 0 } });
+  async closeCourseOrder(orderNo: string): Promise<ApiResult<CourseOrderStatus>> {
+    const rec = (await readMockOrders()).find((r) => r.n === orderNo);
+    // 已支付订单不可关闭；支付前关闭要落进 Cookie，否则 6 秒后会被推导成已支付
+    if (mockOrderStatus(orderNo, rec) !== "paid") {
+      await updateMockOrder(orderNo, { x: true });
+    }
+    return { ok: true, data: { order_no: orderNo, status: "closed", amount: rec?.a ?? 0 } };
   },
 
-  claimCourseOrder(input: ClaimOrderInput): Promise<ApiResult<CourseOrderStatus>> {
-    return Promise.resolve({
+  async claimCourseOrder(input: ClaimOrderInput): Promise<ApiResult<CourseOrderStatus>> {
+    await updateMockOrder(input.order_no, { o: true });
+    const rec = (await readMockOrders()).find((r) => r.n === input.order_no);
+    const status = mockOrderStatus(input.order_no, rec);
+    return {
       ok: true,
-      data: { order_no: input.order_no, status: "pending", amount: 0 },
-    });
+      data: {
+        order_no: input.order_no,
+        status,
+        amount: rec?.a ?? 0,
+        enrollment_status: status === "paid" ? "active" : undefined,
+        course_id: rec?.c,
+      },
+    };
+  },
+
+  async listBookmarks(): Promise<ApiResult<BookmarkListResult>> {
+    const items = await readMockBookmarks();
+    return {
+      ok: true,
+      data: { bookmarks: items.map((i) => ({ course_id: i.c, created_at: i.t })) },
+    };
+  },
+
+  async addBookmark(courseId: string): Promise<ApiResult<BookmarkMutationResult>> {
+    const items = await readMockBookmarks();
+    let rec = items.find((i) => i.c === courseId);
+    if (!rec) {
+      rec = { c: courseId, t: new Date().toISOString() };
+      items.push(rec);
+      await writeMockBookmarks(items);
+    }
+    return { ok: true, data: { course_id: courseId, bookmarked: true, created_at: rec.t } };
+  },
+
+  async removeBookmark(courseId: string): Promise<ApiResult<BookmarkMutationResult>> {
+    const items = await readMockBookmarks();
+    const next = items.filter((i) => i.c !== courseId);
+    if (next.length !== items.length) await writeMockBookmarks(next);
+    return { ok: true, data: { course_id: courseId, bookmarked: false } };
+  },
+
+  async listCourseOrders(opts?: {
+    status?: string;
+    limit?: number;
+  }): Promise<ApiResult<CourseOrderListResult>> {
+    // 只列出已归属的订单；无主订单 claim 后才可见
+    const recs = (await readMockOrders()).filter((r) => r.o);
+    let orders: CourseOrderListItem[] = recs
+      .map((r) => {
+        const createdMs = Number(r.n.match(/(\d{13})/)?.[1] ?? 0);
+        const status = mockOrderStatus(r.n, r);
+        const paid = status === "paid";
+        return {
+          order_no: r.n,
+          product_type: "course_purchase" as const,
+          course_id: r.c,
+          sku_id: r.s,
+          amount: r.a,
+          currency: "CNY",
+          status,
+          enrollment_status: paid ? "active" : null,
+          paid_at: paid ? new Date(createdMs + PAY_AFTER_MS).toISOString() : undefined,
+          created_at: createdMs ? new Date(createdMs).toISOString() : undefined,
+        };
+      })
+      .reverse(); // 新订单在前
+    if (opts?.status) orders = orders.filter((o) => o.status === opts.status);
+    if (opts?.limit !== undefined) orders = orders.slice(0, opts.limit);
+    return { ok: true, data: { orders } };
   },
 };
+
+/** 与既有 mock 约定一致：状态由 order_no 内嵌时间戳推导；关闭标记优先。 */
+function mockOrderStatus(orderNo: string, rec?: MockOrderRec): "pending" | "paid" | "closed" {
+  if (rec?.x) return "closed";
+  const elapsed = Date.now() - Number(orderNo.match(/(\d{13})/)?.[1] ?? 0);
+  return elapsed > PAY_AFTER_MS ? "paid" : "pending";
+}

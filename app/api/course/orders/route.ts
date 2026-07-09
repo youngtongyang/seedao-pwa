@@ -1,7 +1,27 @@
 import { jsonError, readJson } from "@/lib/api/http";
 import { getToken } from "@/lib/auth/session";
-import { createCourseOrder } from "@/lib/course/server";
+import { createCourseOrder, listCourseOrders } from "@/lib/course/server";
 import type { PayChannel } from "@/lib/course/types";
+
+/**
+ * GET /api/course/orders?status=…&limit=… — 我的课程订单列表。需要 Session；
+ * 无主订单（order_token）在 claim 之前不出现在列表中。
+ * 后端待建（`GET /v1/courses/orders`），当前仅 mock 可用。
+ */
+export async function GET(request: Request) {
+  const token = await getToken();
+  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+
+  const sp = new URL(request.url).searchParams;
+  const limitParam = sp.get("limit");
+  const result = await listCourseOrders(token, {
+    status: sp.get("status")?.trim() || undefined,
+    limit: limitParam && Number.isFinite(Number(limitParam)) ? Number(limitParam) : undefined,
+  });
+
+  if (!result.ok) return jsonError(result);
+  return Response.json(result.data);
+}
 
 /**
  * POST /api/course/orders — 创建课程订单。

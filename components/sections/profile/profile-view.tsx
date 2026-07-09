@@ -6,9 +6,11 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ProfileResult } from "@/lib/api/types";
 import { logout } from "@/lib/auth/use-auth";
+import { resetBookmarks } from "@/lib/course/bookmarks-store";
 import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
 import { cn } from "@/lib/utils";
+import { ProfilePrograms } from "./profile-programs";
 import { ProfileTodos } from "./profile-todos";
 
 function Avatar({ profile, size = 96 }: { profile: ProfileResult; size?: number }) {
@@ -68,6 +70,7 @@ export function ProfileView() {
 
   async function handleLogout() {
     await logout();
+    resetBookmarks();
     router.push("/");
     router.refresh();
   }
@@ -143,6 +146,9 @@ export function ProfileView() {
 
       {/* New-member checklist — first todo is adding the community assistant. */}
       <ProfileTodos />
+
+      {/* My programs — saved + enrolled */}
+      <ProfilePrograms />
 
       {/* Bio */}
       <section className="mt-3 rounded-2xl border border-border bg-card px-4 py-3">

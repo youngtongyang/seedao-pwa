@@ -16,10 +16,17 @@ import { Button } from "@/components/ui/button";
 import { QRFrame } from "@/components/shared/qr-frame";
 import { useAccount } from "@/lib/account";
 import { useT } from "@/lib/i18n";
-import { programProject } from "@/lib/mock/program";
 import { cn } from "@/lib/utils";
 
-export function PaymentSuccess({ className, orderNo }: { className?: string; orderNo?: string }) {
+export function PaymentSuccess({
+  className,
+  orderNo,
+  registrationFormUrl,
+}: {
+  className?: string;
+  orderNo?: string;
+  registrationFormUrl: string;
+}) {
   const t = useT();
   const account = useAccount();
 
@@ -70,7 +77,7 @@ export function PaymentSuccess({ className, orderNo }: { className?: string; ord
             <>
               <p>{t.program.successFormDesc}</p>
               <Button asChild size="sm" className="mt-2">
-                <a href={programProject.registrationFormUrl} target="_blank" rel="noopener noreferrer">
+                <a href={registrationFormUrl} target="_blank" rel="noopener noreferrer">
                   {t.program.successFormCta}
                   <ExternalLink className="ml-1.5 size-3.5" />
                 </a>
@@ -133,7 +140,7 @@ function OrderNoDisplay({ orderNo }: { orderNo: string }) {
 
   return (
     <div className="mt-2 flex items-center gap-2 rounded-lg bg-muted px-3 py-2">
-      <span className="text-xs text-muted-foreground shrink-0">订单号</span>
+      <span className="text-xs text-muted-foreground shrink-0">{t.program.orderNoLabel}</span>
       <code className="flex-1 text-xs font-mono truncate">{orderNo}</code>
       <Button variant="ghost" size="icon" className="size-6 shrink-0" onClick={handleCopy}>
         <Copy className="size-3.5" />
