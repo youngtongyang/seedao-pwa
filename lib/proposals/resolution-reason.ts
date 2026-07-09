@@ -1,48 +1,47 @@
-/** Map backend English resolution_reason to Chinese display text. */
+import type { Messages } from "@/lib/i18n/messages";
 
-const REASON_ALIASES: Record<string, string> = {
-  "participation must exceed half of quarter nodes":
-    "参与投票的节点数须超过当季节点总数的一半，当前未达法定人数",
-  "quarter_node_total not configured": "当季节点总数未配置，暂无法判定投票结果",
-  "highest vote tie": "最高票选项出现并列，本次投票无效",
-  "no valid votes": "未产生有效投票",
-  "participation below quorum": "参与人数未达法定 quorum 要求",
-  "participation below required rate": "参与率未达元规则要求",
+type ResolutionCopy = Messages["proposals"]["resolutionReasons"];
+
+const REASON_KEYS: Record<string, keyof ResolutionCopy> = {
+  "participation must exceed half of quarter nodes": "participationBelowHalfNodes",
+  "quarter_node_total not configured": "quarterNodeTotalNotConfigured",
+  "highest vote tie": "highestVoteTie",
+  "no valid votes": "noValidVotes",
+  "participation below quorum": "participationBelowQuorum",
+  "participation below required rate": "participationBelowRate",
+  "approval below half": "approvalBelowHalf",
+  "approval below two thirds": "approvalBelowTwoThirds",
+  "approval below 2/3": "approvalBelowTwoThirds",
+  "voter not whitelisted": "voterNotWhitelisted",
+  "not in voter whitelist": "voterNotWhitelisted",
 };
 
-const REASON_PATTERNS: Array<{ pattern: RegExp; text: string }> = [
-  {
-    pattern: /participation must exceed half of quarter nodes/i,
-    text: "参与投票的节点数须超过当季节点总数的一半，当前未达法定人数",
-  },
-  {
-    pattern: /quarter_node_total not configured/i,
-    text: "当季节点总数未配置，暂无法判定投票结果",
-  },
-  {
-    pattern: /participation.*below|below.*quorum/i,
-    text: "参与人数未达法定要求",
-  },
-  {
-    pattern: /tie|tied|并列/i,
-    text: "最高票选项出现并列，本次投票无效",
-  },
+const REASON_PATTERNS: Array<{ pattern: RegExp; key: keyof ResolutionCopy }> = [
+  { pattern: /participation must exceed half of quarter nodes/i, key: "participationBelowHalfNodes" },
+  { pattern: /quarter_node_total not configured/i, key: "quarterNodeTotalNotConfigured" },
+  { pattern: /participation.*below|below.*quorum/i, key: "participationBelowGeneric" },
+  { pattern: /approval.*below.*half|below.*1\/2|1\/2.*not/i, key: "approvalBelowHalf" },
+  { pattern: /approval.*below.*two.?thirds|below.*2\/3|2\/3.*not/i, key: "approvalBelowTwoThirds" },
+  { pattern: /whitelist|not.*eligible.*vot/i, key: "voterNotWhitelisted" },
+  { pattern: /tie|tied|并列/i, key: "highestVoteTie" },
 ];
 
-/** Format vote_summary.resolution_reason for UI (Chinese when possible). */
-export function formatResolutionReason(reason: string | undefined | null): string {
+/** Format vote_summary.resolution_reason for UI. */
+export function formatResolutionReason(
+  reason: string | undefined | null,
+  copy: ResolutionCopy,
+): string {
   if (!reason) return "";
   const trimmed = reason.trim();
   if (!trimmed) return "";
 
-  const alias = REASON_ALIASES[trimmed.toLowerCase()];
-  if (alias) return alias;
+  const aliasKey = REASON_KEYS[trimmed.toLowerCase()];
+  if (aliasKey) return copy[aliasKey];
 
-  for (const { pattern, text } of REASON_PATTERNS) {
-    if (pattern.test(trimmed)) return text;
+  for (const { pattern, key } of REASON_PATTERNS) {
+    if (pattern.test(trimmed)) return copy[key];
   }
 
-  // Already Chinese or unknown — show as-is.
   if (/[\u4e00-\u9fff]/.test(trimmed)) return trimmed;
 
   return trimmed;

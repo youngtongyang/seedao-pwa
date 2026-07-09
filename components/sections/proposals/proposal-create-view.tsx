@@ -6,11 +6,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useT } from "@/lib/i18n";
 import {
   createProposal,
   closeProposal,
   fetchProposal,
+  fetchProposalPermissions,
   publishProposal,
   updateProposal,
 } from "@/lib/proposals/client";
@@ -26,9 +33,11 @@ import {
   VOTE_TYPES,
   normalizeProposalType,
 } from "@/lib/proposals/constants";
-import type { CreatableProposalType, VoteType } from "@/lib/proposals/types";
-import { CREATABLE_PROPOSAL_TYPES } from "@/lib/proposals/types";
+import type { CreatableProposalType, ProposalCreatePermissions, VoteType } from "@/lib/proposals/types";
+import { canCreateProposalType } from "@/lib/proposals/permissions";
+import { proposalTypeLabel, useProposalCopy } from "@/lib/proposals/use-proposal-copy";
 import { isMultiVote } from "@/lib/proposals/vote";
+import { cn } from "@/lib/utils";
 import { ProposalSection } from "./proposal-section";
 import { ProposalRichEditor } from "./proposal-rich-editor";
 import { RuleTypeDialog } from "./rule-type-dialog";
@@ -48,6 +57,7 @@ function sameOptions(a: string[], b: readonly string[]): boolean {
 
 export function ProposalCreateView() {
   const t = useT();
+  const copy = useProposalCopy();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -81,6 +91,23 @@ export function ProposalCreateView() {
   const [error, setError] = useState<string | null>(null);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [permissions, setPermissions] = useState<ProposalCreatePermissions | null>(null);
+  const [permissionsLoading, setPermissionsLoading] = useState(!editId);
+
+  useEffect(() => {
+    if (editId) return;
+    fetchProposalPermissions().then((res) => {
+      setPermissionsLoading(false);
+      if (res.ok) {
+        setPermissions(res.data);
+        if (initialType && !canCreateProposalType(res.data, initialType)) {
+          setStep("pick");
+          setType(null);
+          setError(t.proposals.create.noPermission);
+        }
+      } else if (res.error === "unauthorized") router.push("/login");
+    });
+  }, [editId, initialType, router, t.proposals.create.noPermission]);
 
   function handleVoteTypeChange(next: VoteType) {
     setVoteType(next);
@@ -94,7 +121,6 @@ export function ProposalCreateView() {
 
   useEffect(() => {
     if (!editId) return;
-    setLoading(true);
     fetchProposal(editId).then((res) => {
       setLoading(false);
       if (!res.ok || res.data.status !== "draft") return;
@@ -106,18 +132,21 @@ export function ProposalCreateView() {
       const opts = c.vote_options?.length
         ? c.vote_options
         : decodeVoteOptions(res.data.vote_options);
+      const defaults = isMultiVote(vt) ? [...multiDefaults] : [...singleDefaults];
       setForm({
         title: res.data.title,
         background: c.background,
         body: c.body,
         remarks: c.remarks,
-        options: opts.length ? opts : defaultOptionsFor(vt),
+        options: opts.length ? opts : defaults,
       });
       setStep("form");
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- edit draft load once per id
   }, [editId]);
 
   function pickType(next: CreatableProposalType) {
+    if (!canCreateProposalType(permissions, next)) return;
     setPendingType(next);
     setRuleOpen(true);
   }
@@ -277,33 +306,67 @@ export function ProposalCreateView() {
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
         <h1 className="text-2xl font-black">{t.proposals.create.pickType}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t.proposals.create.pickTypeDesc}</p>
-        <div className="mt-8 space-y-8">
-          {PROPOSAL_TYPE_GROUPS.map((group) => (
-            <section key={group.id}>
-              <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
-                {t.proposals.create.typeGroups[group.id as keyof typeof t.proposals.create.typeGroups]}
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {group.types.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => pickType(key)}
-                    className="rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:border-primary/40 hover:bg-muted/30"
-                  >
-                    <p className="font-bold">{PROPOSAL_TYPES[key].label}</p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {t.proposals.create.typeHint[key as keyof typeof t.proposals.create.typeHint]}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+        {error && (
+          <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        {permissionsLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <TooltipProvider delayDuration={200}>
+            <div className="mt-8 space-y-8">
+              {PROPOSAL_TYPE_GROUPS.map((group) => (
+                <section key={group.id}>
+                  <h2 className="mb-3 text-sm font-semibold text-muted-foreground">
+                    {t.proposals.create.typeGroups[group.id as keyof typeof t.proposals.create.typeGroups]}
+                  </h2>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {group.types.map((key) => {
+                      const allowed = canCreateProposalType(permissions, key);
+                      const hint =
+                        t.proposals.create.typeHint[key as keyof typeof t.proposals.create.typeHint];
+                      const card = (
+                        <button
+                          type="button"
+                          disabled={!allowed}
+                          onClick={() => pickType(key)}
+                          className={cn(
+                            "w-full rounded-2xl border border-border bg-card p-5 text-left transition-colors",
+                            allowed
+                              ? "hover:border-primary/40 hover:bg-muted/30"
+                              : "cursor-not-allowed opacity-50",
+                          )}
+                        >
+                          <p className="font-bold">{proposalTypeLabel(copy, key)}</p>
+                          <p className="mt-2 text-sm text-muted-foreground">{hint}</p>
+                        </button>
+                      );
+
+                      if (allowed) return <div key={key}>{card}</div>;
+
+                      return (
+                        <Tooltip key={key}>
+                          <TooltipTrigger asChild>
+                            <span className="block w-full">{card}</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs text-center">
+                            {t.proposals.create.noPermission}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </TooltipProvider>
+        )}
         <RuleTypeDialog
           open={ruleOpen}
-          type={pendingType ?? "node_consensus_rule"}
+          type={pendingType ?? "node_consensus_special"}
           voteType={voteType}
           onVoteTypeChange={handleVoteTypeChange}
           onConfirm={confirmType}

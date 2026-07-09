@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 import { useI18n, useT } from "@/lib/i18n";
 import {
   activePhase,
@@ -20,7 +20,7 @@ export function ProposalStatusBanner({
   const t = useT();
   const { locale } = useI18n();
   const phase = activePhase(proposal.status as ProposalStatus);
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [, tick] = useReducer((n: number) => n + 1, 0);
 
   const deadline =
     phase === "publicity"
@@ -30,23 +30,23 @@ export function ProposalStatusBanner({
         : undefined;
 
   useEffect(() => {
-    if (!phase || !deadline) {
-      setRemaining(null);
-      return;
-    }
+    if (!phase || !deadline) return;
 
-    function tick() {
+    function runTick() {
+      tick();
       const ms = msUntil(deadline);
-      setRemaining(ms);
       if (ms !== null && ms <= 0) onPhaseChange?.();
     }
 
-    tick();
-    const id = window.setInterval(tick, 1000);
+    runTick();
+    const id = window.setInterval(runTick, 1000);
     return () => window.clearInterval(id);
   }, [phase, deadline, onPhaseChange]);
 
-  if (!phase || remaining === null) return null;
+  if (!phase || !deadline) return null;
+
+  const remaining = msUntil(deadline);
+  if (remaining === null) return null;
 
   const ended = remaining <= 0;
 

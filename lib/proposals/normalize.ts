@@ -4,7 +4,7 @@ import {
   parseWireContent,
   parseWireVoteOptions,
 } from "./codec";
-import { formatSnsName, normalizeProposalType, normalizeVoteType, typeToWire } from "./constants";
+import { formatSnsName, normalizeProposalType, normalizeVoteType, typeToApi } from "./constants";
 import type {
   ProposalCommentItem,
   ProposalContent,
@@ -122,7 +122,7 @@ export function toWireCreateBody(input: {
 } {
   return {
     title: input.title.trim(),
-    type: typeToWire(input.type),
+    type: typeToApi(input.type),
     resolution_rule: input.resolution_rule,
     vote_type: input.vote_type,
     content: input.content,

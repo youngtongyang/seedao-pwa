@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getResolutionRuleMeta } from "@/lib/proposals/rules";
 import type { VoteType } from "@/lib/proposals/types";
+import { useProposalCopy } from "@/lib/proposals/use-proposal-copy";
 import { useT } from "@/lib/i18n";
 import { ProposalRulesBody } from "./proposal-rules-body";
 
@@ -32,8 +33,9 @@ export function ProposalRulesDialog({
   voteDurationSeconds?: number;
 }) {
   const t = useT();
+  const copy = useProposalCopy();
   const ruleKey = resolutionRule || backendRuleText;
-  const meta = getResolutionRuleMeta(ruleKey, proposalType, {
+  const meta = getResolutionRuleMeta(copy.rulesCopy, copy.types, ruleKey, proposalType, {
     publicitySeconds,
     voteDurationSeconds,
   });

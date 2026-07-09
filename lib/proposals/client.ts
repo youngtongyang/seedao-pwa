@@ -4,6 +4,7 @@ import type {
   CreateProposalInput,
   ListProposalsQuery,
   ProposalCommentItem,
+  ProposalCreatePermissions,
   ProposalDetail,
   ProposalListResult,
   ProposalResponse,
@@ -22,6 +23,8 @@ function errorOf(data: Record<string, unknown>): string | undefined {
 }
 
 function messageOf(data: Record<string, unknown>): string | undefined {
+  const detail = typeof data.detail === "string" ? data.detail.trim() : "";
+  if (detail) return detail;
   return typeof data.message === "string" ? data.message : undefined;
 }
 
@@ -66,6 +69,15 @@ export async function fetchProposal(
       { cache: "no-store" },
     );
     return parse<ProposalDetail>(res);
+  } catch {
+    return { ok: false, error: "upstream_unreachable" };
+  }
+}
+
+export async function fetchProposalPermissions(): Promise<ApiOutcome<ProposalCreatePermissions>> {
+  try {
+    const res = await fetch("/api/governance/proposal-permissions", { cache: "no-store" });
+    return parse<ProposalCreatePermissions>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
   }

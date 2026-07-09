@@ -14,7 +14,7 @@ import {
   toWireCreateBody,
   toWireUpdateBody,
 } from "./normalize";
-import { typeToWire } from "./constants";
+import { typeToApi } from "./constants";
 import type {
   CastVoteInput,
   CreateCommentInput,
@@ -25,6 +25,7 @@ import type {
   ProposalListItem,
   ProposalListResult,
   ProposalResponse,
+  ProposalCreatePermissions,
   ProposalVoteItem,
   PublishProposalInput,
   UpdateProposalInput,
@@ -45,7 +46,7 @@ function queryString(q: ListProposalsQuery): Record<string, string | undefined> 
   return {
     limit: q.limit !== undefined ? String(q.limit) : undefined,
     before_id: q.before_id !== undefined ? String(q.before_id) : undefined,
-    type: q.type ? typeToWire(q.type) : undefined,
+    type: q.type ? typeToApi(q.type) : undefined,
     status: q.status ? statusToWire(q.status) : undefined,
     sip: normalizeSipQuery(q.sip),
     keyword: normalizeKeyword(q.keyword),
@@ -207,6 +208,15 @@ export function createProposal(
     token,
     body: toWireCreateBody(input),
   }).then((r) => (r.ok ? { ok: true, data: normalizeDetail(r.data) } : r));
+}
+
+export function getProposalPermissions(
+  token: string,
+): Promise<ApiResult<ProposalCreatePermissions>> {
+  if (USE_MOCK) return mock.getProposalPermissions();
+  return call<ProposalCreatePermissions>("/governance/proposal-permissions", {
+    token,
+  });
 }
 
 export function updateProposal(
@@ -690,7 +700,8 @@ const mock = {
     return Promise.resolve({ ok: true, data: p.vote_summary });
   },
 
-  listVotes(id: number, _limit?: number): Promise<ApiResult<ProposalVoteItem[]>> {
+  listVotes(id: number, limit?: number): Promise<ApiResult<ProposalVoteItem[]>> {
+    void limit;
     const p = store.proposals.find((x) => x.id === id);
     return Promise.resolve({ ok: true, data: p?.votes ?? [] });
   },
@@ -743,7 +754,8 @@ const mock = {
     return Promise.resolve({ ok: true, data: item });
   },
 
-  listComments(id: number, _limit?: number): Promise<ApiResult<ProposalCommentItem[]>> {
+  listComments(id: number, limit?: number): Promise<ApiResult<ProposalCommentItem[]>> {
+    void limit;
     const p = store.proposals.find((x) => x.id === id);
     return Promise.resolve({ ok: true, data: p?.comments ?? [] });
   },
@@ -761,5 +773,20 @@ const mock = {
     };
     p.comments = [...(p.comments ?? []), item];
     return Promise.resolve({ ok: true, data: item });
+  },
+
+  getProposalPermissions(): Promise<ApiResult<ProposalCreatePermissions>> {
+    return Promise.resolve({
+      ok: true,
+      data: {
+        sns_name: "demo.seedao",
+        can_create_any: true,
+        create_types: {
+          town_hall_meeting: true,
+          node_consensus_special: true,
+          node_consensus_rule: true,
+        },
+      },
+    });
   },
 };

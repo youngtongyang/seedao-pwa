@@ -40,6 +40,8 @@ export type ApiResult<T> =
       /** Backend business code, when the envelope was parsed. */
       code?: number;
       message?: string;
+      /** Human-readable validation detail from the backend envelope. */
+      detail?: string;
     };
 
 /** Map a backend business code to a stable client error key. */
@@ -146,6 +148,7 @@ export async function call<T>(path: string, opts: CallOptions = {}): Promise<Api
       status: res.status,
       code: env.code,
       message: env.message,
+      detail: env.detail,
     };
   }
 

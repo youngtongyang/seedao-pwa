@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -186,10 +186,6 @@ export function CommentPanel({
   const [replyToId, setReplyToId] = useState<number | null>(null);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    setComments(initial);
-  }, [initial]);
 
   const commentCount = countComments(comments);
 
