@@ -1,20 +1,20 @@
-import { ProgramDesktop } from "@/components/sections/program/program-desktop";
-import { ProgramMobile } from "@/components/sections/program/program-mobile";
 import { DesktopShell } from "@/components/layout/desktop/desktop-shell";
 import { MobileShell } from "@/components/layout/mobile/mobile-shell";
 import { Responsive } from "@/components/layout/responsive";
+import { ProgramsIndexDesktop } from "@/components/sections/programs/programs-index-desktop";
+import { ProgramsIndexMobile } from "@/components/sections/programs/programs-index-mobile";
 
-export default function ProgramPage() {
+export default function ProgramsIndexPage() {
   return (
     <Responsive
       desktop={
         <DesktopShell>
-          <ProgramDesktop />
+          <ProgramsIndexDesktop />
         </DesktopShell>
       }
       mobile={
         <MobileShell>
-          <ProgramMobile />
+          <ProgramsIndexMobile />
         </MobileShell>
       }
     />

@@ -66,14 +66,16 @@ export function MobileMenu({ trigger }: { trigger: React.ReactNode }) {
           </nav>
 
           <div className="mt-6 flex flex-col gap-2">
-            <Link
-              href="/#membership"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
-            >
-              <CreditCard className="size-5" />
-              {t.nav.membership}
-            </Link>
+            {!authed && (
+              <Link
+                href="/#membership"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
+              >
+                <CreditCard className="size-5" />
+                {t.nav.membership}
+              </Link>
+            )}
             {authed ? (
               <>
                 <Link

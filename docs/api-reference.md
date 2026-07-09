@@ -66,6 +66,10 @@
 | GET | `/api/payment/orders` | Session | Order history · 订单历史 |
 | POST | `/api/payment/order/close` | Session | Close an unpaid order · 关闭未支付订单 |
 | POST | `/api/payment/simulate-pay` | Session | Dev: mark paid (dev_mode only) · 开发模拟支付 |
+| GET | `/api/course/bookmarks` | Session | My course bookmarks · 我的课程收藏 ⚠️ backend TBD |
+| PUT | `/api/course/bookmarks/{course_id}` | Session | Bookmark a course (idempotent) · 收藏课程 ⚠️ backend TBD |
+| DELETE | `/api/course/bookmarks/{course_id}` | Session | Remove a bookmark (idempotent) · 取消收藏 ⚠️ backend TBD |
+| GET | `/api/course/orders` | Session | My course orders · 我的课程订单列表 ⚠️ backend TBD |
 | GET | `/api/stats/members` | — | Total member count · 会员总数 |
 | GET | `/api/health` | — | Backend liveness probe · 健康检查 |
 
@@ -248,6 +252,65 @@ when `wechat_pay.dev_mode` is true (404 in prod).
 - **200:** `OrderStatusResult` (now `status: "paid"`).
 - **Errors:** `unauthorized`, `invalid_param`, `payment_order_not_found`.
 - Source: [`app/api/payment/simulate-pay/route.ts`](../app/api/payment/simulate-pay/route.ts)
+
+---
+
+## Course bookmarks & my course orders · 课程收藏与订单列表
+
+> ⚠️ **Backend TBD — mock-only today.** These routes specify the intended
+> backend contract (`/v1/courses/bookmarks*`, `GET /v1/courses/orders`) but no
+> real endpoints exist yet; they only work with `SEEDAO_USE_MOCK=1`. Mock state
+> persists in httpOnly cookies `seedao.mock.bookmarks` /
+> `seedao.mock.course_orders` (clear cookies to reset; order status still flips
+> `pending → paid` after ~6 s). Wire types:
+> [`lib/course/types.ts`](../lib/course/types.ts).
+> 后端待建，当前仅 mock 可用；mock 状态存于上述 httpOnly Cookie，清 Cookie 即重置.
+>
+> Bookmarks require a **Session** (registered user) but NOT membership — saving
+> a course for later happens before paying. The course-purchase routes
+> themselves (`/api/course/checkout-preview`, `POST /api/course/orders`, …) are
+> live against the real backend; see `lib/course/`.
+> 收藏需要会话（注册即可），不要求会员；课程购买路由本身已对接真实后端.
+
+### `GET /api/course/bookmarks`
+The caller's bookmarked courses. · 调用者收藏的课程.
+
+- **Auth:** Session
+- **200:** `{ "bookmarks": [{ "course_id": string, "created_at": string }] }`
+- **Errors:** `unauthorized`.
+- Source: [`app/api/course/bookmarks/route.ts`](../app/api/course/bookmarks/route.ts)
+
+### `PUT /api/course/bookmarks/{course_id}`
+Bookmark a course. **Idempotent** — re-PUT of an existing bookmark returns 200
+(safe under optimistic-UI retries). · 收藏课程，幂等.
+
+- **Auth:** Session
+- **200:** `{ "course_id": string, "bookmarked": true, "created_at": string }`
+- **Errors:** `unauthorized`, `invalid_param`, `course_not_found` (real backend
+  will validate the id; the mock accepts any non-empty id).
+- Source: [`app/api/course/bookmarks/[course_id]/route.ts`](../app/api/course/bookmarks/%5Bcourse_id%5D/route.ts)
+
+### `DELETE /api/course/bookmarks/{course_id}`
+Remove a bookmark. **Idempotent** — deleting an absent bookmark returns 200.
+取消收藏，幂等.
+
+- **Auth:** Session
+- **200:** `{ "course_id": string, "bookmarked": false }`
+- **Errors:** `unauthorized`, `invalid_param`.
+- Source: [`app/api/course/bookmarks/[course_id]/route.ts`](../app/api/course/bookmarks/%5Bcourse_id%5D/route.ts)
+
+### `GET /api/course/orders`
+The caller's course-purchase orders. Ownerless (anonymous `order_token`) orders
+do **not** appear until claimed via `POST /api/course/orders/claim`.
+调用者的课程订单列表；无主订单 claim 之前不出现.
+
+- **Auth:** Session
+- **Query:** `status`? (`pending | paid | closed`), `limit`? (number)
+- **200:** `{ "orders": CourseOrderListItem[] }` =
+  `{ order_no, product_type: "course_purchase", course_id, sku_id, amount, currency?, status, enrollment_status?, paid_at?, created_at? }`
+  — `enrollment_status` is `"active"` once paid + fulfilled.
+- **Errors:** `unauthorized`, `internal`.
+- Source: [`app/api/course/orders/route.ts`](../app/api/course/orders/route.ts)
 
 ---
 
