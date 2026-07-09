@@ -42,6 +42,18 @@ export function parsePreviewComponents(raw: string): PreviewComponent[] {
   }
 }
 
+/** True when a preview block has at least one subsection with data to show. */
+export function hasPreviewContent(components: PreviewComponent[]): boolean {
+  const byName = Object.fromEntries(components.filter((c) => c.name).map((c) => [c.name!, c]));
+  const relate = byName.relate?.data;
+  if (relate && (String(relate.relate ?? "").trim() || relate.proposal_id != null)) return true;
+  const budgetList = (byName.budget?.data?.budgetList as unknown[] | undefined) ?? [];
+  if (budgetList.length > 0) return true;
+  if (String(byName.deliverables?.data?.description ?? "").trim()) return true;
+  if (String(byName.deadline?.data?.description ?? "").trim()) return true;
+  return false;
+}
+
 export function extractProjectBudget(blocks: ProposalContentBlock[]): ProjectBudgetSummary | undefined {
   for (const block of blocks) {
     if (block.type !== "preview") continue;
@@ -97,10 +109,12 @@ export function prepareDisplayBlocks(blocks: ProposalContentBlock[]): DisplayBlo
     if (isMotivationPayloadBlock(block)) continue;
 
     if (block.type === "preview") {
+      const components = parsePreviewComponents(block.content ?? "");
+      if (!hasPreviewContent(components)) continue;
       result.push({
         kind: "preview",
         block,
-        components: parsePreviewComponents(block.content ?? ""),
+        components,
       });
       continue;
     }
