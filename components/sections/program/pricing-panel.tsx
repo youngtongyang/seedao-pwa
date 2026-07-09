@@ -23,14 +23,13 @@ import { closeCourseOrder, previewCheckout, createCourseOrder, queryCourseOrder 
 import type { CheckoutPreviewResult, CourseOrder } from "@/lib/course/types";
 import { useT } from "@/lib/i18n";
 import type { Messages } from "@/lib/i18n/messages";
-import { programProject } from "@/lib/mock/program";
+import type { Program } from "@/lib/mock/programs";
 
 const POLL_INTERVAL_MS = 3000;
 // 客户端轮询超时只做兜底（服务端 paid/closed 状态始终优先），预算按本地时钟的
 // 流逝时间计——直接对比 Date.now() 与服务端 expired_at 会被设备时钟偏差误杀。
 const POLL_MIN_BUDGET_MS = 2 * 60 * 1000;
 const POLL_MAX_BUDGET_MS = 15 * 60 * 1000;
-const { courseId, skuId } = programProject;
 
 /** 格式化金额（元），整数不显示小数位，如 299；非整数保留 2 位，如 0.30 */
 function fmtYuan(yuan: number): string {
@@ -52,9 +51,10 @@ type PreviewState =
   | { status: "ok"; data: CheckoutPreviewResult; key: string }
   | { status: "error"; errorKey?: string; key: string };
 
-export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) {
+export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (orderNo: string) => void }) {
   const t = useT();
   const account = useAccount();
+  const { courseId, skuId } = program;
   const [phase, setPhase] = useState<PayPhase>("idle");
   const [previewState, setPreviewState] = useState<PreviewState | null>(null);
   const [previewAttempt, setPreviewAttempt] = useState(0);
@@ -66,7 +66,7 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
   // ── 课程价格试算：等会员态水合后再请求（避免水合前后重复预检）；
   //    会员态或渠道码变化时按新身份重算，失败时不保留旧价格 ──
   const requestKey = account.hydrated
-    ? JSON.stringify([previewAttempt, account.isMember, channelCode ?? null])
+    ? JSON.stringify([previewAttempt, account.isMember, channelCode ?? null, courseId, skuId])
     : null;
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
     return () => {
       stale = true;
     };
-  }, [requestKey, account.isMember, channelCode]);
+  }, [requestKey, account.isMember, channelCode, courseId, skuId]);
 
   const retryPreview = useCallback(() => {
     setPreviewAttempt((n) => n + 1);
@@ -134,7 +134,7 @@ export function PricingPanel({ onPaid }: { onPaid: (orderNo: string) => void }) 
         setPhase("error");
       }
     });
-  }, [account.isMember, appliedChannelCode]);
+  }, [account.isMember, appliedChannelCode, courseId, skuId]);
 
   const cancelPay = useCallback(() => {
     const abandoned = order;

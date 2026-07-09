@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  GraduationCap,
   Home,
   UserRound,
   type LucideIcon,
@@ -23,12 +24,14 @@ const DOCS_URL = "https://seedao2049.feishu.cn/wiki/Dgh2w1AJiieOgWk1eKRcWQBenSb"
 /** Primary navigation shown in the desktop header. */
 export const primaryNav: NavItem[] = [
   { id: "home", href: "/", labelKey: "home", icon: Home },
+  { id: "program", href: "/program", labelKey: "program", icon: GraduationCap },
   { id: "docs", href: DOCS_URL, labelKey: "docs", icon: BookOpen, external: true },
 ];
 
 /** Bottom tab bar for the mobile system. */
 export const tabNav: NavItem[] = [
   { id: "home", href: "/", labelKey: "home", icon: Home },
+  { id: "program", href: "/program", labelKey: "program", icon: GraduationCap },
   { id: "docs", href: DOCS_URL, labelKey: "docs", icon: BookOpen, external: true },
   { id: "login", href: "/login", labelKey: "login", icon: UserRound },
 ];

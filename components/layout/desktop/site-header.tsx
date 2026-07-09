@@ -83,18 +83,20 @@ export function SiteHeader() {
                 </Button>
               </>
             ) : (
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="hidden sm:inline-flex"
-              >
-                <Link href="/login">{t.nav.login}</Link>
-              </Button>
+              <>
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="hidden sm:inline-flex"
+                >
+                  <Link href="/login">{t.nav.login}</Link>
+                </Button>
+                <Button asChild size="sm" className="hidden sm:inline-flex">
+                  <Link href="/#membership">{t.nav.membership}</Link>
+                </Button>
+              </>
             )}
-            <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/#membership">{t.nav.membership}</Link>
-            </Button>
           </div>
         </div>
       </div>
