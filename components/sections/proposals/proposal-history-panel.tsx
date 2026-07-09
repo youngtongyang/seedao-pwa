@@ -11,7 +11,15 @@ import type { ProposalDetail } from "@/lib/proposals/types";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
-function HistoryItem({ event, last }: { event: ProposalHistoryEvent; last: boolean }) {
+function HistoryItem({
+  event,
+  last,
+  reasonCopy,
+}: {
+  event: ProposalHistoryEvent;
+  last: boolean;
+  reasonCopy: Parameters<typeof formatResolutionReason>[1];
+}) {
   return (
     <li className="relative flex gap-4 pb-6 last:pb-0">
       {!last && (
@@ -35,7 +43,7 @@ function HistoryItem({ event, last }: { event: ProposalHistoryEvent; last: boole
         </div>
         {event.detail && (
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            {formatResolutionReason(event.detail)}
+            {formatResolutionReason(event.detail, reasonCopy)}
           </p>
         )}
       </div>
@@ -57,7 +65,7 @@ export function ProposalHistoryPanel({ proposal }: { proposal: ProposalDetail })
   return (
     <ol className="space-y-0">
       {events.map((event, i) => (
-        <HistoryItem key={event.id} event={event} last={i === events.length - 1} />
+        <HistoryItem key={event.id} event={event} last={i === events.length - 1} reasonCopy={t.proposals.resolutionReasons} />
       ))}
     </ol>
   );

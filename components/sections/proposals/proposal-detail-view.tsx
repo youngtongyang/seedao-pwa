@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuthed } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
@@ -24,7 +24,8 @@ import {
 } from "@/lib/proposals/client";
 import { canWithdraw } from "@/lib/proposals/lifecycle";
 import { decodeProposalContent, decodeVoteOptions } from "@/lib/proposals/codec";
-import { formatDateTime, isUnsubmittedDraft, normalizeVoteType, shouldFetchMyVote, showsVoteRules, snsEquals, typeLabel, voteTypeLabel, isCommentableStatus } from "@/lib/proposals/constants";
+import { formatDateTime, isUnsubmittedDraft, normalizeVoteType, shouldFetchMyVote, showsVoteRules, snsEquals, isCommentableStatus } from "@/lib/proposals/constants";
+import { proposalVoteTypeLabel, useProposalCopy } from "@/lib/proposals/use-proposal-copy";
 import { prepareDisplayBlocks, collectMotivationWalletAddresses } from "@/lib/proposals/template-blocks";
 import type { ProposalDetail, ProposalVoteItem } from "@/lib/proposals/types";
 import { fetchSnsByWallet } from "@/lib/sns/client";
@@ -43,6 +44,7 @@ import { ProposalStatusBanner } from "./proposal-status-banner";
 
 export function ProposalDetailView({ id }: { id: number }) {
   const t = useT();
+  const copy = useProposalCopy();
   const router = useRouter();
   const authed = useAuthed();
 
@@ -58,7 +60,7 @@ export function ProposalDetailView({ id }: { id: number }) {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
-  const [walletMap, setWalletMap] = useState<Map<string, string>>(() => new Map());
+  const [resolvedWallets, setResolvedWallets] = useState<Map<string, string>>(() => new Map());
 
   useEffect(() => {
     if (!authed) return;
@@ -72,7 +74,10 @@ export function ProposalDetailView({ id }: { id: number }) {
       fetchVotes(id),
     ]);
     setLoading(false);
-    if (detailRes.ok) setProposal(detailRes.data);
+    if (detailRes.ok) {
+      setProposal(detailRes.data);
+      setResolvedWallets(new Map());
+    }
     if (votesRes.ok) setVotes(votesRes.data);
 
     if (
@@ -91,12 +96,12 @@ export function ProposalDetailView({ id }: { id: number }) {
   }, [id, authed]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount
     void load();
   }, [load]);
 
-  useEffect(() => {
-    if (!proposal) return;
-
+  const baseWalletMap = useMemo(() => {
+    if (!proposal) return new Map<string, string>();
     const map = new Map<string, string>();
     for (const vote of votes.length ? votes : (proposal.votes ?? [])) {
       if (vote.voter_wallet) map.set(vote.voter_wallet.toLowerCase(), vote.sns_name);
@@ -104,30 +109,40 @@ export function ProposalDetailView({ id }: { id: number }) {
     if (proposal.proposer_wallet && proposal.proposer_sns) {
       map.set(proposal.proposer_wallet.toLowerCase(), proposal.proposer_sns);
     }
+    return map;
+  }, [proposal, votes]);
+
+  const walletMap = useMemo(
+    () => new Map([...baseWalletMap, ...resolvedWallets]),
+    [baseWalletMap, resolvedWallets],
+  );
+
+  useEffect(() => {
+    if (!proposal) return;
 
     const content = decodeProposalContent(proposal.content);
     const addresses = collectMotivationWalletAddresses(content.blocks ?? []);
-    setWalletMap(new Map(map));
+    const missing = addresses.filter((address) => !baseWalletMap.has(address));
+    if (!missing.length) return;
 
     let cancelled = false;
     void (async () => {
-      const next = new Map(map);
+      const next = new Map<string, string>();
       await Promise.all(
-        addresses.map(async (address) => {
-          if (next.has(address)) return;
+        missing.map(async (address) => {
           const result = await fetchSnsByWallet(address);
           if (result.ok && result.data.sns_name) {
             next.set(address, result.data.sns_name);
           }
         }),
       );
-      if (!cancelled) setWalletMap(next);
+      if (!cancelled) setResolvedWallets(next);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [proposal, votes]);
+  }, [proposal, baseWalletMap]);
 
   async function handleVote() {
     if (!selected.length || !proposal) return;
@@ -200,7 +215,7 @@ export function ProposalDetailView({ id }: { id: number }) {
         <Button asChild variant="ghost" size="sm" className="-ml-2 w-fit">
           <Link href="/proposals">
             <ArrowLeft className="size-4" />
-            {typeLabel(proposal.type)}
+            {t.proposals.backToList}
           </Link>
         </Button>
         <div className="flex flex-wrap gap-2">
@@ -255,7 +270,7 @@ export function ProposalDetailView({ id }: { id: number }) {
           <ProposalTypeBadge type={proposal.type} />
           <ProposalStatusBadge status={proposal.status} />
           <span className="inline-flex items-center rounded-md bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-            {voteTypeLabel(voteType)}
+            {proposalVoteTypeLabel(copy, voteType)}
           </span>
         </div>
         <div className="mt-4 flex items-center gap-2.5">
@@ -328,6 +343,7 @@ export function ProposalDetailView({ id }: { id: number }) {
 
       <div id="comments" className="mt-8">
         <CommentPanel
+          key={`${id}-${(proposal.comments ?? []).map((c) => c.id).join(",")}`}
           proposalId={id}
           proposal={proposal}
           comments={proposal.comments ?? []}

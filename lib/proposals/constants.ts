@@ -15,7 +15,7 @@ export type ProposalTypeMeta = {
 export const PROPOSAL_TYPE_GROUPS: ProposalTypeGroup[] = [
   {
     id: "node_consensus",
-    types: ["node_consensus_rule", "node_consensus_special"],
+    types: ["node_consensus_special", "node_consensus_rule"],
   },
   {
     id: "town_hall",
@@ -26,27 +26,27 @@ export const PROPOSAL_TYPE_GROUPS: ProposalTypeGroup[] = [
 export const PROPOSAL_TYPES: Record<ProposalType, ProposalTypeMeta> = {
   node_consensus_rule: {
     id: "node_consensus_rule",
-    label: "节点共识大会规则提案",
-    tag: "节点共识大会规则提案",
-    wireType: "节点共识大会规则提案",
-    resolutionRule: "standard",
+    label: "节点大会元规则提案",
+    tag: "节点大会元规则提案",
+    wireType: "节点大会元规则提案",
+    resolutionRule: "node_meta_rule",
     defaultPublicityHours: 96,
     defaultVoteHours: 48,
   },
   node_consensus_special: {
     id: "node_consensus_special",
-    label: "节点共识大会特别提案",
-    tag: "节点共识大会特别提案",
-    wireType: "节点共识大会特别提案",
-    resolutionRule: "node_consensus_special",
+    label: "节点大会提案",
+    tag: "节点大会提案",
+    wireType: "节点大会提案",
+    resolutionRule: "node_assembly",
     defaultPublicityHours: 96,
     defaultVoteHours: 48,
   },
   town_hall_meeting: {
     id: "town_hall_meeting",
-    label: "市政厅联席会议常规提案",
-    tag: "市政厅联席会议常规提案",
-    wireType: "市政厅联席会议常规提案",
+    label: "市政厅决策提案",
+    tag: "市政厅决策提案",
+    wireType: "市政厅决策提案",
     resolutionRule: "town_hall_standard",
     defaultPublicityHours: 72,
     defaultVoteHours: 48,
@@ -217,9 +217,14 @@ export function snsEquals(
 
 /** Map backend `type` (Chinese or legacy wire keys) to internal UI keys. */
 const WIRE_TYPE_TO_ID: Record<string, ProposalType> = {
+  节点大会元规则提案: "node_consensus_rule",
+  节点大会提案: "node_consensus_special",
+  节点大会常规提案: "node_consensus_special",
+  市政厅决策提案: "town_hall_meeting",
+  // Legacy backend labels
   节点共识大会规则提案: "node_consensus_rule",
   节点共识大会特别提案: "node_consensus_special",
-  节点共识大会提案: "node_consensus_rule",
+  节点共识大会提案: "node_consensus_special",
   市政厅联席会议常规提案: "town_hall_meeting",
   市政厅提案: "town_hall_meeting",
   P1提案立项: "p1_project_init",
@@ -244,11 +249,18 @@ export function normalizeProposalType(type: string): string {
   return WIRE_TYPE_TO_ID[type] ?? type;
 }
 
-/** Map internal type key to backend `type` for create/list filters. */
+/** Map internal type key to backend `type` for list responses / legacy Chinese labels. */
 export function typeToWire(type: string): string {
   const id = normalizeProposalType(type);
   const meta = PROPOSAL_TYPES[id as ProposalType];
   return meta?.wireType ?? type;
+}
+
+/** Send internal API enum to backend (create, filters). Prefer over Chinese wireType. */
+export function typeToApi(type: string): string {
+  const id = normalizeProposalType(type);
+  if (id in PROPOSAL_TYPES) return id;
+  return type;
 }
 
 export function statusLabel(status: string): string {

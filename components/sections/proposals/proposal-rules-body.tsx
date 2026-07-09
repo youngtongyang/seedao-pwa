@@ -1,8 +1,9 @@
 "use client";
 
-import { normalizeVoteType, VOTE_TYPES } from "@/lib/proposals/constants";
+import { normalizeVoteType } from "@/lib/proposals/constants";
 import { getResolutionRuleMeta, getVoteTypeLabel } from "@/lib/proposals/rules";
 import type { VoteType } from "@/lib/proposals/types";
+import { proposalVoteTypeLabel, useProposalCopy } from "@/lib/proposals/use-proposal-copy";
 import { useT } from "@/lib/i18n";
 
 export function ProposalRulesBody({
@@ -22,15 +23,22 @@ export function ProposalRulesBody({
   voteDurationSeconds?: number;
 }) {
   const t = useT();
+  const copy = useProposalCopy();
   const ruleKey = resolutionRule || backendRuleText;
-  const meta = getResolutionRuleMeta(ruleKey, proposalType, {
-    publicitySeconds,
-    voteDurationSeconds,
-  });
+  const meta = getResolutionRuleMeta(
+    copy.rulesCopy,
+    copy.types,
+    ruleKey,
+    proposalType,
+    {
+      publicitySeconds,
+      voteDurationSeconds,
+    },
+  );
   const normalizedVoteType = voteType ? normalizeVoteType(voteType) : undefined;
   const voteLabel =
-    getVoteTypeLabel(normalizedVoteType) ??
-    (normalizedVoteType ? VOTE_TYPES[normalizedVoteType].label : null);
+    getVoteTypeLabel(copy.voteTypes, normalizedVoteType) ??
+    (normalizedVoteType ? proposalVoteTypeLabel(copy, normalizedVoteType) : null);
 
   if (!meta) {
     return (

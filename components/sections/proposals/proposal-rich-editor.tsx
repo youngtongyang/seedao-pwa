@@ -31,7 +31,9 @@ export function ProposalRichEditor({
   const { resolvedTheme } = useTheme();
   const [ready, setReady] = useState(false);
 
-  onChangeRef.current = onChange;
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     let cancelled = false;

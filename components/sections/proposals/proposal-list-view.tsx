@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
 import { fetchProposals } from "@/lib/proposals/client";
 import { isHistoryStatus, PROPOSAL_STATUSES, PROPOSAL_TYPES, snsEquals } from "@/lib/proposals/constants";
+import { proposalStatusLabel, proposalTypeLabel, useProposalCopy } from "@/lib/proposals/use-proposal-copy";
 import type { ProposalListItem } from "@/lib/proposals/types";
 import { ProposalCard } from "./proposal-card";
 
@@ -18,6 +19,7 @@ type TabKey = "all" | "history" | "mine";
 
 export function ProposalListView() {
   const t = useT();
+  const copy = useProposalCopy();
   const authed = useAuthed();
 
   const [tab, setTab] = useState<TabKey>("all");
@@ -96,6 +98,7 @@ export function ProposalListView() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- refetch when filters change
     void load(false);
   }, [load]);
 
@@ -136,7 +139,7 @@ export function ProposalListView() {
           <option value="">{t.proposals.filters.allTypes}</option>
           {Object.values(PROPOSAL_TYPES).map((pt) => (
             <option key={pt.id} value={pt.id}>
-              {pt.label}
+              {proposalTypeLabel(copy, pt.id)}
             </option>
           ))}
         </select>
@@ -149,7 +152,7 @@ export function ProposalListView() {
           <option value="">{t.proposals.filters.allStatuses}</option>
           {Object.values(PROPOSAL_STATUSES).map((st) => (
             <option key={st.id} value={st.id}>
-              {st.label}
+              {proposalStatusLabel(copy, st.id)}
             </option>
           ))}
         </select>

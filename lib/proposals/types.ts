@@ -1,4 +1,7 @@
-/** Wire types for the proposals API (snake_case, matching backend). */
+/**
+ * Proposal domain DTOs (snake_case, matching backend wire format).
+ * Shared API errcodes live in `lib/api/types.ts`; proposal payloads live here.
+ */
 
 /** Internal proposal type keys (creatable + display-only). */
 export type ProposalType =
@@ -21,6 +24,13 @@ export const CREATABLE_PROPOSAL_TYPES = [
 ] as const satisfies readonly ProposalType[];
 
 export type CreatableProposalType = (typeof CREATABLE_PROPOSAL_TYPES)[number];
+
+/** Per-type create permission from GET /v1/governance/proposal-permissions. */
+export type ProposalCreatePermissions = {
+  sns_name: string;
+  can_create_any: boolean;
+  create_types: Partial<Record<CreatableProposalType, boolean>>;
+};
 
 export type ProposalTypeGroup = {
   id: string;
