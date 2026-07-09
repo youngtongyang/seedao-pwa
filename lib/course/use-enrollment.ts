@@ -13,14 +13,17 @@ import { listCourseOrders, queryCourseOrder, readCourseOrderNo } from "./client"
 export type EnrollmentState = "unknown" | "anonymous" | "none" | "enrolled";
 
 export function useEnrollment(courseId: string): { state: EnrollmentState; orderNo?: string } {
-  const [result, setResult] = useState<{ state: EnrollmentState; orderNo?: string }>({
-    state: "unknown",
-  });
+  // 结果按 courseId 打标：courseId 切换后旧结果在派生时自动视为 "unknown"，
+  // 无需在 effect 里同步重置状态。
+  const [loaded, setLoaded] = useState<{
+    courseId: string;
+    state: EnrollmentState;
+    orderNo?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!courseId) return;
     let stale = false;
-    setResult({ state: "unknown" });
 
     void (async () => {
       const list = await listCourseOrders();
@@ -33,7 +36,7 @@ export function useEnrollment(courseId: string): { state: EnrollmentState; order
             (o.status === "paid" || o.enrollment_status === "active"),
         );
         if (hit) {
-          setResult({ state: "enrolled", orderNo: hit.order_no });
+          setLoaded({ courseId, state: "enrolled", orderNo: hit.order_no });
           return;
         }
       }
@@ -43,12 +46,15 @@ export function useEnrollment(courseId: string): { state: EnrollmentState; order
         const q = await queryCourseOrder(orderNo);
         if (stale) return;
         if (q.ok && q.data.status === "paid") {
-          setResult({ state: "enrolled", orderNo });
+          setLoaded({ courseId, state: "enrolled", orderNo });
           return;
         }
       }
 
-      setResult({ state: list.ok ? "none" : list.status === 401 ? "anonymous" : "none" });
+      setLoaded({
+        courseId,
+        state: list.ok ? "none" : list.status === 401 ? "anonymous" : "none",
+      });
     })();
 
     return () => {
@@ -56,5 +62,6 @@ export function useEnrollment(courseId: string): { state: EnrollmentState; order
     };
   }, [courseId]);
 
-  return result;
+  if (!loaded || loaded.courseId !== courseId) return { state: "unknown" };
+  return { state: loaded.state, orderNo: loaded.orderNo };
 }
