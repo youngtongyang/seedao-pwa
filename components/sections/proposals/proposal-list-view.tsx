@@ -100,24 +100,26 @@ export function ProposalListView() {
   }, [load]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight sm:text-3xl">{t.proposals.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t.proposals.subtitle}</p>
+    <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 sm:py-12">
+      <div className="mb-4 flex items-start justify-between gap-3 sm:mb-8 sm:items-center">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-black tracking-tight sm:text-3xl">{t.proposals.title}</h1>
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground sm:mt-1 sm:line-clamp-none sm:text-sm">
+            {t.proposals.subtitle}
+          </p>
         </div>
-        <Button asChild>
+        <Button asChild size="sm" className="shrink-0 rounded-full px-4 sm:h-10 sm:rounded-md sm:px-4">
           <Link href={authed ? "/proposals/new" : "/login"}>{t.proposals.createCta}</Link>
         </Button>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="mb-6">
-        <TabsList className="h-auto w-full justify-start gap-1 bg-transparent p-0">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)} className="mb-4 sm:mb-6">
+        <TabsList className="no-scrollbar h-auto w-full justify-start gap-1 overflow-x-auto bg-transparent p-0">
           {(["all", "history", "mine"] as const).map((key) => (
             <TabsTrigger
               key={key}
               value={key}
-              className="rounded-full px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="shrink-0 rounded-full px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               {t.proposals.tabs[key]}
             </TabsTrigger>
@@ -125,11 +127,11 @@ export function ProposalListView() {
         </TabsList>
       </Tabs>
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:mb-6 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+          className="h-9 min-w-0 rounded-xl border border-input bg-background px-2.5 text-xs sm:h-10 sm:px-3 sm:text-sm"
         >
           <option value="">{t.proposals.filters.allTypes}</option>
           {Object.values(PROPOSAL_TYPES).map((pt) => (
@@ -142,7 +144,7 @@ export function ProposalListView() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+          className="h-9 min-w-0 rounded-xl border border-input bg-background px-2.5 text-xs sm:h-10 sm:px-3 sm:text-sm"
         >
           <option value="">{t.proposals.filters.allStatuses}</option>
           {Object.values(PROPOSAL_STATUSES).map((st) => (
@@ -156,10 +158,10 @@ export function ProposalListView() {
           placeholder="SIP"
           value={sipFilter}
           onChange={(e) => setSipFilter(e.target.value)}
-          className="h-10 w-full rounded-xl sm:w-24"
+          className="h-9 rounded-xl text-xs sm:h-10 sm:w-24 sm:text-sm"
         />
 
-        <div className="relative flex-1 min-w-[180px]">
+        <div className="relative col-span-2 min-w-0 sm:col-span-1 sm:min-w-[180px] sm:flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder={t.proposals.filters.search}
@@ -168,7 +170,7 @@ export function ProposalListView() {
             onKeyDown={(e) => {
               if (e.key === "Enter") submitSearch();
             }}
-            className="h-10 rounded-xl pl-9"
+            className="h-9 rounded-xl pl-9 text-xs sm:h-10 sm:text-sm"
           />
         </div>
       </div>
@@ -193,7 +195,7 @@ export function ProposalListView() {
       ) : items.length === 0 ? (
         <p className="py-16 text-center text-muted-foreground">{t.proposals.empty}</p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2 sm:gap-3">
           {items.map((item) => (
             <ProposalCard key={item.id} item={item} mySns={mySns} />
           ))}

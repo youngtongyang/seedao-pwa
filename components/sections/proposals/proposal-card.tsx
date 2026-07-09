@@ -24,31 +24,38 @@ export function ProposalCard({
   return (
     <div
       className={cn(
-        "group rounded-2xl border border-border bg-card transition-colors",
+        "group rounded-xl border border-border bg-card transition-colors sm:rounded-2xl",
         "hover:border-primary/30 hover:bg-muted/20",
       )}
     >
-      <Link href={href} className="block p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <Link href={href} className="block p-4 sm:p-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-bold leading-snug group-hover:text-primary sm:text-lg">
+            <h3 className="text-[15px] font-bold leading-snug group-hover:text-primary sm:text-lg">
               {item.title}
             </h3>
-            <div className="mt-3 flex items-center gap-2.5">
+
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:hidden">
+              <ProposalTypeBadge type={item.type} />
+              <ProposalStatusBadge status={item.status} />
+            </div>
+
+            <div className="mt-2.5 flex items-center gap-2 sm:mt-3">
               <span
-                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary"
+                className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary sm:size-8 sm:text-xs"
                 aria-hidden
               >
                 {(item.proposer_sns || "?").slice(0, 1).toUpperCase()}
               </span>
-              <div className="min-w-0 text-sm text-muted-foreground">
+              <div className="min-w-0 truncate text-xs text-muted-foreground sm:text-sm">
                 <span className="font-medium text-foreground">{item.proposer_sns}</span>
-                <span className="mx-2 text-border">·</span>
+                <span className="mx-1.5 text-border sm:mx-2">·</span>
                 <time dateTime={item.created_at}>{formatDateTime(item.created_at)}</time>
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end">
+
+          <div className="hidden shrink-0 flex-wrap items-center gap-2 sm:flex sm:flex-col sm:items-end">
             <ProposalTypeBadge type={item.type} />
             <ProposalStatusBadge status={item.status} />
           </div>
@@ -56,8 +63,8 @@ export function ProposalCard({
       </Link>
 
       {isUnsubmitted && isMine && (
-        <div className="border-t border-border px-5 py-3">
-          <Button asChild variant="outline" size="sm">
+        <div className="border-t border-border px-4 py-2.5 sm:px-5 sm:py-3">
+          <Button asChild variant="outline" size="sm" className="h-8 text-xs sm:h-9 sm:text-sm">
             <Link href={`/proposals/new?id=${item.id}`}>
               <Pencil className="size-3.5" />
               {t.proposals.detail.editDraft}

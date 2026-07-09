@@ -7,7 +7,7 @@ export function ProposalStatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-md px-2.5 py-0.5 text-xs font-semibold",
+        "inline-flex max-w-full shrink-0 items-center truncate rounded-md px-2 py-0.5 text-[11px] font-semibold sm:px-2.5 sm:text-xs",
         meta?.className ?? "bg-muted text-muted-foreground",
       )}
     >
@@ -18,7 +18,7 @@ export function ProposalStatusBadge({ status }: { status: string }) {
 
 export function ProposalTypeBadge({ type }: { type: string }) {
   return (
-    <span className="inline-flex shrink-0 items-center rounded-md border border-border bg-muted/50 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+    <span className="inline-flex max-w-full shrink-0 items-center truncate rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground sm:px-2.5 sm:text-xs">
       {typeTag(type)}
     </span>
   );
