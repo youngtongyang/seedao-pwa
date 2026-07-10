@@ -12,6 +12,7 @@ import {
   type SendSmsResult,
   type SnsCheckReason,
   type SnsCheckResult,
+  type SnsByWalletResult,
   type UserCountResult,
   type VerifySnsRequest,
   type VerifySnsResult,
@@ -39,6 +40,8 @@ export type ApiResult<T> =
       /** Backend business code, when the envelope was parsed. */
       code?: number;
       message?: string;
+      /** Human-readable validation detail from the backend envelope. */
+      detail?: string;
     };
 
 /** Map a backend business code to a stable client error key. */
@@ -91,7 +94,7 @@ export function toE164(phone: string): string {
 }
 
 export type CallOptions = {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
   query?: Record<string, string | undefined>;
   body?: unknown;
   /** Bearer token for authenticated endpoints. */
@@ -145,6 +148,7 @@ export async function call<T>(path: string, opts: CallOptions = {}): Promise<Api
       status: res.status,
       code: env.code,
       message: env.message,
+      detail: env.detail,
     };
   }
 
@@ -183,6 +187,11 @@ export function register(req: RegisterRequest): Promise<ApiResult<AuthResult>> {
 export function snsCheck(snsName: string): Promise<ApiResult<SnsCheckResult>> {
   if (USE_MOCK) return mock.snsCheck(snsName);
   return call<SnsCheckResult>("/sns/check", { query: { sns_name: snsName } });
+}
+
+export function snsByWallet(wallet: string): Promise<ApiResult<SnsByWalletResult>> {
+  if (USE_MOCK) return mock.snsByWallet(wallet);
+  return call<SnsByWalletResult>("/sns/by-wallet", { query: { wallet } });
 }
 
 export function walletNonce(req: WalletNonceRequest): Promise<ApiResult<WalletNonceResult>> {
@@ -253,6 +262,12 @@ const mock = {
       ok: true,
       data: { sns_name: name, available: reason === undefined, reason },
     });
+  },
+  snsByWallet(wallet: string): Promise<ApiResult<SnsByWalletResult>> {
+    const w = wallet.toLowerCase();
+    const sns =
+      w === "0x78f625a65fc316d32d98d249b698fb509a6d98f2" ? "tanghan.seedao" : "demo.seedao";
+    return Promise.resolve({ ok: true, data: { wallet: w, sns_name: sns } });
   },
   walletNonce(req: WalletNonceRequest): Promise<ApiResult<WalletNonceResult>> {
     const nonce = "mocknonce0000";

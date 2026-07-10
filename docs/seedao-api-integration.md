@@ -39,6 +39,24 @@ Every backend endpoint now has a BFF route. Usage by a user-facing feature:
 | `POST /v1/payments/orders/:order_no/close` | `/api/payment/order/close` | Yes — cancel unpaid order |
 | `POST /v1/payments/dev/simulate-pay` | `/api/payment/simulate-pay` | Dev-only (`dev_mode`) |
 | `GET /v1/stats/user-count` | `/api/stats/members` | Yes — homepage hero count |
+| `GET /v1/proposals` | `/api/proposals` | Yes — proposal list |
+| `POST /v1/proposals` | `/api/proposals` | Yes — create draft |
+| `GET /v1/proposals/:id` | `/api/proposals/[id]` | Yes — proposal detail |
+| `PATCH /v1/proposals/:id` | `/api/proposals/[id]` | Yes — update draft |
+| `POST /v1/proposals/:id/publish` | `/api/proposals/[id]/publish` | Yes — submit proposal |
+| `POST /v1/proposals/:id/close` | `/api/proposals/[id]/close` | Yes — withdraw draft |
+| `POST /v1/proposals/:id/finalize` | `/api/proposals/[id]/finalize` | Yes — finalize vote |
+| `GET /v1/proposals/:id/vote-summary` | `/api/proposals/[id]/vote-summary` | Yes — vote tally |
+| `GET/POST /v1/proposals/:id/votes` | `/api/proposals/[id]/votes` | Yes — vote list / cast |
+| `GET /v1/proposals/:id/votes/me` | `/api/proposals/[id]/votes/me` | Yes — my vote |
+| `GET/POST /v1/proposals/:id/comments` | `/api/proposals/[id]/comments` | Yes — comments |
+
+### Proposals wire notes
+
+- Default mode uses the real backend (`https://api.seedao.xyz`). Set `SEEDAO_USE_MOCK=1` for local mock data.
+- `content` is UTF-8 bytes (`integer[]`). The UI packs `{ background, body, remarks, vote_type, vote_options }` as JSON inside `content` because the create/patch swagger only exposes `content` + `title`.
+- `type` on create is mapped to backend values (e.g. `node_assembly` → `node_consensus_standard`).
+- Status/type strings from the backend are normalized in `lib/proposals/normalize.ts`.
 
 ### Wallet flow caveat
 The wallet **nonce is single-use (45s TTL)** and consumed by *both* `verify-sns` and

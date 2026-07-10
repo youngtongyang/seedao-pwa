@@ -44,6 +44,10 @@ export const ErrCode = {
   COURSE_ORDER_TOKEN_INVALID: 40018,
   /** Order already claimed by another user. */
   COURSE_ORDER_ALREADY_CLAIMED: 40019,
+  /** Vote not found for this proposal (user has not voted yet). */
+  PROPOSAL_VOTE_NOT_FOUND: 40027,
+  /** Proposal status does not allow this action (e.g. comment on draft). */
+  PROPOSAL_STATUS_INVALID: 40022,
   UNAUTHORIZED: 40100,
   TOO_MANY_REQUESTS: 42901,
   INTERNAL: 50000,
@@ -134,6 +138,12 @@ export type SnsCheckResult = {
   sns_name: string;
   available: boolean;
   reason?: SnsCheckReason;
+};
+
+/** Reverse lookup: wallet address → registered SNS (`GET /v1/sns/by-wallet`). */
+export type SnsByWalletResult = {
+  wallet: string;
+  sns_name: string;
 };
 
 // ── Wallet (SIWE) ─────────────────────────────────────────────────────────────
