@@ -3,30 +3,26 @@ import { courseProgramPath, readPendingCoursePay } from "@/lib/course/pending-pa
 import { readPendingOrder } from "@/lib/payment/client";
 
 /**
- * Where to send the user after an H5 pay round-trip.
- *
- * Priority: URL `?returnTo=` (from backend echo) → sessionStorage → pending flags.
- * Backend only needs one fixed `return_url`; each order carries its own `return_to`.
+ * Where to send the user when they land on `/pay/return` after an H5 round-trip.
+ * Only used by the pay-return page — not on every route.
  */
 export function resolvePostPaymentPath(searchParams?: URLSearchParams | null): string {
   if (typeof window !== "undefined") captureReturnToFromLocation();
 
-  // Legacy optional shortcut — prefer `returnTo` query param instead.
   const slug = searchParams?.get("slug");
-  if (slug && !readReturnTo()) return courseProgramPath(slug);
-
   const returnTo = readReturnTo();
   const pendingCourse = readPendingCoursePay();
   const pendingMembership = readPendingOrder();
 
-  if (pendingCourse || returnTo?.startsWith("/program/")) {
-    return pendingCourse ? courseProgramPath(pendingCourse.slug) : returnTo!;
-  }
+  if (pendingCourse) return courseProgramPath(pendingCourse.slug);
 
-  // Membership H5: reopen Join tab to poll, then consumeReturnTo() on success.
-  if (pendingMembership || returnTo) {
-    return joinHref(returnTo ?? undefined);
-  }
+  if (slug) return courseProgramPath(slug);
+
+  if (returnTo?.startsWith("/program/")) return returnTo;
+
+  if (pendingMembership) return joinHref(returnTo ?? undefined);
+
+  if (returnTo) return joinHref(returnTo);
 
   return "/?join=1#membership";
 }

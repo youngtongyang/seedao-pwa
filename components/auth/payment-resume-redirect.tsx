@@ -2,13 +2,14 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { joinHref, readReturnTo } from "@/lib/auth/return-to";
 import { courseProgramPath, readPendingCoursePay } from "@/lib/course/pending-pay";
-import { resolvePostPaymentPath } from "@/lib/payment/return-path";
+import { readPendingOrder } from "@/lib/payment/client";
 import { useHydrated } from "@/lib/use-hydrated";
 
 /**
- * After Alipay returns to the site root (or any page), forward in-flight course
- * or membership payments to the right resume point.
+ * Only runs when an H5 payment is genuinely in flight (pending flags in
+ * sessionStorage). Must NOT redirect on a stale `returnTo` alone.
  */
 export function PaymentResumeRedirect() {
   const router = useRouter();
@@ -25,10 +26,9 @@ export function PaymentResumeRedirect() {
       return;
     }
 
-    // Membership pending on a non-home route — send to join tab.
-    const target = resolvePostPaymentPath(null);
-    if (target.startsWith("/?join=1") && pathname !== "/") {
-      router.replace(target);
+    const pendingMembership = readPendingOrder();
+    if (pendingMembership && pathname !== "/") {
+      router.replace(joinHref(readReturnTo() ?? undefined));
     }
   }, [hydrated, pathname, router]);
 
