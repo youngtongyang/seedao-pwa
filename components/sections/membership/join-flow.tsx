@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAccount } from "@/lib/account";
+import { consumeReturnTo } from "@/lib/auth/return-to";
 import type { AuthUser, SnsCheckResult } from "@/lib/api/types";
 import { registerNewSns } from "@/lib/auth/phone";
 import { refreshAuth } from "@/lib/auth/use-auth";
@@ -20,6 +21,7 @@ import {
   createPaymentOrder,
   findInFlightOrder,
   isMobileDevice,
+  navigateToPayment,
   openPaymentRedirect,
   pollPaymentStatus,
   readPendingOrder,
@@ -302,7 +304,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   const [nonce, setNonce] = useState(0);
 
   const openOrder = useCallback(
-    async (channel: PayChannel, activeRef: { current: boolean }) => {
+    async (channel: PayChannel, activeRef: { current: boolean }, handoffNow = false) => {
       setPayChannel(channel);
       setState("creating");
       const res = await createPaymentOrder({ pay_channel: channel });
@@ -318,10 +320,19 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
       const o = res.order;
       setOrder(o);
       setOrderNo(o.order_no);
-      if (isH5PayChannel(channel) && paymentRedirectUrl(o)) setState("h5Ready");
-      else setState("waiting");
+      const redirectUrl = paymentRedirectUrl(o);
+      if (isH5PayChannel(channel) && redirectUrl) {
+        if (handoffNow) {
+          savePendingOrder(o.order_no, snsName);
+          navigateToPayment(redirectUrl);
+          return;
+        }
+        setState("h5Ready");
+      } else {
+        setState("waiting");
+      }
     },
-    [router],
+    [router, snsName],
   );
 
   // Bootstrap: resume an in-flight order, or open one on desktop. Mobile waits
@@ -343,7 +354,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
           setState("paid");
           account.activateMembership();
           refreshAuth();
-          router.push("/profile");
+          router.push(consumeReturnTo("/profile"));
           return;
         }
         if (o.status === "pending" && (o.code_url || paymentRedirectUrl(o))) {
@@ -369,7 +380,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   }, [orderNo, nonce, mobile, account, router, openOrder]);
 
   function startPay(channel: PayChannel) {
-    void openOrder(channel, { current: true });
+    void openOrder(channel, { current: true }, true);
   }
 
   function handoff() {
@@ -423,7 +434,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
         // `authed` cookie); mirror it client-side and refresh the header.
         account.activateMembership();
         refreshAuth();
-        router.push("/profile");
+        router.push(consumeReturnTo("/profile"));
       } else if (res.status === "closed") {
         // Order no longer payable (expired / closed / failed) — offer a fresh one.
         settled = true;

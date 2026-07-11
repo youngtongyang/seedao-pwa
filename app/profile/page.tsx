@@ -4,6 +4,7 @@ import { DesktopShell } from "@/components/layout/desktop/desktop-shell";
 import { MobileShell } from "@/components/layout/mobile/mobile-shell";
 import { Responsive } from "@/components/layout/responsive";
 import { ProfileView } from "@/components/sections/profile/profile-view";
+import { joinRedirectPath, loginRedirectPath } from "@/lib/auth/return-to";
 
 export const metadata = {
   title: "个人主页 · Profile",
@@ -15,7 +16,8 @@ export default async function ProfilePage() {
   // them to finish payment. A user with neither goes to log in.
   const store = await cookies();
   if (!store.get("seedao.authed")) {
-    redirect(store.get("seedao.session") ? "/?join=1#membership" : "/login");
+    const returnTo = "/profile";
+    redirect(store.get("seedao.session") ? joinRedirectPath(returnTo) : loginRedirectPath(returnTo));
   }
 
   return (

@@ -24,7 +24,8 @@ import type { CheckoutPreviewResult, CourseOrder, PayChannel } from "@/lib/cours
 import { useT } from "@/lib/i18n";
 import type { Messages } from "@/lib/i18n/messages";
 import type { Program } from "@/lib/mock/programs";
-import { isH5PayChannel, isMobileDevice, openPaymentRedirect } from "@/lib/payment/client";
+import { joinHref, loginHref } from "@/lib/auth/return-to";
+import { isH5PayChannel, isMobileDevice, navigateToPayment, openPaymentRedirect } from "@/lib/payment/client";
 import { paymentRedirectUrl } from "@/lib/payment/types";
 
 const POLL_INTERVAL_MS = 3000;
@@ -133,12 +134,13 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
       }).then((outcome) => {
         if (outcome.ok) {
           setOrder(outcome.data);
-          if (isH5PayChannel(channel) && paymentRedirectUrl(outcome.data)) {
-            setPhase("h5Ready");
-          } else {
-            setPhase("waiting");
-            setQrOpen(true);
+          const redirectUrl = paymentRedirectUrl(outcome.data);
+          if (isH5PayChannel(channel) && redirectUrl) {
+            navigateToPayment(redirectUrl);
+            return;
           }
+          setPhase("waiting");
+          setQrOpen(true);
         } else {
           setPayErrorKey(outcome.error);
           setPhase("error");
@@ -258,6 +260,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
           <MemberRegisterPrompt
             amountIfMemberYuan={amountIfMemberYuan}
             memberHint={preview?.member_discount?.hint}
+            returnTo={`/program/${program.slug}`}
           />
         )}
       </div>
@@ -365,7 +368,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
           <div className="flex flex-wrap justify-center gap-2">
             {payErrorKey === "course_member_login_required" && (
               <Button asChild size="sm">
-                <Link href="/login">{t.nav.login}</Link>
+                <Link href={loginHref(`/program/${program.slug}`)}>{t.nav.login}</Link>
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={() => { setPayChannel(null); setPhase("idle"); }}>{t.common.retry}</Button>
@@ -504,9 +507,11 @@ function MemberDiscountNote() {
 function MemberRegisterPrompt({
   amountIfMemberYuan,
   memberHint,
+  returnTo,
 }: {
   amountIfMemberYuan: number | null;
   memberHint?: string;
+  returnTo: string;
 }) {
   const t = useT();
   return (
@@ -522,7 +527,7 @@ function MemberRegisterPrompt({
           <p className="text-xs text-muted-foreground">{memberHint}</p>
         )}
         <Button asChild variant="link" size="sm" className="h-auto p-0 text-primary">
-          <Link href="/#membership">
+          <Link href={joinHref(returnTo)}>
             {t.program.pricingNotMemberCta}
             <ArrowRight className="ml-1 size-3" />
           </Link>

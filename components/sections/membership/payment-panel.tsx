@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReturnToCapture } from "@/components/auth/return-to-capture";
 import { QRFrame } from "@/components/shared/qr-frame";
 import { useAccount } from "@/lib/account";
 import { useT } from "@/lib/i18n";
@@ -38,6 +39,7 @@ export function PaymentPanel({ className }: { className?: string }) {
         className,
       )}
     >
+      <ReturnToCapture />
       <Tabs defaultValue={openJoin ? "join" : "spectate"} key={`${openJoin}:${pending?.order_no ?? ""}`}>
         <TabsList className="mx-auto flex w-full max-w-xs">
           <TabsTrigger value="spectate" className="flex-1">

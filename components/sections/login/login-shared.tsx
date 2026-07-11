@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useAccount } from "@/lib/account";
 import type { AuthUser } from "@/lib/api/types";
 import { isValidCode, isValidPhone, requestSmsCode } from "@/lib/auth/phone";
+import { consumeReturnTo } from "@/lib/auth/return-to";
 import { refreshAuth } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
 import { isMembershipActive } from "@/lib/membership";
@@ -208,7 +209,7 @@ export function useAuthSuccess() {
         if (isMembershipActive(user.membership_expires_at)) account.activateMembership();
       }
       refreshAuth();
-      router.push("/profile");
+      router.push(consumeReturnTo("/profile"));
     },
     [account, router],
   );

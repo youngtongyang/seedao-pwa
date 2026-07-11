@@ -54,6 +54,15 @@ export function openPaymentRedirect(url: string): void {
 }
 
 /**
+ * Same-tab navigation to the H5 pay URL. Use right after async order creation
+ * (a deferred window.open would be popup-blocked). The return_url should land
+ * on `/pay/return` or `/?join=1#membership` so sessionStorage resume kicks in.
+ */
+export function navigateToPayment(url: string): void {
+  window.location.href = url;
+}
+
+/**
  * The H5 flow redirects out to WeChat, so we stash the open order in
  * sessionStorage (same-tab, auto-cleared) to resume polling when WeChat sends
  * the user back to our origin.
