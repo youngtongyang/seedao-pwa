@@ -199,7 +199,7 @@ The signed-in user's read-only profile (phone masked server-side).
 Open a WeChat membership-renewal order. · 开一笔微信会员续费订单.
 
 - **Auth:** Session
-- **Body:** `{ "days"?: number, "pay_channel"?: "wechat_native" | "wechat_h5" }`
+- **Body:** `{ "days"?: number, "pay_channel"?: "wechat_native" | "wechat_h5" | "alipay_h5" }`
   — both optional; backend defaults to 365 days / `wechat_native`.
 - **200:** `PaymentOrder` =
   `{ order_no, product_type, product_days?, pay_channel, status, amount, currency?, code_url?, h5_url?, expired_at? }`

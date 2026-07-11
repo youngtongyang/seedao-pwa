@@ -22,6 +22,7 @@ import type {
   CourseOrderStatus,
   CreateCourseOrderInput,
 } from "./types";
+import { isH5PayChannel } from "@/lib/payment/types";
 
 /** `POST /v1/courses/checkout/preview` — 课程价格试算，JWT 可选。 */
 export function previewCheckout(
@@ -208,22 +209,26 @@ const mock = {
       a: amount,
       o: !!token,
     });
-    return {
-      ok: true,
-      data: {
-        order_no: orderNo,
-        order_token: `ot_mock_${orderNo}`,
-        product_type: "course_purchase",
-        course_id: input.course_id,
-        sku_id: input.sku_id,
-        original_amount: MOCK_ORIGINAL_CENTS,
-        discount_amount: MOCK_EARLY_BIRD_CENTS + (input.channel_code ? MOCK_CHANNEL_CENTS : 0),
-        amount,
-        status: "pending",
-        code_url: `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`,
-        expired_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-      },
+    const channel = input.pay_channel ?? "wechat_native";
+    const order: CourseOrder = {
+      order_no: orderNo,
+      order_token: `ot_mock_${orderNo}`,
+      product_type: "course_purchase",
+      course_id: input.course_id,
+      sku_id: input.sku_id,
+      original_amount: MOCK_ORIGINAL_CENTS,
+      discount_amount: MOCK_EARLY_BIRD_CENTS + (input.channel_code ? MOCK_CHANNEL_CENTS : 0),
+      amount,
+      status: "pending",
+      expired_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
     };
+    if (isH5PayChannel(channel)) {
+      if (channel === "alipay_h5") order.pay_url = `https://openapi.alipay.com/MOCK/${orderNo}`;
+      else order.h5_url = `https://wx.tenpay.com/MOCK/${orderNo}`;
+    } else {
+      order.code_url = `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`;
+    }
+    return { ok: true, data: order };
   },
 
   async queryCourseOrder(orderNo: string): Promise<ApiResult<CourseOrderStatus>> {

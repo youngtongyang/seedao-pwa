@@ -1,7 +1,7 @@
 import { jsonError, readJson } from "@/lib/api/http";
 import { getToken } from "@/lib/auth/session";
 import { createCourseOrder, listCourseOrders } from "@/lib/course/server";
-import type { PayChannel } from "@/lib/course/types";
+import { parsePayChannel } from "@/lib/payment/types";
 
 /**
  * GET /api/course/orders?status=…&limit=… — 我的课程订单列表。需要 Session；
@@ -47,10 +47,7 @@ export async function POST(request: Request) {
       sku_id: skuId,
       channel_code: typeof body.channel_code === "string" ? body.channel_code.trim() : undefined,
       apply_member_discount: applyMember,
-      pay_channel:
-        body.pay_channel === "wechat_native" || body.pay_channel === "wechat_h5"
-          ? (body.pay_channel as PayChannel)
-          : undefined,
+      pay_channel: parsePayChannel(body.pay_channel),
     },
     token,
   );

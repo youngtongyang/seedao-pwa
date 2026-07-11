@@ -1,4 +1,5 @@
-import type { CreateOrderInput, PayChannel, PaymentOrder, PaymentStatus } from "./types";
+import type { CreateOrderInput, H5PayChannel, PayChannel, PaymentOrder, PaymentStatus } from "./types";
+import { isH5PayChannel } from "./types";
 
 /**
  * Client entry points for the membership-renewal payment flow. These call our
@@ -23,18 +24,33 @@ function errorOf(data: Record<string, unknown>): string | undefined {
   return typeof data.error === "string" ? data.error : undefined;
 }
 
+export function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 /**
- * Pick the WeChat pay channel by device. Desktop gets `wechat_native` — a QR the
+ * Pick the default WeChat pay channel by device. Desktop gets `wechat_native` — a QR the
  * user scans with their phone. Phones get `wechat_h5`: a Native QR can't be paid
  * on the *same* device (WeChat blocks long-press/recognise on its own pay codes),
  * so phones hand off to the WeChat app via the H5 `h5_url` instead, which is the
  * only channel that supports paying on the device you're browsing from.
  *
- * Defaults to native off the client (SSR), where there's no user agent to read.
+ * On mobile, callers may offer `alipay_h5` as an alternative — this helper only
+ * picks the WeChat default. Defaults to native off the client (SSR).
  */
 export function pickPayChannel(): PayChannel {
   if (typeof navigator === "undefined") return "wechat_native";
-  return /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "wechat_h5" : "wechat_native";
+  return isMobileDevice() ? "wechat_h5" : "wechat_native";
+}
+
+export { isH5PayChannel };
+export type { H5PayChannel };
+
+/** Open an H5 pay page in a new context; fall back to same-tab navigation if blocked. */
+export function openPaymentRedirect(url: string): void {
+  const win = window.open(url, "_blank");
+  if (!win) window.location.href = url;
 }
 
 /**

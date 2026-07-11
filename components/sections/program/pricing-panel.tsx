@@ -20,10 +20,12 @@ import {
 } from "@/components/ui/sheet";
 import { useAccount } from "@/lib/account";
 import { closeCourseOrder, previewCheckout, createCourseOrder, queryCourseOrder } from "@/lib/course/client";
-import type { CheckoutPreviewResult, CourseOrder } from "@/lib/course/types";
+import type { CheckoutPreviewResult, CourseOrder, PayChannel } from "@/lib/course/types";
 import { useT } from "@/lib/i18n";
 import type { Messages } from "@/lib/i18n/messages";
 import type { Program } from "@/lib/mock/programs";
+import { isH5PayChannel, isMobileDevice, openPaymentRedirect } from "@/lib/payment/client";
+import { paymentRedirectUrl } from "@/lib/payment/types";
 
 const POLL_INTERVAL_MS = 3000;
 // 客户端轮询超时只做兜底（服务端 paid/closed 状态始终优先），预算按本地时钟的
@@ -44,7 +46,7 @@ function localizeError(t: Messages, key: string | undefined, fallback: string): 
   return program[key] ?? login[key] ?? fallback;
 }
 
-type PayPhase = "idle" | "creating" | "waiting" | "paid" | "error";
+type PayPhase = "idle" | "creating" | "waiting" | "h5Ready" | "confirming" | "paid" | "error";
 
 /** 一次试算请求的结果，连同它所回答的请求 key（用于识别在途请求与过期结果） */
 type PreviewState =
@@ -61,7 +63,9 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
   const [channelCode, setChannelCode] = useState<string | undefined>(undefined);
   const [payErrorKey, setPayErrorKey] = useState<string | undefined>(undefined);
   const [order, setOrder] = useState<CourseOrder | null>(null);
+  const [payChannel, setPayChannel] = useState<PayChannel | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
+  const mobile = isMobileDevice();
 
   // ── 课程价格试算：等会员态水合后再请求（避免水合前后重复预检）；
   //    会员态或渠道码变化时按新身份重算，失败时不保留旧价格 ──
@@ -115,33 +119,48 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
   const promoInvalid = !!channelCode && !previewFetching && !!preview && !channelDiscount?.applied;
 
   // ── 创建订单 & 打开 QR ──
-  const handlePay = useCallback(() => {
-    setPayErrorKey(undefined);
-    setPhase("creating");
-    createCourseOrder({
-      course_id: courseId,
-      sku_id: skuId,
-      channel_code: appliedChannelCode,
-      apply_member_discount: account.isMember,
-      pay_channel: "wechat_native",
-    }).then((outcome) => {
-      if (outcome.ok) {
-        setOrder(outcome.data);
-        setPhase("waiting");
-        setQrOpen(true);
-      } else {
-        setPayErrorKey(outcome.error);
-        setPhase("error");
-      }
-    });
-  }, [account.isMember, appliedChannelCode, courseId, skuId]);
+  const startPay = useCallback(
+    (channel: PayChannel) => {
+      setPayErrorKey(undefined);
+      setPayChannel(channel);
+      setPhase("creating");
+      createCourseOrder({
+        course_id: courseId,
+        sku_id: skuId,
+        channel_code: appliedChannelCode,
+        apply_member_discount: account.isMember,
+        pay_channel: channel,
+      }).then((outcome) => {
+        if (outcome.ok) {
+          setOrder(outcome.data);
+          if (isH5PayChannel(channel) && paymentRedirectUrl(outcome.data)) {
+            setPhase("h5Ready");
+          } else {
+            setPhase("waiting");
+            setQrOpen(true);
+          }
+        } else {
+          setPayErrorKey(outcome.error);
+          setPhase("error");
+        }
+      });
+    },
+    [account.isMember, appliedChannelCode, courseId, skuId],
+  );
+
+  const handoff = useCallback(() => {
+    const url = order ? paymentRedirectUrl(order) : undefined;
+    if (!url) return;
+    setPhase("confirming");
+    openPaymentRedirect(url);
+  }, [order]);
 
   const cancelPay = useCallback(() => {
     const abandoned = order;
     setQrOpen(false);
     setOrder(null);
+    setPayChannel(null);
     setPhase("idle");
-    // 尽力而为地关闭后端订单，避免已展示过的二维码在取消后仍可支付
     if (abandoned) void closeCourseOrder(abandoned.order_no);
   }, [order]);
 
@@ -149,7 +168,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const deadlineRef = useRef<{ orderNo: string; deadline: number } | null>(null);
   useEffect(() => {
-    if (phase !== "waiting" || !order) return;
+    if ((phase !== "waiting" && phase !== "h5Ready" && phase !== "confirming") || !order) return;
     let disposed = false;
     let settled = false;
     // 截止时间按订单锚定：effect 因父级重渲染重建时不重置轮询预算
@@ -169,9 +188,9 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
       stop();
       setQrOpen(false);
       setOrder(null);
+      setPayChannel(null);
       setPayErrorKey("course_order_expired");
       setPhase("error");
-      // 与取消路径对称：本地判定过期后尽力关闭后端订单，避免二维码残留可支付
       void closeCourseOrder(order.order_no);
     };
     pollRef.current = setInterval(() => {
@@ -253,16 +272,50 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
             invalid={promoInvalid}
             disabled={previewFetching}
           />
-          <Button size="lg" className="w-full text-base" onClick={handlePay} disabled={previewFetching}>
-            {finalPriceYuan !== null ? `${t.program.payCta} ¥${fmtYuan(finalPriceYuan)}` : t.program.payCta}
-            {previewFetching
-              ? <Loader2 className="size-4 animate-spin" />
-              : <ArrowRight className="size-4" />}
-          </Button>
+          {mobile ? (
+            <>
+              <Button
+                size="lg"
+                className="w-full text-base"
+                onClick={() => startPay("wechat_h5")}
+                disabled={previewFetching}
+              >
+                {finalPriceYuan !== null
+                  ? `${t.program.payCtaWechat} ¥${fmtYuan(finalPriceYuan)}`
+                  : t.program.payCtaWechat}
+                {previewFetching
+                  ? <Loader2 className="size-4 animate-spin" />
+                  : <ArrowRight className="size-4" />}
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full text-base"
+                onClick={() => startPay("alipay_h5")}
+                disabled={previewFetching}
+              >
+                {finalPriceYuan !== null
+                  ? `${t.program.payCtaAlipay} ¥${fmtYuan(finalPriceYuan)}`
+                  : t.program.payCtaAlipay}
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="lg"
+              className="w-full text-base"
+              onClick={() => startPay("wechat_native")}
+              disabled={previewFetching}
+            >
+              {finalPriceYuan !== null ? `${t.program.payCta} ¥${fmtYuan(finalPriceYuan)}` : t.program.payCta}
+              {previewFetching
+                ? <Loader2 className="size-4 animate-spin" />
+                : <ArrowRight className="size-4" />}
+            </Button>
+          )}
         </>
       )}
 
-      {(phase === "creating" || phase === "waiting") && (
+      {(phase === "creating" || phase === "waiting" || phase === "confirming") && (
         <div className="flex flex-col items-center gap-3 rounded-xl bg-muted p-5 text-center">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
@@ -278,6 +331,21 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {phase === "h5Ready" && order && paymentRedirectUrl(order) && (
+        <div className="flex flex-col items-center gap-3 rounded-xl bg-muted p-5 text-center">
+          <Button size="lg" className="w-full" onClick={handoff}>
+            {payChannel === "alipay_h5" ? t.program.payH5CtaAlipay : t.program.payH5CtaWechat}
+          </Button>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" />
+            {t.program.payWaiting}
+          </p>
+          <Button variant="ghost" size="sm" onClick={cancelPay}>
+            {t.program.qrDialogCancel}
+          </Button>
         </div>
       )}
 
@@ -300,7 +368,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
                 <Link href="/login">{t.nav.login}</Link>
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => setPhase("idle")}>{t.common.retry}</Button>
+            <Button variant="outline" size="sm" onClick={() => { setPayChannel(null); setPhase("idle"); }}>{t.common.retry}</Button>
           </div>
         </div>
       )}

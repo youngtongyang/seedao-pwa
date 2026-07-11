@@ -6,9 +6,11 @@ import type {
   CreateOrderInput,
   OrderListResult,
   OrderStatusResult,
+  PayChannel,
   PaymentOrder,
   PaymentStatus,
 } from "./types";
+import { isH5PayChannel } from "./types";
 
 /**
  * Server-only client for the membership-renewal payment endpoints (API v2.5).
@@ -91,19 +93,31 @@ const PAY_AFTER_MS = 6000; // simulated time-to-scan-and-pay
 const EXPIRE_AFTER_MS = 5 * 60 * 1000; // simulated order expiry
 const DEFAULT_DAYS = 365;
 
-type ParsedOrder = { createdAt: number; days: number; channel: "wechat_native" | "wechat_h5" };
+type ParsedOrder = { createdAt: number; days: number; channel: PayChannel };
 
-function mockOrderNo(createdAt: number, days: number, channel: "wechat_native" | "wechat_h5"): string {
-  return `wxmock_${createdAt}_${days}_${channel === "wechat_h5" ? "h" : "n"}`;
+function mockChannelCode(channel: PayChannel): string {
+  if (channel === "wechat_h5") return "h";
+  if (channel === "alipay_h5") return "a";
+  return "n";
+}
+
+function mockChannelFromCode(code: string): PayChannel {
+  if (code === "h") return "wechat_h5";
+  if (code === "a") return "alipay_h5";
+  return "wechat_native";
+}
+
+function mockOrderNo(createdAt: number, days: number, channel: PayChannel): string {
+  return `wxmock_${createdAt}_${days}_${mockChannelCode(channel)}`;
 }
 
 function parseOrderNo(orderNo: string): ParsedOrder | null {
-  const m = /^wxmock_(\d+)_(\d+)_([nh])$/.exec(orderNo);
+  const m = /^wxmock_(\d+)_(\d+)_([nha])$/.exec(orderNo);
   if (!m) return null;
   return {
     createdAt: Number(m[1]),
     days: Number(m[2]),
-    channel: m[3] === "h" ? "wechat_h5" : "wechat_native",
+    channel: mockChannelFromCode(m[3]),
   };
 }
 
@@ -125,8 +139,12 @@ function mockOrder(orderNo: string, p: ParsedOrder, status: PaymentStatus): Paym
   };
   // Pay links are still returned while pending so a refreshed page keeps paying.
   if (status === "pending") {
-    if (p.channel === "wechat_h5") order.h5_url = `https://wx.tenpay.com/MOCK/${orderNo}`;
-    else order.code_url = `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`;
+    if (isH5PayChannel(p.channel)) {
+      order.h5_url =
+        p.channel === "alipay_h5"
+          ? `https://openapi.alipay.com/MOCK/${orderNo}`
+          : `https://wx.tenpay.com/MOCK/${orderNo}`;
+    } else order.code_url = `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`;
   }
   return order;
 }

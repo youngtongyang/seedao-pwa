@@ -6,7 +6,7 @@
  */
 
 /** 支付渠道 */
-export type PayChannel = "wechat_native" | "wechat_h5";
+export type PayChannel = "wechat_native" | "wechat_h5" | "alipay_h5";
 
 // ── 价格试算 ──────────────────────────────────────────────────────────────────
 
@@ -64,7 +64,8 @@ export type CourseOrder = {
   amount: number;                // 分
   status: "pending" | "paid" | "closed";
   code_url?: string;             // Native QR
-  h5_url?: string;               // H5 redirect
+  h5_url?: string;               // H5 redirect (WeChat)
+  pay_url?: string;              // H5 redirect (Alipay)
   expired_at?: string;           // RFC3339 UTC
 };
 
