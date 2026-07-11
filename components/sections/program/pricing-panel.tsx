@@ -19,12 +19,23 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useAccount } from "@/lib/account";
-import { closeCourseOrder, previewCheckout, createCourseOrder, queryCourseOrder } from "@/lib/course/client";
+import { joinHref, loginHref, saveReturnTo } from "@/lib/auth/return-to";
+import {
+  clearPendingCoursePay,
+  readPendingCoursePay,
+  savePendingCoursePay,
+} from "@/lib/course/pending-pay";
+import {
+  closeCourseOrder,
+  createCourseOrder,
+  previewCheckout,
+  queryCourseOrder,
+  readCourseOrderNo,
+} from "@/lib/course/client";
 import type { CheckoutPreviewResult, CourseOrder, PayChannel } from "@/lib/course/types";
 import { useT } from "@/lib/i18n";
 import type { Messages } from "@/lib/i18n/messages";
 import type { Program } from "@/lib/mock/programs";
-import { joinHref, loginHref } from "@/lib/auth/return-to";
 import {
   availablePayChannels,
   defaultPayChannel,
@@ -144,6 +155,8 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
           setOrder(outcome.data);
           const redirectUrl = paymentRedirectUrl(outcome.data);
           if (isH5PayChannel(channel) && redirectUrl) {
+            saveReturnTo(`/program/${program.slug}`);
+            savePendingCoursePay(outcome.data.order_no, program.slug);
             navigateToPayment(redirectUrl);
             return;
           }
@@ -155,7 +168,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
         }
       });
     },
-    [account.isMember, appliedChannelCode, courseId, skuId],
+    [account.isMember, appliedChannelCode, courseId, program.slug, skuId],
   );
 
   const handoff = useCallback(() => {
@@ -171,8 +184,46 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
     setOrder(null);
     setPayChannel(null);
     setPhase("idle");
+    clearPendingCoursePay();
     if (abandoned) void closeCourseOrder(abandoned.order_no);
   }, [order]);
+
+  // Resume polling after an H5 round-trip back to this program page.
+  useEffect(() => {
+    let disposed = false;
+    const pending = readPendingCoursePay();
+    const orderNo =
+      readCourseOrderNo(courseId) ??
+      (pending?.slug === program.slug ? pending.order_no : undefined);
+    if (!orderNo) return;
+
+    void queryCourseOrder(orderNo).then((r) => {
+      if (disposed || !r.ok) return;
+      if (r.data.status === "paid") {
+        clearPendingCoursePay();
+        onPaid(orderNo);
+        return;
+      }
+      if (r.data.status === "pending") {
+        setOrder({
+          order_no: orderNo,
+          product_type: "course_purchase",
+          course_id: courseId,
+          sku_id: skuId,
+          original_amount: 0,
+          discount_amount: 0,
+          amount: r.data.amount,
+          status: "pending",
+        });
+        setPayChannel(defaultPayChannel());
+        setPhase("confirming");
+      }
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, [courseId, onPaid, program.slug, skuId]);
 
   // ── 轮询支付状态：订单被关闭或超出轮询预算时终止并提示重新发起 ──
   const pollRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
@@ -210,6 +261,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
         if (r.ok && r.data.status === "paid") {
           stop();
           setQrOpen(false);
+          clearPendingCoursePay();
           setPhase("paid");
           onPaid(order.order_no);
           return;

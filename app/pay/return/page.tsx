@@ -4,13 +4,12 @@ import { Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { ReturnToCapture } from "@/components/auth/return-to-capture";
-import { captureReturnToFromLocation, joinHref, readReturnTo } from "@/lib/auth/return-to";
+import { resolvePostPaymentPath } from "@/lib/payment/return-path";
 import { useT } from "@/lib/i18n";
 
 /**
- * Alipay / WeChat H5 return landing. The backend should set the payment
- * `return_url` to this route (e.g. `https://pay.seedao.xyz/pay/return`).
- * Preserves `returnTo` so post-payment navigation resumes the user's task.
+ * Alipay / WeChat H5 return landing. Backend `return_url` should point here
+ * (e.g. `https://pay.seedao.xyz/pay/return?slug=ecommerce` for course).
  */
 function PayReturnRedirect() {
   const router = useRouter();
@@ -18,14 +17,7 @@ function PayReturnRedirect() {
   const t = useT();
 
   useEffect(() => {
-    captureReturnToFromLocation();
-    const slug = params.get("slug");
-    if (slug) {
-      router.replace(`/program/${encodeURIComponent(slug)}`);
-      return;
-    }
-    const returnTo = readReturnTo();
-    router.replace(returnTo ? joinHref(returnTo) : "/?join=1#membership");
+    router.replace(resolvePostPaymentPath(params));
   }, [params, router]);
 
   return (
