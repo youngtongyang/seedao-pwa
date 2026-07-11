@@ -51,6 +51,8 @@ export type CreateCourseOrderInput = {
   channel_code?: string;
   apply_member_discount?: boolean;
   pay_channel?: PayChannel;
+  /** H5: in-app resume path — backend echoes on `return_url` as `?returnTo=`. */
+  return_to?: string;
 };
 
 export type CourseOrder = {

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAccount } from "@/lib/account";
-import { consumeReturnTo } from "@/lib/auth/return-to";
+import { consumeReturnTo, returnToForPayment } from "@/lib/auth/return-to";
 import type { AuthUser, SnsCheckResult } from "@/lib/api/types";
 import { registerNewSns } from "@/lib/auth/phone";
 import { refreshAuth } from "@/lib/auth/use-auth";
@@ -309,7 +309,10 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
     async (channel: PayChannel, activeRef: { current: boolean }, handoffNow = false) => {
       setPayChannel(channel);
       setState("creating");
-      const res = await createPaymentOrder({ pay_channel: channel });
+      const res = await createPaymentOrder({
+        pay_channel: channel,
+        return_to: returnToForPayment(undefined, "/profile"),
+      });
       if (!activeRef.current) return;
       if (!res.ok) {
         if (res.error === "unauthorized") {

@@ -37,6 +37,7 @@ export function createOrder(input: CreateOrderInput, token: string): Promise<Api
     pay_channel: input.pay_channel,
   };
   if (input.coupon_code) body.coupon_code = input.coupon_code;
+  if (input.return_to) body.return_to = input.return_to;
   return call<PaymentOrder>("/payments/orders", { method: "POST", token, body });
 }
 

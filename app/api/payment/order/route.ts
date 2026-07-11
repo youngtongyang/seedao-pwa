@@ -1,4 +1,5 @@
 import { jsonError, readJson } from "@/lib/api/http";
+import { parseReturnTo } from "@/lib/auth/return-to-server";
 import { getToken } from "@/lib/auth/session";
 import { createOrder } from "@/lib/payment/server";
 import type { CreateOrderInput } from "@/lib/payment/types";
@@ -22,6 +23,8 @@ export async function POST(request: Request) {
   if (typeof body.days === "number" && Number.isFinite(body.days)) input.days = body.days;
   const payChannel = parsePayChannel(body.pay_channel);
   if (payChannel) input.pay_channel = payChannel;
+  const returnTo = parseReturnTo(body);
+  if (returnTo) input.return_to = returnTo;
 
   const result = await createOrder(input, token);
   if (!result.ok) return jsonError(result);

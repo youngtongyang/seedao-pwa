@@ -1,4 +1,5 @@
 import { jsonError, readJson } from "@/lib/api/http";
+import { parseReturnTo } from "@/lib/auth/return-to-server";
 import { getToken } from "@/lib/auth/session";
 import { createCourseOrder, listCourseOrders } from "@/lib/course/server";
 import { parsePayChannel } from "@/lib/payment/types";
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
       channel_code: typeof body.channel_code === "string" ? body.channel_code.trim() : undefined,
       apply_member_discount: applyMember,
       pay_channel: parsePayChannel(body.pay_channel),
+      return_to: parseReturnTo(body),
     },
     token,
   );

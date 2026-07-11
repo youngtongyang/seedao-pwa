@@ -48,6 +48,9 @@ export type ProductType = "membership_renew";
  */
 export type PaymentStatus = "pending" | "paid" | "closed";
 
+/** Fixed H5 return landing — backend sets one URL; per-order path via `return_to`. */
+export const PAY_RETURN_PATH = "/pay/return";
+
 /** Body for `POST /v1/payments/orders`. All fields optional — see defaults. */
 export type CreateOrderInput = {
   /** Defaults to `membership_renew`. */
@@ -58,6 +61,11 @@ export type CreateOrderInput = {
   pay_channel?: PayChannel;
   /** Optional coupon code; validated server-side against the coupons table. */
   coupon_code?: string;
+  /**
+   * H5 only: in-app path to resume after pay (e.g. `/proposals/new`).
+   * Backend appends as `?returnTo=` on the configured `return_url`.
+   */
+  return_to?: string;
 };
 
 /**

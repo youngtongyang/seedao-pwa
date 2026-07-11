@@ -85,3 +85,13 @@ export function loginHrefForCurrentPage(pathname?: string): string {
   if (typeof window === "undefined") return "/login";
   return loginHref(`${window.location.pathname}${window.location.search}`);
 }
+
+/**
+ * Resolve, persist, and return the in-app path to resume after H5 payment.
+ * Sent to the backend as `return_to` so `return_url` can stay a single fixed URL.
+ */
+export function returnToForPayment(explicit?: string | null, fallback = "/profile"): string {
+  const path = normalizeReturnTo(explicit ?? readReturnTo()) ?? fallback;
+  saveReturnTo(path);
+  return path;
+}

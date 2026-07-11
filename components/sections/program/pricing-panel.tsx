@@ -19,7 +19,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useAccount } from "@/lib/account";
-import { joinHref, loginHref, saveReturnTo } from "@/lib/auth/return-to";
+import { joinHref, loginHref, returnToForPayment } from "@/lib/auth/return-to";
 import {
   clearPendingCoursePay,
   readPendingCoursePay,
@@ -150,12 +150,12 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
         channel_code: appliedChannelCode,
         apply_member_discount: account.isMember,
         pay_channel: channel,
+        return_to: returnToForPayment(`/program/${program.slug}`),
       }).then((outcome) => {
         if (outcome.ok) {
           setOrder(outcome.data);
           const redirectUrl = paymentRedirectUrl(outcome.data);
           if (isH5PayChannel(channel) && redirectUrl) {
-            saveReturnTo(`/program/${program.slug}`);
             savePendingCoursePay(outcome.data.order_no, program.slug);
             navigateToPayment(redirectUrl);
             return;
