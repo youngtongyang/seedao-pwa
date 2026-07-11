@@ -25,7 +25,14 @@ import { useT } from "@/lib/i18n";
 import type { Messages } from "@/lib/i18n/messages";
 import type { Program } from "@/lib/mock/programs";
 import { joinHref, loginHref } from "@/lib/auth/return-to";
-import { isH5PayChannel, isMobileDevice, navigateToPayment, openPaymentRedirect } from "@/lib/payment/client";
+import {
+  availablePayChannels,
+  defaultPayChannel,
+  isH5PayChannel,
+  isMobileDevice,
+  navigateToPayment,
+  openPaymentRedirect,
+} from "@/lib/payment/client";
 import { paymentRedirectUrl } from "@/lib/payment/types";
 
 const POLL_INTERVAL_MS = 3000;
@@ -67,6 +74,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
   const [payChannel, setPayChannel] = useState<PayChannel | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const mobile = isMobileDevice();
+  const payChannels = availablePayChannels(mobile);
 
   // ── 课程价格试算：等会员态水合后再请求（避免水合前后重复预检）；
   //    会员态或渠道码变化时按新身份重算，失败时不保留旧价格 ──
@@ -276,37 +284,32 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
             disabled={previewFetching}
           />
           {mobile ? (
-            <>
+            payChannels.map((channel) => (
               <Button
+                key={channel}
                 size="lg"
+                variant={channel === "alipay_h5" && payChannels.length > 1 ? "outline" : "default"}
                 className="w-full text-base"
-                onClick={() => startPay("wechat_h5")}
+                onClick={() => startPay(channel)}
                 disabled={previewFetching}
               >
-                {finalPriceYuan !== null
-                  ? `${t.program.payCtaWechat} ¥${fmtYuan(finalPriceYuan)}`
-                  : t.program.payCtaWechat}
+                {channel === "alipay_h5"
+                  ? (finalPriceYuan !== null
+                    ? `${t.program.payCtaAlipay} ¥${fmtYuan(finalPriceYuan)}`
+                    : t.program.payCtaAlipay)
+                  : (finalPriceYuan !== null
+                    ? `${t.program.payCtaWechat} ¥${fmtYuan(finalPriceYuan)}`
+                    : t.program.payCtaWechat)}
                 {previewFetching
                   ? <Loader2 className="size-4 animate-spin" />
                   : <ArrowRight className="size-4" />}
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full text-base"
-                onClick={() => startPay("alipay_h5")}
-                disabled={previewFetching}
-              >
-                {finalPriceYuan !== null
-                  ? `${t.program.payCtaAlipay} ¥${fmtYuan(finalPriceYuan)}`
-                  : t.program.payCtaAlipay}
-              </Button>
-            </>
+            ))
           ) : (
             <Button
               size="lg"
               className="w-full text-base"
-              onClick={() => startPay("wechat_native")}
+              onClick={() => startPay(defaultPayChannel())}
               disabled={previewFetching}
             >
               {finalPriceYuan !== null ? `${t.program.payCta} ¥${fmtYuan(finalPriceYuan)}` : t.program.payCta}

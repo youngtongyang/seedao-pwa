@@ -30,18 +30,38 @@ export function isMobileDevice(): boolean {
 }
 
 /**
- * Pick the default WeChat pay channel by device. Desktop gets `wechat_native` — a QR the
- * user scans with their phone. Phones get `wechat_h5`: a Native QR can't be paid
- * on the *same* device (WeChat blocks long-press/recognise on its own pay codes),
- * so phones hand off to the WeChat app via the H5 `h5_url` instead, which is the
- * only channel that supports paying on the device you're browsing from.
- *
- * On mobile, callers may offer `alipay_h5` as an alternative — this helper only
- * picks the WeChat default. Defaults to native off the client (SSR).
+ * Temporary UI flags — flip to re-expose hidden pay methods.
+ * Mobile: Alipay H5 only (WeChat H5 hidden). Desktop: WeChat Native only.
+ */
+export const PAY_CHANNEL_UI = {
+  wechatH5OnMobile: false,
+  alipayOnDesktop: false,
+} as const;
+
+/** Default pay channel for the current device. */
+export function defaultPayChannel(): PayChannel {
+  if (typeof navigator === "undefined") return "wechat_native";
+  return isMobileDevice() ? "alipay_h5" : "wechat_native";
+}
+
+/** Channels to show on the pay picker; one entry → callers may skip the picker. */
+export function availablePayChannels(mobile = isMobileDevice()): PayChannel[] {
+  if (mobile) {
+    const channels: PayChannel[] = [];
+    if (PAY_CHANNEL_UI.wechatH5OnMobile) channels.push("wechat_h5");
+    channels.push("alipay_h5");
+    return channels;
+  }
+  const channels: PayChannel[] = ["wechat_native"];
+  if (PAY_CHANNEL_UI.alipayOnDesktop) channels.push("alipay_h5");
+  return channels;
+}
+
+/**
+ * @deprecated Use {@link defaultPayChannel} — kept for any legacy call sites.
  */
 export function pickPayChannel(): PayChannel {
-  if (typeof navigator === "undefined") return "wechat_native";
-  return isMobileDevice() ? "wechat_h5" : "wechat_native";
+  return defaultPayChannel();
 }
 
 export { isH5PayChannel };

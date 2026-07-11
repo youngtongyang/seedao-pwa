@@ -17,8 +17,10 @@ import { useT } from "@/lib/i18n";
 import { membershipPrice } from "@/lib/mock/membership";
 import {
   type PendingOrder,
+  availablePayChannels,
   clearPendingOrder,
   createPaymentOrder,
+  defaultPayChannel,
   findInFlightOrder,
   isMobileDevice,
   navigateToPayment,
@@ -298,7 +300,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   // The id we poll — a freshly created order, or the stashed one we resumed.
   const [orderNo, setOrderNo] = useState<string | null>(resumeOrderNo ?? null);
   const [state, setState] = useState<PayState>(
-    resumeOrderNo ? "confirming" : mobile ? "pick" : "creating",
+    resumeOrderNo ? "confirming" : "creating",
   );
 
   const [nonce, setNonce] = useState(0);
@@ -367,7 +369,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
       }
 
       if (mobile) {
-        setState("pick");
+        await openOrder(defaultPayChannel(), active, true);
         return;
       }
 
@@ -396,7 +398,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
     setOrder(null);
     setOrderNo(null);
     setPayChannel(null);
-    setState(mobile ? "pick" : "creating");
+    setState("creating");
     setNonce((n) => n + 1);
   }
 
@@ -457,15 +459,17 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   }, [state, orderNo, account, router]);
 
   // Match the heading to what's actually on screen.
+  const payChannels = availablePayChannels(mobile);
+
   const payTitle =
-    state === "pick"
+    payChannels.length > 1 && state === "pick"
       ? t.membership.payStepTitlePick
       : payChannel === "alipay_h5"
         ? t.membership.payStepTitleAlipay
         : t.membership.payStepTitle;
 
   const payDesc =
-    state === "pick"
+    payChannels.length > 1 && state === "pick"
       ? t.membership.payStepDescPick
       : state === "waiting"
         ? t.membership.payStepDescNative
@@ -488,15 +492,25 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
         </p>
       )}
 
-      {state === "pick" ? (
+      {payChannels.length > 1 && state === "pick" ? (
         <div className="flex w-full flex-col gap-3">
-          <Button size="lg" className="w-full" onClick={() => startPay("wechat_h5")}>
-            {t.membership.payWechatH5Cta}
-            <ArrowRight className="size-4" />
-          </Button>
-          <Button size="lg" variant="outline" className="w-full" onClick={() => startPay("alipay_h5")}>
-            {t.membership.payAlipayH5Cta}
-          </Button>
+          {payChannels.includes("wechat_h5") && (
+            <Button size="lg" className="w-full" onClick={() => startPay("wechat_h5")}>
+              {t.membership.payWechatH5Cta}
+              <ArrowRight className="size-4" />
+            </Button>
+          )}
+          {payChannels.includes("alipay_h5") && (
+            <Button
+              size="lg"
+              variant={payChannels.length > 1 ? "outline" : "default"}
+              className="w-full"
+              onClick={() => startPay("alipay_h5")}
+            >
+              {t.membership.payAlipayH5Cta}
+              {payChannels.length === 1 && <ArrowRight className="size-4" />}
+            </Button>
+          )}
         </div>
       ) : state === "waiting" && order?.code_url ? (
         <QrCode key={order.code_url} value={order.code_url} alt={t.membership.payQrAlt} size={172} />

@@ -52,9 +52,9 @@ export function captureReturnToFromLocation(): void {
 
 /** Return path and clear storage — call once when auth/payment succeeds. */
 export function consumeReturnTo(fallback = "/profile"): string {
-  const path = readReturnTo() ?? normalizeReturnTo(fallback) ?? "/profile";
+  const saved = readReturnTo();
   clearReturnTo();
-  return path;
+  return saved ?? fallback;
 }
 
 export function loginHref(returnTo: string): string {
