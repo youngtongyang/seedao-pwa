@@ -37,8 +37,7 @@ import { useT } from "@/lib/i18n";
 import type { Messages } from "@/lib/i18n/messages";
 import type { Program } from "@/lib/mock/programs";
 import {
-  availablePayChannels,
-  defaultPayChannel,
+  courseDefaultPayChannel,
   isH5PayChannel,
   isMobileDevice,
   navigateToPayment,
@@ -82,10 +81,8 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
   const [channelCode, setChannelCode] = useState<string | undefined>(undefined);
   const [payErrorKey, setPayErrorKey] = useState<string | undefined>(undefined);
   const [order, setOrder] = useState<CourseOrder | null>(null);
-  const [payChannel, setPayChannel] = useState<PayChannel | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
   const mobile = isMobileDevice();
-  const payChannels = availablePayChannels(mobile);
 
   // ── 课程价格试算：等会员态水合后再请求（避免水合前后重复预检）；
   //    会员态或渠道码变化时按新身份重算，失败时不保留旧价格 ──
@@ -142,7 +139,6 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
   const startPay = useCallback(
     (channel: PayChannel) => {
       setPayErrorKey(undefined);
-      setPayChannel(channel);
       setPhase("creating");
       createCourseOrder({
         course_id: courseId,
@@ -182,7 +178,6 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
     const abandoned = order;
     setQrOpen(false);
     setOrder(null);
-    setPayChannel(null);
     setPhase("idle");
     clearPendingCoursePay();
     if (abandoned) void closeCourseOrder(abandoned.order_no);
@@ -215,7 +210,6 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
           amount: r.data.amount,
           status: "pending",
         });
-        setPayChannel(defaultPayChannel());
         setPhase("confirming");
       }
     });
@@ -249,7 +243,6 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
       stop();
       setQrOpen(false);
       setOrder(null);
-      setPayChannel(null);
       setPayErrorKey("course_order_expired");
       setPhase("error");
       void closeCourseOrder(order.order_no);
@@ -335,41 +328,19 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
             invalid={promoInvalid}
             disabled={previewFetching}
           />
-          {mobile ? (
-            payChannels.map((channel) => (
-              <Button
-                key={channel}
-                size="lg"
-                variant={channel === "alipay_h5" && payChannels.length > 1 ? "outline" : "default"}
-                className="w-full text-base"
-                onClick={() => startPay(channel)}
-                disabled={previewFetching}
-              >
-                {channel === "alipay_h5"
-                  ? (finalPriceYuan !== null
-                    ? `${t.program.payCtaAlipay} ¥${fmtYuan(finalPriceYuan)}`
-                    : t.program.payCtaAlipay)
-                  : (finalPriceYuan !== null
-                    ? `${t.program.payCtaWechat} ¥${fmtYuan(finalPriceYuan)}`
-                    : t.program.payCtaWechat)}
-                {previewFetching
-                  ? <Loader2 className="size-4 animate-spin" />
-                  : <ArrowRight className="size-4" />}
-              </Button>
-            ))
-          ) : (
-            <Button
-              size="lg"
-              className="w-full text-base"
-              onClick={() => startPay(defaultPayChannel())}
-              disabled={previewFetching}
-            >
-              {finalPriceYuan !== null ? `${t.program.payCta} ¥${fmtYuan(finalPriceYuan)}` : t.program.payCta}
-              {previewFetching
-                ? <Loader2 className="size-4 animate-spin" />
-                : <ArrowRight className="size-4" />}
-            </Button>
-          )}
+          <Button
+            size="lg"
+            className="w-full text-base"
+            onClick={() => startPay(courseDefaultPayChannel())}
+            disabled={previewFetching}
+          >
+            {finalPriceYuan !== null
+              ? `${mobile ? t.program.payCtaWechat : t.program.payCta} ¥${fmtYuan(finalPriceYuan)}`
+              : (mobile ? t.program.payCtaWechat : t.program.payCta)}
+            {previewFetching
+              ? <Loader2 className="size-4 animate-spin" />
+              : <ArrowRight className="size-4" />}
+          </Button>
         </>
       )}
 
@@ -395,7 +366,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
       {phase === "h5Ready" && order && paymentRedirectUrl(order) && (
         <div className="flex flex-col items-center gap-3 rounded-xl bg-muted p-5 text-center">
           <Button size="lg" className="w-full" onClick={handoff}>
-            {payChannel === "alipay_h5" ? t.program.payH5CtaAlipay : t.program.payH5CtaWechat}
+            {t.program.payH5CtaWechat}
           </Button>
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
@@ -426,7 +397,7 @@ export function PricingPanel({ program, onPaid }: { program: Program; onPaid: (o
                 <Link href={loginHref(`/program/${program.slug}`)}>{t.nav.login}</Link>
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => { setPayChannel(null); setPhase("idle"); }}>{t.common.retry}</Button>
+            <Button variant="outline" size="sm" onClick={() => setPhase("idle")}>{t.common.retry}</Button>
           </div>
         </div>
       )}

@@ -57,6 +57,16 @@ export function availablePayChannels(mobile = isMobileDevice()): PayChannel[] {
   return channels;
 }
 
+/** Course checkout: WeChat only (Native QR on desktop, H5 redirect on mobile). */
+export function courseDefaultPayChannel(): PayChannel {
+  if (typeof navigator === "undefined") return "wechat_native";
+  return isMobileDevice() ? "wechat_h5" : "wechat_native";
+}
+
+export function courseAvailablePayChannels(mobile = isMobileDevice()): PayChannel[] {
+  return [mobile ? "wechat_h5" : "wechat_native"];
+}
+
 /**
  * @deprecated Use {@link defaultPayChannel} — kept for any legacy call sites.
  */
