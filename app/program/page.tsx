@@ -39,7 +39,7 @@ function ProgramList() {
   );
 }
 
-export default function ProgramPage() {
+export default function ProgramsIndexPage() {
   return (
     <Responsive
       desktop={
