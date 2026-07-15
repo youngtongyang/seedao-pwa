@@ -31,6 +31,7 @@ const zh = {
     proposals: "提案",
     logout: "退出登录",
     help: "帮助",
+    program: "AI 共学",
     backHome: "返回首页",
     menu: "菜单",
     close: "关闭",
@@ -241,6 +242,15 @@ const zh = {
   },
 
   program: {
+    // ── 电商共学课专属 ──
+    eyebrow: "SeeDAO AI 共学课",
+    title: "30天做跨境电商，发展AI第二副业",
+    headline: "30天，把 AI 变成你的第二双手",
+    subtitle: "从零开始做跨境电商。不囤货、不交保证金，用 AI 跑通选品→上架→出单全流程。",
+    benefitsTitle: "你能学到什么",
+    benefitsSubtitle: "7 关全部通关，带走的不只是知识，还有你自己的运营 SOP。",
+    priceComputeError: "价格计算异常，请刷新后重试。",
+
     // ── 详情页共用 chrome（各项目的营销文案在 lib/mock/programs.ts 中随项目走）──
     instructorEyebrow: "讲师",
     instructorTitle: "谁来讲这门课？",
@@ -615,6 +625,7 @@ const en: typeof zh = {
     proposals: "Proposals",
     logout: "Log out",
     help: "Help",
+    program: "AI Learn",
     backHome: "Back to home",
     menu: "Menu",
     close: "Close",
@@ -830,6 +841,15 @@ const en: typeof zh = {
   },
 
   program: {
+    // ── E-commerce course ──
+    eyebrow: "SeeDAO AI Co-Learning",
+    title: "30-Day Cross-Border E-Commerce — Build Your AI Side Hustle",
+    headline: "30 days to turn AI into your second pair of hands",
+    subtitle: "Start cross-border e-commerce from zero. No inventory, no deposit — run the full pipeline from product selection to sales with AI.",
+    benefitsTitle: "What you'll learn",
+    benefitsSubtitle: "7 stages to go from zero to running your own cross-border pipeline with AI.",
+    priceComputeError: "Price calculation error. Please refresh and try again.",
+
     // ── Shared detail-page chrome (per-program marketing copy lives in lib/mock/programs.ts) ──
     instructorEyebrow: "Instructor",
     instructorTitle: "Who teaches this program?",

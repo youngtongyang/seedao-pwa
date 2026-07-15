@@ -35,6 +35,5 @@ export const tabNav: NavItem[] = [
   { id: "home", href: "/", labelKey: "home", icon: Home },
   { id: "proposals", href: "/proposals", labelKey: "proposals", icon: ScrollText },
   { id: "program", href: "/program", labelKey: "program", icon: GraduationCap },
-  { id: "docs", href: DOCS_URL, labelKey: "docs", icon: BookOpen, external: true },
   { id: "login", href: "/login", labelKey: "login", icon: UserRound },
 ];

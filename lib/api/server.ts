@@ -94,7 +94,7 @@ export function toE164(phone: string): string {
 }
 
 export type CallOptions = {
-  method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PATCH";
   query?: Record<string, string | undefined>;
   body?: unknown;
   /** Bearer token for authenticated endpoints. */
