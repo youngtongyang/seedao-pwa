@@ -1,20 +1,15 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { Award, BookOpen, Calendar, Sparkles } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { useLocalized, useT } from "@/lib/i18n";
 import { instructor, schedule } from "@/lib/mock/program";
-import { PaymentSuccess } from "./payment-success";
 import { PricingPanel } from "./pricing-panel";
 
 export function ProgramDesktop() {
   const t = useT();
   const pick = useLocalized();
-  const [paid, setPaid] = useState(false);
-  const [orderNo, setOrderNo] = useState<string>();
 
   const lessons = schedule.filter((s) => !s.isEvent);
   const events = schedule.filter((s) => s.isEvent);
@@ -55,15 +50,9 @@ export function ProgramDesktop() {
             </div>
           </div>
 
-          <AnimatePresence mode="wait">
-            {paid ? (
-              <PaymentSuccess key="success" orderNo={orderNo} />
-            ) : (
-              <motion.div key="pricing" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}>
-                <PricingPanel onPaid={(no) => { setPaid(true); setOrderNo(no); }} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <div className="lg:mt-0">
+            <PricingPanel />
+          </div>
         </div>
       </section>
 
@@ -101,7 +90,7 @@ export function ProgramDesktop() {
         <SectionHeading
           eyebrow="课程表"
           title={`${lessons.length} 节正式课 + ${events.length} 场社区活动`}
-          subtitle="7 月 11 日开营 — 8 月 9 日结营，全程 30 天"
+          subtitle="7 月 25 日开营 — 8 月 23 日结营，全程 30 天"
           className="text-center mb-12"
         />
         <div className="overflow-x-auto rounded-2xl border border-border shadow-sm">

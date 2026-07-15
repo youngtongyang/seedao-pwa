@@ -57,7 +57,7 @@ export function PaymentSuccess({ className, orderNo }: { className?: string; ord
             <>
               <p>{t.program.successAssistantDesc}</p>
               <div className="mt-3 flex justify-start">
-                <QRFrame src="/qr/wechat-help.png" alt={t.program.successAssistantQrAlt} size={140} withBadge={false} />
+                <QRFrame src="/qr/ai_aide.png" alt={t.program.successAssistantQrAlt} size={140} withBadge={false} />
               </div>
             </>
           }

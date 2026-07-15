@@ -1,20 +1,15 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { Award, BookOpen, Calendar, Sparkles } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { useLocalized, useT } from "@/lib/i18n";
 import { instructor, schedule } from "@/lib/mock/program";
-import { PaymentSuccess } from "./payment-success";
 import { PricingPanel } from "./pricing-panel";
 
 export function ProgramMobile() {
   const t = useT();
   const pick = useLocalized();
-  const [paid, setPaid] = useState(false);
-  const [orderNo, setOrderNo] = useState<string>();
 
   const lessons = schedule.filter((s) => !s.isEvent);
   const events = schedule.filter((s) => s.isEvent);
@@ -47,15 +42,9 @@ export function ProgramMobile() {
           </div>
         </div>
 
-        <AnimatePresence mode="wait" initial={false}>
-          {paid ? (
-            <PaymentSuccess key="success" className="mt-8" orderNo={orderNo} />
-          ) : (
-            <motion.div key="pricing" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
-              <PricingPanel onPaid={(no) => { setPaid(true); setOrderNo(no); }} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="mt-8">
+          <PricingPanel />
+        </div>
       </section>
 
       {/* ── 讲师 ── */}
@@ -84,7 +73,7 @@ export function ProgramMobile() {
         <SectionHeading
           eyebrow="课程表"
           title={`${lessons.length} 节正式课 + ${events.length} 场活动`}
-          subtitle="7.11 开营 — 8.9 结营"
+          subtitle="7.25 开营 — 8.23 结营"
           className="text-center mb-6"
         />
 
