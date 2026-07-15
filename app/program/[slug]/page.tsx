@@ -17,20 +17,20 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ProgramDetailPage({ params }: Props) {
   const { slug } = await params;
-  // Program 记录含 LucideIcon（函数），不能跨 RSC 边界传递 —— 只传 slug，
-  // 客户端组件自行从注册表解析
   if (!getProgram(slug)) notFound();
 
+  // 课程详情 UI 目前由 main 侧统一为无 slug 的静态内容；
+  // /program/ecommerce 为正式入口，[slug] 仅做存在性校验后复用同一套组件。
   return (
     <Responsive
       desktop={
         <DesktopShell>
-          <ProgramDesktop slug={slug} />
+          <ProgramDesktop />
         </DesktopShell>
       }
       mobile={
         <MobileShell>
-          <ProgramMobile slug={slug} />
+          <ProgramMobile />
         </MobileShell>
       }
     />

@@ -10,17 +10,16 @@ export const metadata: Metadata = {
 };
 
 export default function ProgramEcommercePage() {
-  const slug = "ecommerce";
   return (
     <Responsive
       desktop={
         <DesktopShell>
-          <ProgramDesktop slug={slug} />
+          <ProgramDesktop />
         </DesktopShell>
       }
       mobile={
         <MobileShell>
-          <ProgramMobile slug={slug} />
+          <ProgramMobile />
         </MobileShell>
       }
     />

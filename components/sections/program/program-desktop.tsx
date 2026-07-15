@@ -1,60 +1,40 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { Award, BookOpen, Calendar, Sparkles } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { useEnrollment } from "@/lib/course/use-enrollment";
 import { useLocalized, useT } from "@/lib/i18n";
-import { getProgram } from "@/lib/mock/programs";
-import { BookmarkButton } from "./bookmark-button";
-import { PaymentSuccess } from "./payment-success";
+import { instructor, schedule } from "@/lib/mock/program";
 import { PricingPanel } from "./pricing-panel";
 
-export function ProgramDesktop({ slug }: { slug: string }) {
+export function ProgramDesktop() {
   const t = useT();
   const pick = useLocalized();
-  const [paid, setPaid] = useState(false);
-  const [orderNo, setOrderNo] = useState<string>();
-  const program = getProgram(slug);
-  // 已报名的用户刷新后直接看到报名成功卡（报名态来自订单列表 + 会话内兜底）
-  const enrollment = useEnrollment(program?.courseId ?? "");
 
-  // 路由层已校验过 slug；此守卫仅满足类型收窄
-  if (!program) return null;
-
-  const enrolled = paid || enrollment.state === "enrolled";
-  const successOrderNo = orderNo ?? enrollment.orderNo;
-
-  const { instructor, schedule } = program;
   const lessons = schedule.filter((s) => !s.isEvent);
   const events = schedule.filter((s) => s.isEvent);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
-      {/* ── Hero ── */}
       <section className="mb-24">
         <div className="grid gap-12 lg:grid-cols-2">
           <div className="flex flex-col justify-center">
-            <span className="mb-5 inline-flex items-center gap-2 self-start rounded-full bg-accent/10 px-4 py-1.5 text-sm font-medium text-accent">
+            <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-accent/10 px-4 py-1.5 text-sm font-medium text-accent">
               <Sparkles className="size-3.5" />
-              {pick(program.hero.eyebrow)}
+              {t.program.eyebrow}
             </span>
             <h1 className="max-w-lg text-4xl font-black leading-[1.15] tracking-tight lg:text-5xl">
-              {pick(program.hero.headline)}
+              {t.program.headline || t.program.title}
             </h1>
-            <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">
-              {pick(program.hero.subtitle)}
-            </p>
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-muted-foreground">{t.program.subtitle}</p>
             <div className="mt-8 flex gap-10">
               <div className="flex items-center gap-3">
                 <div className="flex size-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
                   <Calendar className="size-6" />
                 </div>
                 <div>
-                  <p className="text-2xl font-black tracking-tight">{program.durationDays}</p>
-                  <p className="text-xs text-muted-foreground">{t.program.unitDays}</p>
+                  <p className="text-2xl font-black tracking-tight">30</p>
+                  <p className="text-xs text-muted-foreground">天</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -62,29 +42,18 @@ export function ProgramDesktop({ slug }: { slug: string }) {
                   <BookOpen className="size-6" />
                 </div>
                 <div>
-                  <p className="text-2xl font-black tracking-tight">{program.lessonCount}</p>
-                  <p className="text-xs text-muted-foreground">{t.program.unitLessons}</p>
+                  <p className="text-2xl font-black tracking-tight">9</p>
+                  <p className="text-xs text-muted-foreground">节课</p>
                 </div>
               </div>
             </div>
-            <BookmarkButton courseId={program.courseId} className="mt-6" />
           </div>
-
-          <AnimatePresence mode="wait">
-            {enrolled ? (
-              <PaymentSuccess key="success" orderNo={successOrderNo} registrationFormUrl={program.registrationFormUrl} />
-            ) : (
-              <motion.div key="pricing" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}>
-                <PricingPanel program={program} onPaid={(no) => { setPaid(true); setOrderNo(no); }} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <PricingPanel />
         </div>
       </section>
 
-      {/* ── 讲师 ── */}
       <section className="mb-24">
-        <SectionHeading eyebrow={t.program.instructorEyebrow} title={t.program.instructorTitle} subtitle="" className="text-center mb-12" />
+        <SectionHeading eyebrow="讲师" title="谁来讲这门课？" subtitle="" className="text-center mb-12" />
         <div className="flex flex-col items-center gap-10 rounded-3xl border border-border bg-card p-12 md:flex-row md:items-start">
           <div className="relative size-64 shrink-0 overflow-hidden rounded-2xl shadow-xl ring-4 ring-border/50">
             <Image src={instructor.avatar} alt={instructor.name} fill className="object-cover" />
@@ -94,37 +63,29 @@ export function ProgramDesktop({ slug }: { slug: string }) {
               <h3 className="text-2xl font-bold">{instructor.name}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{pick(instructor.title)}</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1.5 text-sm font-semibold text-accent">
-                <Award className="size-4" />
-                {pick(instructor.highlight)}
-              </span>
-              {instructor.tags.map((tag) => (
-                <span key={tag.zh} className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs text-muted-foreground">
-                  {pick(tag)}
-                </span>
-              ))}
-            </div>
+            <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-accent/10 px-3 py-1.5 text-sm font-semibold text-accent">
+              <Award className="size-4" />
+              {pick(instructor.highlight)}
+            </span>
             <p className="text-sm leading-relaxed text-muted-foreground">{pick(instructor.bio)}</p>
           </div>
         </div>
       </section>
 
-      {/* ── 课程表 ── */}
       <section>
         <SectionHeading
-          eyebrow={t.program.scheduleEyebrow}
-          title={t.program.scheduleTitle(lessons.length, events.length)}
-          subtitle={pick(program.scheduleSubtitle)}
+          eyebrow="课程表"
+          title={`${lessons.length} 节正式课 + ${events.length} 场社区活动`}
+          subtitle="7 月 25 日开营 — 8 月 23 日结营"
           className="text-center mb-12"
         />
         <div className="overflow-x-auto rounded-2xl border border-border shadow-sm">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/40 text-left">
-                <th className="w-28 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t.program.colDate}</th>
-                <th className="w-24 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t.program.colTime}</th>
-                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t.program.colContent}</th>
+                <th className="w-28 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">日期</th>
+                <th className="w-24 px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">时间</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">内容</th>
               </tr>
             </thead>
             <tbody>
@@ -139,23 +100,13 @@ export function ProgramDesktop({ slug }: { slug: string }) {
                   <td className="px-5 py-3.5 align-top text-muted-foreground whitespace-nowrap">{item.time}</td>
                   <td className="px-5 py-3.5 align-top">
                     <div className="flex items-start gap-3">
-                      <span
-                        className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
-                          item.isEvent
-                            ? "bg-accent/15 text-accent"
-                            : "bg-primary/15 text-primary"
-                        }`}
-                      >
-                        {item.isEvent ? t.program.typeEvent : t.program.typeLesson}
+                      <span className={`mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${item.isEvent ? "bg-accent/15 text-accent" : "bg-primary/15 text-primary"}`}>
+                        {item.isEvent ? "活动" : "课程"}
                       </span>
                       <div className="min-w-0">
                         <p className="font-medium leading-snug">{item.title}</p>
                         {item.content && <p className="mt-1 text-xs text-muted-foreground">{item.content}</p>}
-                        {item.instructor && (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            <span className="font-medium text-foreground/60">{t.program.instructorLabel}</span> {item.instructor}
-                          </p>
-                        )}
+                        {item.instructor && <p className="mt-1 text-xs text-muted-foreground"><span className="font-medium text-foreground/60">讲师</span> {item.instructor}</p>}
                       </div>
                     </div>
                   </td>
@@ -165,7 +116,6 @@ export function ProgramDesktop({ slug }: { slug: string }) {
           </table>
         </div>
       </section>
-
       <div className="mt-28" />
     </div>
   );
