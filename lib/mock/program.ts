@@ -9,6 +9,19 @@ export const programProject = {
   skuId: "standard",
 } as const;
 
+export const programPricing = {
+  /** 原价（单位：元，仅用于展示划线） */
+  basePrice: 599,
+  /** 早鸟价（单位：元，实际计算起点），7/12 前有效 */
+  earlyBirdPrice: 299,
+  /** SEEDAO 会员折扣（8折 = 0.8） */
+  memberDiscountRate: 0.8,
+  /** 有效优惠码减免金额（元） */
+  promoCodeDeduction: 20,
+  /** 显示用的货币符号 */
+  currency: "¥",
+} as const;
+
 export type ScheduleItem = {
   id: string;
   date: string;      // "7.11 周六"
