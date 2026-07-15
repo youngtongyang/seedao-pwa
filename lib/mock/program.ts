@@ -1,5 +1,13 @@
 /** 活动付费项目配置 */
 
+export const projectIntro = {
+  title: { zh: "30天做跨境电商，发展AI第二副业", en: "30-Day Cross-Border E-Commerce" },
+  subhead: {
+    zh: "从零开始做跨境电商。不囤货、不交保证金，用 AI 跑通选品→上架→出单全流程。",
+    en: "Start cross-border e-commerce from zero. No inventory, no deposit.",
+  },
+} as const;
+
 export const programProject = {
   /** 报名表单外链（暂定占位） */
   registrationFormUrl: "https://seedao2049.feishu.cn/share/base/form/shrcnExampleProgram",
