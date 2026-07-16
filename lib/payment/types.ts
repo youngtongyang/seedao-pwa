@@ -21,8 +21,39 @@
  * object), with `currency` alongside it.
  */
 
-/** WeChat sub-channels the backend supports. */
-export type PayChannel = "wechat_native" | "wechat_h5";
+/** Payment sub-channels the backend supports. */
+export type PayChannel = "wechat_native" | "wechat_h5" | "alipay_h5" | "alipay_page";
+
+/** Redirect channels — backend returns `h5_url` / `pay_url` instead of a Native QR `code_url`. */
+export type RedirectPayChannel = "wechat_h5" | "alipay_h5" | "alipay_page";
+
+/** @deprecated Prefer {@link RedirectPayChannel}. */
+export type H5PayChannel = RedirectPayChannel;
+
+export function parsePayChannel(value: unknown): PayChannel | undefined {
+  if (
+    value === "wechat_native" ||
+    value === "wechat_h5" ||
+    value === "alipay_h5" ||
+    value === "alipay_page"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+export function isRedirectPayChannel(channel: PayChannel): channel is RedirectPayChannel {
+  return channel === "wechat_h5" || channel === "alipay_h5" || channel === "alipay_page";
+}
+
+/** @deprecated Prefer {@link isRedirectPayChannel}. */
+export function isH5PayChannel(channel: PayChannel): channel is RedirectPayChannel {
+  return isRedirectPayChannel(channel);
+}
+
+export function isAlipayChannel(channel: PayChannel | null | undefined): boolean {
+  return channel === "alipay_h5" || channel === "alipay_page";
+}
 
 /** The only product today; kept as a string union so adding SKUs is one edit. */
 export type ProductType = "membership_renew";
@@ -34,6 +65,9 @@ export type ProductType = "membership_renew";
  */
 export type PaymentStatus = "pending" | "paid" | "closed";
 
+/** Fixed H5 return landing — backend sets one URL; per-order path via `return_to`. */
+export const PAY_RETURN_PATH = "/pay/return";
+
 /** Body for `POST /v1/payments/orders`. All fields optional — see defaults. */
 export type CreateOrderInput = {
   /** Defaults to `membership_renew`. */
@@ -44,13 +78,19 @@ export type CreateOrderInput = {
   pay_channel?: PayChannel;
   /** Optional coupon code; validated server-side against the coupons table. */
   coupon_code?: string;
+  /**
+   * H5 only: in-app path to resume after pay (e.g. `/proposals/new`).
+   * Backend appends as `?returnTo=` on the configured `return_url`.
+   */
+  return_to?: string;
 };
 
 /**
  * Created order — what we need to start the payment. For `wechat_native` the
  * backend returns `code_url` (a `weixin://…` string we render to a QR); for
- * `wechat_h5` it returns `h5_url` (a page to redirect to). The frontend never
- * sends the amount — it's set server-side from `wechat_pay.membership_price_fen`.
+ * `wechat_h5` / `alipay_h5` / `alipay_page` it returns `h5_url` or `pay_url`
+ * (a page to redirect to). The frontend never
+ * sends the amount — it's set server-side from `membership.membership_price_fen`.
  */
 export type PaymentOrder = {
   /** Merchant order number; the id used to query / close this order. */
@@ -66,11 +106,18 @@ export type PaymentOrder = {
   currency?: string;
   /** Native: raw `weixin://wxpay/bizpayurl?pr=…`, rendered to a QR client-side. Also returned while `pending`. */
   code_url?: string;
-  /** H5: the page to redirect the browser to. Also returned while `pending`. */
+  /** H5: redirect target (WeChat). Also returned while `pending`. */
   h5_url?: string;
+  /** H5: redirect target (Alipay). Backend may use this instead of `h5_url`. */
+  pay_url?: string;
   /** RFC3339 UTC instant the order/code expires. */
   expired_at?: string;
 };
+
+/** Resolve the browser redirect URL for an H5 order (WeChat `h5_url` or Alipay `pay_url`). */
+export function paymentRedirectUrl(order: { h5_url?: string; pay_url?: string }): string | undefined {
+  return order.h5_url ?? order.pay_url;
+}
 
 /**
  * Result of querying an order — the order plus, once `paid`, the new

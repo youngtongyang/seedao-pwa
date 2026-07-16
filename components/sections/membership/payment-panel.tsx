@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReturnToCapture } from "@/components/auth/return-to-capture";
 import { QRFrame } from "@/components/shared/qr-frame";
 import { useAccount } from "@/lib/account";
 import { useT } from "@/lib/i18n";
@@ -24,12 +25,15 @@ const WalletLogin = dynamic(() => import("../login/wallet-login"), {
 
 export function PaymentPanel({ className }: { className?: string }) {
   const t = useT();
+  const account = useAccount();
   // Open the Join tab when a returning H5 payer comes back with a stashed order,
   // or when sent here from the login page (`?join=1`). Re-key so the new default
   // applies post-hydration.
   const pending = usePendingJoin();
   const joinIntent = useJoinIntent();
   const openJoin = !!pending || joinIntent;
+  // Paid members are already in — keep community QR (spectate), hide the join flow.
+  const isMember = account.hydrated && account.isMember;
 
   return (
     <div
@@ -38,23 +42,28 @@ export function PaymentPanel({ className }: { className?: string }) {
         className,
       )}
     >
-      <Tabs defaultValue={openJoin ? "join" : "spectate"} key={`${openJoin}:${pending?.order_no ?? ""}`}>
-        <TabsList className="mx-auto flex w-full max-w-xs">
-          <TabsTrigger value="spectate" className="flex-1">
-            {t.membership.tabSpectate}
-          </TabsTrigger>
-          <TabsTrigger value="join" className="flex-1">
-            {t.membership.tabJoin}
-          </TabsTrigger>
-        </TabsList>
+      <ReturnToCapture />
+      {isMember ? (
+        <SpectatePanel />
+      ) : (
+        <Tabs defaultValue={openJoin ? "join" : "spectate"} key={`${openJoin}:${pending?.order_no ?? ""}`}>
+          <TabsList className="mx-auto flex w-full max-w-xs">
+            <TabsTrigger value="spectate" className="flex-1">
+              {t.membership.tabSpectate}
+            </TabsTrigger>
+            <TabsTrigger value="join" className="flex-1">
+              {t.membership.tabJoin}
+            </TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="spectate">
-          <SpectatePanel />
-        </TabsContent>
-        <TabsContent value="join">
-          <JoinOptions pending={pending} />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="spectate">
+            <SpectatePanel />
+          </TabsContent>
+          <TabsContent value="join">
+            <JoinOptions pending={pending} />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }

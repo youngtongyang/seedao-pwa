@@ -1,4 +1,5 @@
-import type { CreateOrderInput, PayChannel, PaymentOrder, PaymentStatus } from "./types";
+import type { CreateOrderInput, H5PayChannel, PayChannel, PaymentOrder, PaymentStatus } from "./types";
+import { isH5PayChannel } from "./types";
 
 /**
  * Client entry points for the membership-renewal payment flow. These call our
@@ -14,27 +15,86 @@ export type CreateOrderOutcome =
   | { ok: true; order: PaymentOrder }
   | { ok: false; error?: string };
 
-/** Status the client acts on; `membershipExpiresAt` is present once `paid`. */
+/** Status the client acts on; includes channel so resume UI can label Alipay vs WeChat. */
 export type PollOutcome =
-  | { ok: true; status: PaymentStatus; membershipExpiresAt?: string | null }
+  | {
+      ok: true;
+      status: PaymentStatus;
+      membershipExpiresAt?: string | null;
+      order: PaymentOrder;
+    }
   | { ok: false; error?: string };
 
 function errorOf(data: Record<string, unknown>): string | undefined {
   return typeof data.error === "string" ? data.error : undefined;
 }
 
+export function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 /**
- * Pick the WeChat pay channel by device. Desktop gets `wechat_native` — a QR the
- * user scans with their phone. Phones get `wechat_h5`: a Native QR can't be paid
- * on the *same* device (WeChat blocks long-press/recognise on its own pay codes),
- * so phones hand off to the WeChat app via the H5 `h5_url` instead, which is the
- * only channel that supports paying on the device you're browsing from.
- *
- * Defaults to native off the client (SSR), where there's no user agent to read.
+ * Membership pay-channel UI.
+ * Mobile: Alipay H5 (WeChat H5 optional). Desktop: WeChat Native QR + Alipay PC page.
+ */
+export const PAY_CHANNEL_UI = {
+  wechatH5OnMobile: false,
+  alipayOnDesktop: true,
+} as const;
+
+/** Default pay channel for the current device. */
+export function defaultPayChannel(): PayChannel {
+  if (typeof navigator === "undefined") return "wechat_native";
+  return isMobileDevice() ? "alipay_h5" : "wechat_native";
+}
+
+/** Channels to show on the pay picker; one entry → callers may skip the picker. */
+export function availablePayChannels(mobile = isMobileDevice()): PayChannel[] {
+  if (mobile) {
+    const channels: PayChannel[] = [];
+    if (PAY_CHANNEL_UI.wechatH5OnMobile) channels.push("wechat_h5");
+    channels.push("alipay_h5");
+    return channels;
+  }
+  const channels: PayChannel[] = ["wechat_native"];
+  if (PAY_CHANNEL_UI.alipayOnDesktop) channels.push("alipay_page");
+  return channels;
+}
+
+/** Course checkout: WeChat only (Native QR on desktop, H5 redirect on mobile). */
+export function courseDefaultPayChannel(): PayChannel {
+  if (typeof navigator === "undefined") return "wechat_native";
+  return isMobileDevice() ? "wechat_h5" : "wechat_native";
+}
+
+export function courseAvailablePayChannels(mobile = isMobileDevice()): PayChannel[] {
+  return [mobile ? "wechat_h5" : "wechat_native"];
+}
+
+/**
+ * @deprecated Use {@link defaultPayChannel} — kept for any legacy call sites.
  */
 export function pickPayChannel(): PayChannel {
-  if (typeof navigator === "undefined") return "wechat_native";
-  return /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "wechat_h5" : "wechat_native";
+  return defaultPayChannel();
+}
+
+export { isH5PayChannel };
+export type { H5PayChannel };
+
+/** Open an H5 pay page in a new context; fall back to same-tab navigation if blocked. */
+export function openPaymentRedirect(url: string): void {
+  const win = window.open(url, "_blank");
+  if (!win) window.location.href = url;
+}
+
+/**
+ * Same-tab navigation to the H5 pay URL. Use right after async order creation
+ * (a deferred window.open would be popup-blocked). The return_url should land
+ * on `/pay/return` or `/?join=1#membership` so sessionStorage resume kicks in.
+ */
+export function navigateToPayment(url: string): void {
+  window.location.href = url;
 }
 
 /**
@@ -137,6 +197,7 @@ export async function pollPaymentStatus(orderNo: string): Promise<PollOutcome> {
       ok: true,
       status: data.status as PaymentStatus,
       membershipExpiresAt: data.membership_expires_at as string | null | undefined,
+      order: data as unknown as PaymentOrder,
     };
   } catch {
     return { ok: false, error: "upstream_unreachable" };

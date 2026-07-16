@@ -74,6 +74,11 @@ function update(updater: (s: AccountState) => AccountState) {
   writeState(updater(readState()));
 }
 
+/** Clear persisted account state (call on logout so membership UI resets). */
+export function clearAccount() {
+  writeState(EMPTY);
+}
+
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const state = useSyncExternalStore(subscribe, readState, () => EMPTY);
   const hydrated = useHydrated();
@@ -90,7 +95,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     () => update((s) => ({ ...s, agentClaimed: true })),
     [],
   );
-  const logout = useCallback(() => update((s) => ({ ...s, user: null })), []);
+  const logout = useCallback(() => update(() => EMPTY), []);
   const reset = useCallback(() => update(() => EMPTY), []);
 
   const value = useMemo<AccountContextValue>(

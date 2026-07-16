@@ -1,7 +1,9 @@
 import { jsonError, readJson } from "@/lib/api/http";
+import { parseReturnTo } from "@/lib/auth/return-to-server";
 import { getToken } from "@/lib/auth/session";
 import { createOrder } from "@/lib/payment/server";
-import type { CreateOrderInput, PayChannel } from "@/lib/payment/types";
+import type { CreateOrderInput } from "@/lib/payment/types";
+import { parsePayChannel } from "@/lib/payment/types";
 
 /**
  * POST /api/payment/order — open a WeChat membership-renewal order for the
@@ -19,9 +21,10 @@ export async function POST(request: Request) {
   const body = (await readJson<Record<string, unknown>>(request)) ?? {};
   const input: CreateOrderInput = {};
   if (typeof body.days === "number" && Number.isFinite(body.days)) input.days = body.days;
-  if (body.pay_channel === "wechat_native" || body.pay_channel === "wechat_h5") {
-    input.pay_channel = body.pay_channel as PayChannel;
-  }
+  const payChannel = parsePayChannel(body.pay_channel);
+  if (payChannel) input.pay_channel = payChannel;
+  const returnTo = parseReturnTo(body);
+  if (returnTo) input.return_to = returnTo;
 
   const result = await createOrder(input, token);
   if (!result.ok) return jsonError(result);

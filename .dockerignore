@@ -1,0 +1,25 @@
+# dependencies & build
+node_modules
+.next
+out
+build
+coverage
+
+# git / ide
+.git
+.github
+.cursor
+.vscode
+*.md
+!README.md
+
+# env & local
+.env*
+!.env.example
+.DS_Store
+*.pem
+.vercel
+
+# deploy docs (not needed inside image)
+deploy/README.md
+deploy/nginx

@@ -6,6 +6,7 @@ import { DesktopShell } from "@/components/layout/desktop/desktop-shell";
 import { MobileShell } from "@/components/layout/mobile/mobile-shell";
 import { Responsive } from "@/components/layout/responsive";
 import { Loader2 } from "lucide-react";
+import { joinRedirectPath, loginRedirectPath } from "@/lib/auth/return-to";
 
 export const metadata = {
   title: "创建提案 · Create Proposal",
@@ -22,7 +23,8 @@ function CreateFallback() {
 export default async function ProposalCreatePage() {
   const store = await cookies();
   if (!store.get("seedao.authed")) {
-    redirect(store.get("seedao.session") ? "/?join=1#membership" : "/login");
+    const returnTo = "/proposals/new";
+    redirect(store.get("seedao.session") ? joinRedirectPath(returnTo) : loginRedirectPath(returnTo));
   }
 
   return (

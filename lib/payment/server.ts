@@ -6,9 +6,11 @@ import type {
   CreateOrderInput,
   OrderListResult,
   OrderStatusResult,
+  PayChannel,
   PaymentOrder,
   PaymentStatus,
 } from "./types";
+import { isH5PayChannel } from "./types";
 
 /**
  * Server-only client for the membership-renewal payment endpoints (API v2.5).
@@ -35,6 +37,7 @@ export function createOrder(input: CreateOrderInput, token: string): Promise<Api
     pay_channel: input.pay_channel,
   };
   if (input.coupon_code) body.coupon_code = input.coupon_code;
+  if (input.return_to) body.return_to = input.return_to;
   return call<PaymentOrder>("/payments/orders", { method: "POST", token, body });
 }
 
@@ -85,25 +88,39 @@ export function simulatePay(orderNo: string, token: string): Promise<ApiResult<O
  */
 // Matches the displayed ¥35 price (`lib/mock/membership`). NB: the real backend
 // default is 9900 分 (¥99); the charged amount is server-side config
-// (`wechat_pay.membership_price_fen`), not anything the frontend sends.
+// (`membership.membership_price_fen`), not anything the frontend sends.
 const MEMBERSHIP_FEE_CENTS = 3500;
 const PAY_AFTER_MS = 6000; // simulated time-to-scan-and-pay
 const EXPIRE_AFTER_MS = 5 * 60 * 1000; // simulated order expiry
 const DEFAULT_DAYS = 365;
 
-type ParsedOrder = { createdAt: number; days: number; channel: "wechat_native" | "wechat_h5" };
+type ParsedOrder = { createdAt: number; days: number; channel: PayChannel };
 
-function mockOrderNo(createdAt: number, days: number, channel: "wechat_native" | "wechat_h5"): string {
-  return `wxmock_${createdAt}_${days}_${channel === "wechat_h5" ? "h" : "n"}`;
+function mockChannelCode(channel: PayChannel): string {
+  if (channel === "wechat_h5") return "h";
+  if (channel === "alipay_h5") return "a";
+  if (channel === "alipay_page") return "p";
+  return "n";
+}
+
+function mockChannelFromCode(code: string): PayChannel {
+  if (code === "h") return "wechat_h5";
+  if (code === "a") return "alipay_h5";
+  if (code === "p") return "alipay_page";
+  return "wechat_native";
+}
+
+function mockOrderNo(createdAt: number, days: number, channel: PayChannel): string {
+  return `wxmock_${createdAt}_${days}_${mockChannelCode(channel)}`;
 }
 
 function parseOrderNo(orderNo: string): ParsedOrder | null {
-  const m = /^wxmock_(\d+)_(\d+)_([nh])$/.exec(orderNo);
+  const m = /^wxmock_(\d+)_(\d+)_([nhap])$/.exec(orderNo);
   if (!m) return null;
   return {
     createdAt: Number(m[1]),
     days: Number(m[2]),
-    channel: m[3] === "h" ? "wechat_h5" : "wechat_native",
+    channel: mockChannelFromCode(m[3]),
   };
 }
 
@@ -125,8 +142,13 @@ function mockOrder(orderNo: string, p: ParsedOrder, status: PaymentStatus): Paym
   };
   // Pay links are still returned while pending so a refreshed page keeps paying.
   if (status === "pending") {
-    if (p.channel === "wechat_h5") order.h5_url = `https://wx.tenpay.com/MOCK/${orderNo}`;
-    else order.code_url = `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`;
+    if (isH5PayChannel(p.channel)) {
+      if (p.channel === "alipay_h5" || p.channel === "alipay_page") {
+        order.pay_url = `https://openapi.alipay.com/MOCK/${orderNo}`;
+      } else {
+        order.h5_url = `https://wx.tenpay.com/MOCK/${orderNo}`;
+      }
+    } else order.code_url = `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`;
   }
   return order;
 }

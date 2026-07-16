@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Smaller Docker image via `node server.js` (see deploy/Dockerfile).
+  output: "standalone",
   // Pin the workspace root (multiple lockfiles exist higher up the tree).
   turbopack: { root: __dirname },
   async redirects() {

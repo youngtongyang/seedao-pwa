@@ -110,7 +110,7 @@ function ConnectControl() {
 
 function JoinWallet() {
   const t = useT();
-  const pc = usePhoneCode();
+  const pc = usePhoneCode({ purpose: "register" });
   const errorText = useErrorText();
   const onSuccess = useAuthSuccess();
   const { address, isConnected } = useWagmiAccount();

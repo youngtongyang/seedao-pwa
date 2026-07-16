@@ -51,6 +51,23 @@ export async function requestSmsCode(phone: string): Promise<SmsResult> {
   }
 }
 
+/**
+ * Register preflight: can this phone still register?
+ * Does not send SMS. `phone_exists` means already registered.
+ */
+export async function checkPhoneForRegister(phone: string): Promise<SmsResult> {
+  try {
+    const res = await fetch(`/api/auth/phone-check?phone=${encodeURIComponent(phone.trim())}`, {
+      method: "GET",
+      cache: "no-store",
+    });
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    return res.ok ? { ok: true } : { ok: false, error: errorOf(data) };
+  } catch {
+    return { ok: false, error: "upstream_unreachable" };
+  }
+}
+
 /** Log an existing user in with phone + OTP. */
 export async function loginWithCode(phone: string, code: string): Promise<AuthOutcome> {
   return submitAuth("/api/auth/login", { phone, code });

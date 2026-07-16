@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { listCourseOrders, queryCourseOrder, readCourseOrderNo } from "./client";
+import { clearPendingCoursePay } from "./pending-pay";
 
 /**
  * 某课程的报名状态。数据源优先级：
@@ -46,6 +47,7 @@ export function useEnrollment(courseId: string): { state: EnrollmentState; order
         const q = await queryCourseOrder(orderNo);
         if (stale) return;
         if (q.ok && q.data.status === "paid") {
+          clearPendingCoursePay();
           setLoaded({ courseId, state: "enrolled", orderNo });
           return;
         }

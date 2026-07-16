@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthed } from "@/lib/auth/use-auth";
+import { loginHref } from "@/lib/auth/return-to";
 import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
 import { fetchProposals } from "@/lib/proposals/client";
@@ -112,7 +113,7 @@ export function ProposalListView() {
           </p>
         </div>
         <Button asChild size="sm" className="shrink-0 rounded-full px-4 sm:h-10 sm:rounded-md sm:px-4">
-          <Link href={authed ? "/proposals/new" : "/login"}>{t.proposals.createCta}</Link>
+          <Link href={authed ? "/proposals/new" : loginHref("/proposals/new")}>{t.proposals.createCta}</Link>
         </Button>
       </div>
 
@@ -192,7 +193,7 @@ export function ProposalListView() {
         <div className="py-16 text-center">
           <p className="text-muted-foreground">{t.proposals.loginToViewMine}</p>
           <Button asChild className="mt-4">
-            <Link href="/login">{t.nav.login}</Link>
+            <Link href={loginHref("/proposals")}>{t.nav.login}</Link>
           </Button>
         </div>
       ) : items.length === 0 ? (

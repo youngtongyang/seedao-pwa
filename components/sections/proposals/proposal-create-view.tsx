@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useT } from "@/lib/i18n";
+import { loginHrefForCurrentPage } from "@/lib/auth/return-to";
 import {
   createProposal,
   closeProposal,
@@ -105,7 +106,7 @@ export function ProposalCreateView() {
           setType(null);
           setError(t.proposals.create.noPermission);
         }
-      } else if (res.error === "unauthorized") router.push("/login");
+      } else if (res.error === "unauthorized") router.push(loginHrefForCurrentPage("/proposals/new"));
     });
   }, [editId, initialType, router, t.proposals.create.noPermission]);
 
@@ -211,7 +212,7 @@ export function ProposalCreateView() {
     setSaving(false);
     if (!result.ok) {
       if (result.error === "unauthorized") {
-        router.push("/login");
+        router.push(loginHrefForCurrentPage("/proposals/new"));
         return;
       }
       setError(result.message ?? t.proposals.create.saveFailed);
@@ -236,7 +237,7 @@ export function ProposalCreateView() {
       if (!created.ok) {
         setPublishing(false);
         if (created.error === "unauthorized") {
-          router.push("/login");
+          router.push(loginHrefForCurrentPage("/proposals/new"));
           return;
         }
         setError(created.message ?? t.proposals.create.saveFailed);
@@ -255,7 +256,7 @@ export function ProposalCreateView() {
       if (!updated.ok) {
         setPublishing(false);
         if (updated.error === "unauthorized") {
-          router.push("/login");
+          router.push(loginHrefForCurrentPage("/proposals/new"));
           return;
         }
         setError(updated.message ?? t.proposals.create.saveFailed);
@@ -271,7 +272,7 @@ export function ProposalCreateView() {
     setPublishing(false);
     if (!pub.ok) {
       if (pub.error === "unauthorized") {
-        router.push("/login");
+        router.push(loginHrefForCurrentPage("/proposals/new"));
         return;
       }
       setError(pub.message ?? t.proposals.create.publishFailed);

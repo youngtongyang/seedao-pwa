@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, CalendarDays, Crown, Loader2, Lock, LogOut, Phone } from "lucide-react";
+import { CalendarDays, Crown, Loader2, LogOut, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { resetBookmarks } from "@/lib/course/bookmarks-store";
 import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
 import { cn } from "@/lib/utils";
-import { ProfilePrograms } from "./profile-programs";
 import { ProfileTodos } from "./profile-todos";
 
 function Avatar({ profile, size = 96 }: { profile: ProfileResult; size?: number }) {
@@ -144,42 +143,10 @@ export function ProfileView() {
         </div>
       </section>
 
-      {/* New-member checklist — first todo is adding the community assistant. */}
+      {/* Keep assistant QR; other blocks stay hidden for now */}
       <ProfileTodos />
 
-      {/* My programs — saved + enrolled */}
-      <ProfilePrograms />
-
-      {/* Bio */}
-      <section className="mt-3 rounded-2xl border border-border bg-card px-4 py-3">
-        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          {t.profile.bio}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">{profile.bio || t.profile.noBio}</p>
-      </section>
-
-      {/* Reputation — placeholder, disabled until designed */}
-      <div
-        aria-disabled
-        className="mt-6 rounded-3xl border border-dashed border-border bg-muted/30 p-8 opacity-70"
-      >
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-            <Award className="size-5" />
-          </span>
-          <div>
-            <h2 className="flex items-center gap-2 font-semibold">
-              {t.profile.reputation}
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                <Lock className="size-3" />
-                {t.common.comingSoon}
-              </span>
-            </h2>
-            <p className="text-sm text-muted-foreground">{t.profile.reputationDesc}</p>
-          </div>
-        </div>
-        <p className="mt-4 text-sm text-muted-foreground">{t.profile.reputationSoon}</p>
-      </div>
+      {/* Temporarily hidden: my programs / bio / reputation */}
 
       {/* Logout — shared across desktop and mobile shells */}
       <div className="mt-8 flex justify-center sm:justify-end">

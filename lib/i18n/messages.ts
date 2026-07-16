@@ -31,7 +31,6 @@ const zh = {
     proposals: "提案",
     logout: "退出登录",
     help: "帮助",
-    program: "AI 共学",
     backHome: "返回首页",
     menu: "菜单",
     close: "关闭",
@@ -103,28 +102,43 @@ const zh = {
     // 加入 · 第二步：验证手机号完成注册（证明你是真实用户）
     verifyStepTitle: "验证手机号",
     verifyStepDesc: "输入手机号与验证码完成注册，确认你是真实用户，随后即可支付会员。",
+    reauthStepTitle: "重新验证手机号",
+    reauthStepDesc: "登录已过期，请用注册时的手机号验证后继续支付。",
+    reauthCta: "验证并继续支付",
     verifyCta: "验证并继续支付",
     verifying: "验证中…",
     verifyBack: "返回修改名称",
 
-    // 加入 · 第三步：微信扫码支付，自动确认
+    // 加入 · 第三步：支付，自动确认
     payReservedFor: (name: string) => `已为你保留：${name}`,
+    payStepTitlePick: "选择支付方式",
     payStepTitle: "微信支付",
+    payStepTitleAlipay: "支付宝支付",
+    payStepDescPick: "选择支付方式完成 ¥35 年度会员支付。",
     payStepDesc: "使用微信完成 ¥35 年度会员支付。",
     payStepDescNative: "使用微信扫描下方二维码，完成 ¥35 年度会员支付。",
     payStepDescH5: "点按下方按钮，前往微信完成 ¥35 年度会员支付。",
+    payStepDescAlipayH5: "点按下方按钮，前往支付宝完成 ¥35 年度会员支付。",
+    payStepDescAlipayPage: "前往支付宝电脑收银台完成 ¥35 年度会员支付（可用手机扫码）。",
     payAutoNote: "支付成功后会自动确认，无需手动操作，我们会带你进入个人主页。",
     payCreating: "正在生成订单…",
     payWaiting: "等待支付…扫码完成后会自动跳转。",
     payRedirecting: "正在跳转到微信支付…",
     payConfirming: "请在微信中完成支付，完成后会自动确认。",
+    payConfirmingAlipay: "请在支付宝中完成支付，完成后会自动确认。",
+    payH5ReadyWechat: "还未支付？可再次前往微信完成支付。",
+    payH5ReadyAlipay: "还未支付？可再次前往支付宝完成支付。",
     paySuccess: "支付成功，正在进入个人主页…",
     payExpired: "订单已过期，请重新发起。",
     payError: "支付发起失败，请稍后重试。",
     payRetry: "重新发起支付",
+    payChangeChannel: "更换支付方式",
     payBack: "返回修改名称",
     payQrAlt: "微信支付二维码",
+    payWechatNativeCta: "微信支付",
+    payWechatH5Cta: "微信支付",
     payH5Cta: "前往微信支付",
+    payAlipayH5Cta: "支付宝支付",
   },
 
   community: {
@@ -249,7 +263,6 @@ const zh = {
     subtitle: "从零开始做跨境电商。不囤货、不交保证金，用 AI 跑通选品→上架→出单全流程。",
     benefitsTitle: "你能学到什么",
     benefitsSubtitle: "7 关全部通关，带走的不只是知识，还有你自己的运营 SOP。",
-    priceComputeError: "价格计算异常，请刷新后重试。",
 
     // ── 详情页共用 chrome（各项目的营销文案在 lib/mock/programs.ts 中随项目走）──
     instructorEyebrow: "讲师",
@@ -292,8 +305,12 @@ const zh = {
 
     // Payment
     payCta: "微信扫码支付",
+    payCtaWechat: "微信支付",
+    payCtaAlipay: "支付宝支付",
+    payH5CtaWechat: "前往微信支付",
+    payH5CtaAlipay: "前往支付宝支付",
     payQrAlt: "微信支付二维码",
-    payCreating: "正在生成支付二维码…",
+    payCreating: "正在生成订单…",
     payWaiting: "等待支付… 扫码完成后会自动确认。",
     paySuccess: "支付成功！",
     payError: "订单创建失败，请稍后重试。",
@@ -625,7 +642,6 @@ const en: typeof zh = {
     proposals: "Proposals",
     logout: "Log out",
     help: "Help",
-    program: "AI Learn",
     backHome: "Back to home",
     menu: "Menu",
     close: "Close",
@@ -698,29 +714,46 @@ const en: typeof zh = {
     verifyStepTitle: "Verify your phone",
     verifyStepDesc:
       "Enter your phone and code to finish sign-up and confirm you're a real person — then you can pay.",
+    reauthStepTitle: "Verify your phone again",
+    reauthStepDesc:
+      "Your session expired. Verify with the phone number you registered with to continue paying.",
+    reauthCta: "Verify & continue to pay",
     verifyCta: "Verify & continue to pay",
     verifying: "Verifying…",
     verifyBack: "Back to edit name",
 
-    // Join · step 3: pay with WeChat, confirmed automatically
+    // Join · step 3: pay, confirmed automatically
     payReservedFor: (name: string) => `Reserved for you: ${name}`,
+    payStepTitlePick: "Choose payment method",
     payStepTitle: "Pay with WeChat",
+    payStepTitleAlipay: "Pay with Alipay",
+    payStepDescPick: "Choose how to pay the ¥35 annual membership.",
     payStepDesc: "Pay the ¥35 annual membership with WeChat.",
     payStepDescNative: "Scan the QR code below with WeChat to pay the ¥35 annual membership.",
     payStepDescH5: "Tap the button below to pay the ¥35 annual membership in WeChat.",
+    payStepDescAlipayH5: "Tap the button below to pay the ¥35 annual membership in Alipay.",
+    payStepDescAlipayPage:
+      "Continue to the Alipay desktop checkout to pay the ¥35 annual membership (you can scan with your phone).",
     payAutoNote:
       "Payment is confirmed automatically — nothing to do by hand. We'll take you to your profile.",
     payCreating: "Opening your order…",
     payWaiting: "Waiting for payment… you'll be redirected once it's done.",
     payRedirecting: "Taking you to WeChat Pay…",
     payConfirming: "Finish paying in WeChat — we'll confirm automatically.",
+    payConfirmingAlipay: "Finish paying in Alipay — we'll confirm automatically.",
+    payH5ReadyWechat: "Haven't paid yet? You can open WeChat Pay again.",
+    payH5ReadyAlipay: "Haven't paid yet? You can open Alipay again.",
     paySuccess: "Paid — taking you to your profile…",
     payExpired: "This order has expired. Please start a new one.",
     payError: "Couldn't start the payment. Please try again.",
     payRetry: "Try payment again",
+    payChangeChannel: "Choose another payment method",
     payBack: "Back to edit name",
     payQrAlt: "WeChat Pay QR code",
+    payWechatNativeCta: "WeChat Pay",
+    payWechatH5Cta: "WeChat Pay",
     payH5Cta: "Pay in WeChat",
+    payAlipayH5Cta: "Alipay",
   },
 
   community: {
@@ -848,7 +881,6 @@ const en: typeof zh = {
     subtitle: "Start cross-border e-commerce from zero. No inventory, no deposit — run the full pipeline from product selection to sales with AI.",
     benefitsTitle: "What you'll learn",
     benefitsSubtitle: "7 stages to go from zero to running your own cross-border pipeline with AI.",
-    priceComputeError: "Price calculation error. Please refresh and try again.",
 
     // ── Shared detail-page chrome (per-program marketing copy lives in lib/mock/programs.ts) ──
     instructorEyebrow: "Instructor",
@@ -895,8 +927,12 @@ const en: typeof zh = {
 
     // Payment
     payCta: "Pay with WeChat",
+    payCtaWechat: "WeChat Pay",
+    payCtaAlipay: "Alipay",
+    payH5CtaWechat: "Pay in WeChat",
+    payH5CtaAlipay: "Pay in Alipay",
     payQrAlt: "WeChat Pay QR code",
-    payCreating: "Generating payment QR code…",
+    payCreating: "Opening your order…",
     payWaiting: "Waiting for payment… confirmation is automatic.",
     paySuccess: "Payment successful!",
     payError: "Failed to create order. Please try again later.",

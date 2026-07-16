@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useBookmarks } from "@/lib/course/bookmarks-store";
+import { loginHrefForCurrentPage } from "@/lib/auth/return-to";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +61,7 @@ export function BookmarkButton({
         {hint && (
           <div className="absolute right-0 top-full z-10 mt-1.5 whitespace-nowrap rounded-lg border border-border bg-popover px-2.5 py-1.5 text-xs shadow-md">
             {hint === "login" ? (
-              <Link href="/login" className="text-primary">
+              <Link href={loginHrefForCurrentPage()} className="text-primary">
                 {t.program.bookmarkLoginHint}
               </Link>
             ) : (
@@ -96,7 +97,7 @@ export function BookmarkButton({
       </Button>
       {hint === "login" && (
         <p className="text-xs text-muted-foreground">
-          <Link href="/login" className="text-primary underline-offset-2 hover:underline">
+          <Link href={loginHrefForCurrentPage()} className="text-primary underline-offset-2 hover:underline">
             {t.program.bookmarkLoginHint}
           </Link>
         </p>

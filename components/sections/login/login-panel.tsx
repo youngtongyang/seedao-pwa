@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ReturnToCapture } from "@/components/auth/return-to-capture";
 import { useAccount } from "@/lib/account";
+import { joinHref } from "@/lib/auth/return-to";
 import { loginWithCode } from "@/lib/auth/phone";
 import { useT } from "@/lib/i18n";
 import { isMembershipActive } from "@/lib/membership";
@@ -23,8 +25,10 @@ import {
  */
 
 // Where unregistered phones (and the "no account?" link) go: the home membership
-// section, with the Join tab pre-opened.
-const REGISTER_HREF = "/?join=1#membership";
+// section, with the Join tab pre-opened. `returnTo` is appended when present.
+function registerHref(): string {
+  return joinHref();
+}
 
 // Failures that mean "fix it and retry here" rather than "you have no account".
 // `phone_not_registered` (40009) stays put too: we show the message and let the
@@ -41,6 +45,7 @@ const STAY_ERRORS = new Set([
 export function LoginPanel() {
   return (
     <div className="rounded-3xl border border-border bg-card p-8">
+      <ReturnToCapture />
       <PhoneLoginForm />
     </div>
   );
@@ -70,12 +75,11 @@ function PhoneLoginForm() {
         // Registered but not a paying member — can't log in; remember who they
         // are and send them to finish payment (the Join flow resumes at the QR).
         account.setUser(result.user);
-        router.push(REGISTER_HREF);
+        router.push(registerHref());
       } else if (result.error && STAY_ERRORS.has(result.error)) {
         setError(errorText(result.error));
       } else {
-        // No account for this phone — send them to register.
-        router.push(REGISTER_HREF);
+        router.push(registerHref());
       }
     } finally {
       setBusy(false);
@@ -98,7 +102,7 @@ function PhoneLoginForm() {
       <p className="text-sm text-muted-foreground">
         {t.login.noAccount}{" "}
         <Link
-          href={REGISTER_HREF}
+          href={registerHref()}
           className="font-medium text-primary underline-offset-4 hover:underline"
         >
           {t.login.noAccountCta}
