@@ -296,13 +296,18 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   const router = useRouter();
   const account = useAccount();
   const mobile = isMobileDevice();
+  const payChannels = availablePayChannels(mobile);
   const [order, setOrder] = useState<PaymentOrder | null>(null);
   const [payChannel, setPayChannel] = useState<PayChannel | null>(null);
   // The id we poll — a freshly created order, or the stashed one we resumed.
   const [orderNo, setOrderNo] = useState<string | null>(resumeOrderNo ?? null);
-  const [state, setState] = useState<PayState>(
-    resumeOrderNo ? "confirming" : "creating",
-  );
+  // Start on "pick" when multiple channels exist so we never flash WeChat copy
+  // while the bootstrap effect is still deciding.
+  const [state, setState] = useState<PayState>(() => {
+    if (resumeOrderNo) return "confirming";
+    if (availablePayChannels().length > 1) return "pick";
+    return "creating";
+  });
 
   const [nonce, setNonce] = useState(0);
 
@@ -524,30 +529,32 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   }, [state, orderNo, account, router]);
 
   // Match the heading to what's actually on screen / on the order.
-  const payChannels = availablePayChannels(mobile);
   const activeChannel = order?.pay_channel ?? payChannel;
+  const showPicker = payChannels.length > 1 && (state === "pick" || (state === "creating" && !activeChannel));
 
-  const payTitle =
-    payChannels.length > 1 && state === "pick"
-      ? t.membership.payStepTitlePick
-      : isAlipayChannel(activeChannel)
-        ? t.membership.payStepTitleAlipay
-        : t.membership.payStepTitle;
+  const payTitle = showPicker
+    ? t.membership.payStepTitlePick
+    : isAlipayChannel(activeChannel)
+      ? t.membership.payStepTitleAlipay
+      : activeChannel
+        ? t.membership.payStepTitle
+        : t.membership.payStepTitlePick;
 
-  const payDesc =
-    payChannels.length > 1 && state === "pick"
-      ? t.membership.payStepDescPick
-      : state === "waiting"
-        ? t.membership.payStepDescNative
-        : isAlipayChannel(activeChannel) && (state === "h5Ready" || state === "confirming")
-          ? activeChannel === "alipay_page"
-            ? t.membership.payStepDescAlipayPage
-            : t.membership.payStepDescAlipayH5
-          : state === "h5Ready" || state === "confirming"
-            ? t.membership.payStepDescH5
-            : isAlipayChannel(activeChannel)
-              ? t.membership.payStepDescAlipayH5
-              : t.membership.payStepDesc;
+  const payDesc = showPicker
+    ? t.membership.payStepDescPick
+    : state === "waiting"
+      ? t.membership.payStepDescNative
+      : isAlipayChannel(activeChannel) && (state === "h5Ready" || state === "confirming")
+        ? activeChannel === "alipay_page"
+          ? t.membership.payStepDescAlipayPage
+          : t.membership.payStepDescAlipayH5
+        : state === "h5Ready" || state === "confirming"
+          ? t.membership.payStepDescH5
+          : isAlipayChannel(activeChannel)
+            ? t.membership.payStepDescAlipayH5
+            : activeChannel
+              ? t.membership.payStepDesc
+              : t.membership.payStepDescPick;
 
   const h5Cta =
     isAlipayChannel(activeChannel) ? t.membership.payAlipayH5Cta : t.membership.payH5Cta;
@@ -562,41 +569,49 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
         </p>
       )}
 
-      {payChannels.length > 1 && state === "pick" ? (
+      {showPicker ? (
         <div className="flex w-full flex-col gap-3">
-          {payChannels.includes("wechat_native") && (
-            <Button size="lg" className="w-full" onClick={() => startPay("wechat_native")}>
-              {t.membership.payWechatNativeCta}
-              <ArrowRight className="size-4" />
-            </Button>
-          )}
-          {payChannels.includes("wechat_h5") && (
-            <Button size="lg" className="w-full" onClick={() => startPay("wechat_h5")}>
-              {t.membership.payWechatH5Cta}
-              <ArrowRight className="size-4" />
-            </Button>
-          )}
-          {payChannels.includes("alipay_page") && (
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full"
-              onClick={() => startPay("alipay_page")}
-            >
-              {t.membership.payAlipayH5Cta}
-              <ArrowRight className="size-4" />
-            </Button>
-          )}
-          {payChannels.includes("alipay_h5") && (
-            <Button
-              size="lg"
-              variant={payChannels.length > 1 ? "outline" : "default"}
-              className="w-full"
-              onClick={() => startPay("alipay_h5")}
-            >
-              {t.membership.payAlipayH5Cta}
-              {payChannels.length === 1 && <ArrowRight className="size-4" />}
-            </Button>
+          {state === "creating" && !activeChannel ? (
+            <div className="flex h-24 items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {payChannels.includes("wechat_native") && (
+                <Button size="lg" className="w-full" onClick={() => startPay("wechat_native")}>
+                  {t.membership.payWechatNativeCta}
+                  <ArrowRight className="size-4" />
+                </Button>
+              )}
+              {payChannels.includes("wechat_h5") && (
+                <Button size="lg" className="w-full" onClick={() => startPay("wechat_h5")}>
+                  {t.membership.payWechatH5Cta}
+                  <ArrowRight className="size-4" />
+                </Button>
+              )}
+              {payChannels.includes("alipay_page") && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => startPay("alipay_page")}
+                >
+                  {t.membership.payAlipayH5Cta}
+                  <ArrowRight className="size-4" />
+                </Button>
+              )}
+              {payChannels.includes("alipay_h5") && (
+                <Button
+                  size="lg"
+                  variant={payChannels.length > 1 ? "outline" : "default"}
+                  className="w-full"
+                  onClick={() => startPay("alipay_h5")}
+                >
+                  {t.membership.payAlipayH5Cta}
+                  {payChannels.length === 1 && <ArrowRight className="size-4" />}
+                </Button>
+              )}
+            </>
           )}
         </div>
       ) : state === "waiting" && order?.code_url ? (
