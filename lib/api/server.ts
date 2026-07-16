@@ -174,6 +174,29 @@ export function smsSend(phone: string): Promise<ApiResult<SendSmsResult>> {
   return call<SendSmsResult>("/auth/sms/send", { method: "POST", body: { phone: toE164(phone) } });
 }
 
+/**
+ * Register-preflight: is this phone free to register?
+ * Backend returns business code 40009 when available (not registered) and 40006 when taken.
+ */
+export async function checkPhoneForRegister(
+  phone: string,
+): Promise<ApiResult<{ phone: string; registered: boolean }>> {
+  if (USE_MOCK) {
+    return Promise.resolve({
+      ok: true,
+      data: { phone: toE164(phone), registered: false },
+    });
+  }
+  const result = await call<{ phone: string; registered: boolean }>("/auth/phone/check", {
+    query: { phone: toE164(phone) },
+  });
+  // Available-to-register is signaled as 40009 / phone_not_registered.
+  if (!result.ok && result.error === "phone_not_registered") {
+    return { ok: true, data: { phone: toE164(phone), registered: false } };
+  }
+  return result;
+}
+
 export function login(req: LoginRequest): Promise<ApiResult<AuthResult>> {
   if (USE_MOCK) return mock.login();
   return call<AuthResult>("/auth/login", { method: "POST", body: { ...req, phone: toE164(req.phone) } });

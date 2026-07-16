@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { clearAccount } from "@/lib/account";
 
 /**
  * Reactive client view of login state. "Logged in" means **active paid member**:
@@ -43,6 +44,7 @@ export async function logout() {
   } catch {
     /* ignore — clear the UI regardless */
   }
+  clearAccount();
   notify();
 }
 

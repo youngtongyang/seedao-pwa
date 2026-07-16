@@ -22,20 +22,37 @@
  */
 
 /** Payment sub-channels the backend supports. */
-export type PayChannel = "wechat_native" | "wechat_h5" | "alipay_h5";
+export type PayChannel = "wechat_native" | "wechat_h5" | "alipay_h5" | "alipay_page";
 
-/** H5 redirect channels — backend returns `h5_url` instead of `code_url`. */
-export type H5PayChannel = "wechat_h5" | "alipay_h5";
+/** Redirect channels — backend returns `h5_url` / `pay_url` instead of a Native QR `code_url`. */
+export type RedirectPayChannel = "wechat_h5" | "alipay_h5" | "alipay_page";
+
+/** @deprecated Prefer {@link RedirectPayChannel}. */
+export type H5PayChannel = RedirectPayChannel;
 
 export function parsePayChannel(value: unknown): PayChannel | undefined {
-  if (value === "wechat_native" || value === "wechat_h5" || value === "alipay_h5") {
+  if (
+    value === "wechat_native" ||
+    value === "wechat_h5" ||
+    value === "alipay_h5" ||
+    value === "alipay_page"
+  ) {
     return value;
   }
   return undefined;
 }
 
-export function isH5PayChannel(channel: PayChannel): channel is H5PayChannel {
-  return channel === "wechat_h5" || channel === "alipay_h5";
+export function isRedirectPayChannel(channel: PayChannel): channel is RedirectPayChannel {
+  return channel === "wechat_h5" || channel === "alipay_h5" || channel === "alipay_page";
+}
+
+/** @deprecated Prefer {@link isRedirectPayChannel}. */
+export function isH5PayChannel(channel: PayChannel): channel is RedirectPayChannel {
+  return isRedirectPayChannel(channel);
+}
+
+export function isAlipayChannel(channel: PayChannel | null | undefined): boolean {
+  return channel === "alipay_h5" || channel === "alipay_page";
 }
 
 /** The only product today; kept as a string union so adding SKUs is one edit. */
@@ -71,8 +88,9 @@ export type CreateOrderInput = {
 /**
  * Created order — what we need to start the payment. For `wechat_native` the
  * backend returns `code_url` (a `weixin://…` string we render to a QR); for
- * `wechat_h5` / `alipay_h5` it returns `h5_url` (a page to redirect to). The frontend never
- * sends the amount — it's set server-side from `wechat_pay.membership_price_fen`.
+ * `wechat_h5` / `alipay_h5` / `alipay_page` it returns `h5_url` or `pay_url`
+ * (a page to redirect to). The frontend never
+ * sends the amount — it's set server-side from `membership.membership_price_fen`.
  */
 export type PaymentOrder = {
   /** Merchant order number; the id used to query / close this order. */

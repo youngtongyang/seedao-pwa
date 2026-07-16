@@ -6,7 +6,7 @@
  */
 
 /** 支付渠道 */
-export type PayChannel = "wechat_native" | "wechat_h5" | "alipay_h5";
+export type PayChannel = "wechat_native" | "wechat_h5" | "alipay_h5" | "alipay_page";
 
 // ── 价格试算 ──────────────────────────────────────────────────────────────────
 

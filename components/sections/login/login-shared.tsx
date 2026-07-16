@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAccount } from "@/lib/account";
 import type { AuthUser } from "@/lib/api/types";
-import { isValidCode, isValidPhone, requestSmsCode } from "@/lib/auth/phone";
+import { isValidCode, isValidPhone, checkPhoneForRegister, requestSmsCode } from "@/lib/auth/phone";
 import { consumeReturnTo } from "@/lib/auth/return-to";
 import { refreshAuth } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
@@ -63,9 +63,10 @@ export function currentDomain(): string {
   return typeof window !== "undefined" ? window.location.host : "";
 }
 
-export function usePhoneCode() {
+export function usePhoneCode(opts?: { purpose?: "login" | "register" }) {
   const t = useT();
   const errorText = useErrorText();
+  const purpose = opts?.purpose ?? "login";
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [sending, setSending] = useState(false);
@@ -99,6 +100,15 @@ export function usePhoneCode() {
     }
     setSending(true);
     try {
+      // Registration: reject already-registered phones before spending an SMS.
+      if (purpose === "register") {
+        const check = await checkPhoneForRegister(phone);
+        if (!check.ok) {
+          setSendError(check.error ? errorText(check.error) : t.login.sendFailed);
+          return;
+        }
+      }
+
       const result = await requestSmsCode(phone);
       if (result.ok) {
         writeResendUntil(phone);
@@ -117,7 +127,7 @@ export function usePhoneCode() {
     } finally {
       setSending(false);
     }
-  }, [phone, phoneOk, t, errorText]);
+  }, [phone, phoneOk, purpose, t, errorText]);
 
   return { phone, setPhone: changePhone, code, setCode, phoneOk, codeOk, sending, countdown, notice, sendError, send };
 }

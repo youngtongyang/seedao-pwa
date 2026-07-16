@@ -15,9 +15,14 @@ export type CreateOrderOutcome =
   | { ok: true; order: PaymentOrder }
   | { ok: false; error?: string };
 
-/** Status the client acts on; `membershipExpiresAt` is present once `paid`. */
+/** Status the client acts on; includes channel so resume UI can label Alipay vs WeChat. */
 export type PollOutcome =
-  | { ok: true; status: PaymentStatus; membershipExpiresAt?: string | null }
+  | {
+      ok: true;
+      status: PaymentStatus;
+      membershipExpiresAt?: string | null;
+      order: PaymentOrder;
+    }
   | { ok: false; error?: string };
 
 function errorOf(data: Record<string, unknown>): string | undefined {
@@ -30,12 +35,12 @@ export function isMobileDevice(): boolean {
 }
 
 /**
- * Temporary UI flags — flip to re-expose hidden pay methods.
- * Mobile: Alipay H5 only (WeChat H5 hidden). Desktop: WeChat Native only.
+ * Membership pay-channel UI.
+ * Mobile: Alipay H5 (WeChat H5 optional). Desktop: WeChat Native QR + Alipay PC page.
  */
 export const PAY_CHANNEL_UI = {
   wechatH5OnMobile: false,
-  alipayOnDesktop: false,
+  alipayOnDesktop: true,
 } as const;
 
 /** Default pay channel for the current device. */
@@ -53,7 +58,7 @@ export function availablePayChannels(mobile = isMobileDevice()): PayChannel[] {
     return channels;
   }
   const channels: PayChannel[] = ["wechat_native"];
-  if (PAY_CHANNEL_UI.alipayOnDesktop) channels.push("alipay_h5");
+  if (PAY_CHANNEL_UI.alipayOnDesktop) channels.push("alipay_page");
   return channels;
 }
 
@@ -192,6 +197,7 @@ export async function pollPaymentStatus(orderNo: string): Promise<PollOutcome> {
       ok: true,
       status: data.status as PaymentStatus,
       membershipExpiresAt: data.membership_expires_at as string | null | undefined,
+      order: data as unknown as PaymentOrder,
     };
   } catch {
     return { ok: false, error: "upstream_unreachable" };

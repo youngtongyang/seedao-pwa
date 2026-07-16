@@ -88,7 +88,7 @@ export function simulatePay(orderNo: string, token: string): Promise<ApiResult<O
  */
 // Matches the displayed ¥35 price (`lib/mock/membership`). NB: the real backend
 // default is 9900 分 (¥99); the charged amount is server-side config
-// (`wechat_pay.membership_price_fen`), not anything the frontend sends.
+// (`membership.membership_price_fen`), not anything the frontend sends.
 const MEMBERSHIP_FEE_CENTS = 3500;
 const PAY_AFTER_MS = 6000; // simulated time-to-scan-and-pay
 const EXPIRE_AFTER_MS = 5 * 60 * 1000; // simulated order expiry
@@ -99,12 +99,14 @@ type ParsedOrder = { createdAt: number; days: number; channel: PayChannel };
 function mockChannelCode(channel: PayChannel): string {
   if (channel === "wechat_h5") return "h";
   if (channel === "alipay_h5") return "a";
+  if (channel === "alipay_page") return "p";
   return "n";
 }
 
 function mockChannelFromCode(code: string): PayChannel {
   if (code === "h") return "wechat_h5";
   if (code === "a") return "alipay_h5";
+  if (code === "p") return "alipay_page";
   return "wechat_native";
 }
 
@@ -113,7 +115,7 @@ function mockOrderNo(createdAt: number, days: number, channel: PayChannel): stri
 }
 
 function parseOrderNo(orderNo: string): ParsedOrder | null {
-  const m = /^wxmock_(\d+)_(\d+)_([nha])$/.exec(orderNo);
+  const m = /^wxmock_(\d+)_(\d+)_([nhap])$/.exec(orderNo);
   if (!m) return null;
   return {
     createdAt: Number(m[1]),
@@ -141,10 +143,11 @@ function mockOrder(orderNo: string, p: ParsedOrder, status: PaymentStatus): Paym
   // Pay links are still returned while pending so a refreshed page keeps paying.
   if (status === "pending") {
     if (isH5PayChannel(p.channel)) {
-      order.h5_url =
-        p.channel === "alipay_h5"
-          ? `https://openapi.alipay.com/MOCK/${orderNo}`
-          : `https://wx.tenpay.com/MOCK/${orderNo}`;
+      if (p.channel === "alipay_h5" || p.channel === "alipay_page") {
+        order.pay_url = `https://openapi.alipay.com/MOCK/${orderNo}`;
+      } else {
+        order.h5_url = `https://wx.tenpay.com/MOCK/${orderNo}`;
+      }
     } else order.code_url = `weixin://wxpay/bizpayurl?pr=MOCK${orderNo}`;
   }
   return order;
