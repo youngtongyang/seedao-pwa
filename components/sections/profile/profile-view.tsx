@@ -10,6 +10,7 @@ import { resetBookmarks } from "@/lib/course/bookmarks-store";
 import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
 import { cn } from "@/lib/utils";
+import { ProfileTodos } from "./profile-todos";
 
 function Avatar({ profile, size = 96 }: { profile: ProfileResult; size?: number }) {
   const initial = (profile.sns_name || "?").slice(0, 1).toUpperCase();
@@ -142,7 +143,10 @@ export function ProfileView() {
         </div>
       </section>
 
-      {/* Temporarily hidden: agent todo / my programs / bio / reputation */}
+      {/* Keep assistant QR; other blocks stay hidden for now */}
+      <ProfileTodos />
+
+      {/* Temporarily hidden: my programs / bio / reputation */}
 
       {/* Logout — shared across desktop and mobile shells */}
       <div className="mt-8 flex justify-center sm:justify-end">

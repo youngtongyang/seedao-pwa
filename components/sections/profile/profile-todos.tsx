@@ -1,10 +1,9 @@
 "use client";
 
-import { Bot, Check, MessageCircle } from "lucide-react";
+import { Check, MessageCircle } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { QRFrame } from "@/components/shared/qr-frame";
 import { Button } from "@/components/ui/button";
-import { useAccount } from "@/lib/account";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +44,6 @@ function markAssistantDone() {
  */
 export function ProfileTodos() {
   const t = useT();
-  const account = useAccount();
   const assistantDone = useSyncExternalStore(subscribeAssistant, readAssistantDone, () => false);
 
   return (
@@ -80,22 +78,7 @@ export function ProfileTodos() {
           )}
         </TodoItem>
 
-        <TodoItem
-          index={2}
-          done={account.agentClaimed}
-          icon={<Bot className="size-4" />}
-          title={t.profile.todoAgentTitle}
-          desc={t.profile.todoAgentDesc}
-        >
-          {!account.agentClaimed && (
-            <div className="mt-4">
-              {/* Onboarding isn't ready yet — disabled placeholder, route is 404'd. */}
-              <Button variant="outline" size="sm" disabled>
-                {t.profile.todoAgentSoon}
-              </Button>
-            </div>
-          )}
-        </TodoItem>
+        {/* Temporarily hidden: claim personal AI agent */}
       </ol>
     </section>
   );
