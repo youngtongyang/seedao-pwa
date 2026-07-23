@@ -44,7 +44,7 @@ export type ScheduleItem = {
 export const schedule: ScheduleItem[] = [
   {
     id: "s1",
-    date: "7.25 周五",
+    date: "7.25 周六",
     time: "20:00-21:00",
     title: "开营仪式",
     content: "跨境电商是什么？AI能帮你做什么？",
@@ -52,7 +52,7 @@ export const schedule: ScheduleItem[] = [
   },
   {
     id: "s2",
-    date: "7.28 周一",
+    date: "7.28 周二",
     time: "20:00-21:30",
     title: "选品——找到值得测的产品",
     content: "",
@@ -60,7 +60,7 @@ export const schedule: ScheduleItem[] = [
   },
   {
     id: "s3",
-    date: "7.30 周三",
+    date: "7.30 周四",
     time: "20:00-21:30",
     title: `上架——把你的产品"摆上货架"`,
     content: "",
