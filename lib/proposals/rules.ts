@@ -171,14 +171,24 @@ function ruleBuilders(
   typeLabels: Messages["proposals"]["types"],
 ): Record<string, (opts?: RuleOpts) => ResolutionRuleMeta> {
   return {
+    // Canonical backend values: standard | meta_rule
     standard: (opts) =>
       buildRuleMeta(
         copy,
         "standard",
+        typeLabels.node_consensus_special,
+        "node_consensus_special",
+        nodeAssemblySections(copy, opts),
+      ),
+    meta_rule: (opts) =>
+      buildRuleMeta(
+        copy,
+        "meta_rule",
         typeLabels.node_consensus_rule,
         "node_consensus_rule",
         nodeMetaRuleSections(copy, opts),
       ),
+    // Backend aliases / legacy keys still seen on stored proposals
     node_meta_rule: (opts) =>
       buildRuleMeta(
         copy,

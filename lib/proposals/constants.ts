@@ -7,6 +7,7 @@ export type ProposalTypeMeta = {
   tag: string;
   /** Backend `type` field (Chinese label) */
   wireType: string;
+  /** Backend `resolution_rule` on create (`standard` | `meta_rule` | aliases). */
   resolutionRule: string;
   defaultPublicityHours: number;
   defaultVoteHours: number;
@@ -29,7 +30,7 @@ export const PROPOSAL_TYPES: Record<ProposalType, ProposalTypeMeta> = {
     label: "节点大会元规则提案",
     tag: "节点大会元规则提案",
     wireType: "节点大会元规则提案",
-    resolutionRule: "node_meta_rule",
+    resolutionRule: "meta_rule",
     defaultPublicityHours: 96,
     defaultVoteHours: 48,
   },
@@ -38,7 +39,7 @@ export const PROPOSAL_TYPES: Record<ProposalType, ProposalTypeMeta> = {
     label: "节点大会提案",
     tag: "节点大会提案",
     wireType: "节点大会提案",
-    resolutionRule: "node_assembly",
+    resolutionRule: "standard",
     defaultPublicityHours: 96,
     defaultVoteHours: 48,
   },
