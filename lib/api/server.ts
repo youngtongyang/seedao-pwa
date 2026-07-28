@@ -5,7 +5,11 @@ import {
   type ApiEnvelope,
   type ApiErrorKey,
   type AuthResult,
+  type BindingListResult,
+  type BindFeishuTokenRequest,
   ErrCode,
+  type FeishuBindResult,
+  type FeishuChallengeResult,
   type LoginRequest,
   type ProfileResult,
   type RegisterRequest,
@@ -71,6 +75,14 @@ function errorKeyForCode(code: number): ApiErrorKey {
       return "payment_order_not_found";
     case ErrCode.PAYMENT_ORDER_INVALID_STATE:
       return "payment_order_invalid_state";
+    case ErrCode.FEISHU_NOT_BOUND:
+      return "feishu_not_bound";
+    case ErrCode.FEISHU_ALREADY_BOUND:
+      return "feishu_already_bound";
+    case ErrCode.FEISHU_OPEN_ID_TAKEN:
+      return "feishu_open_id_taken";
+    case ErrCode.FEISHU_BIND_CREDENTIAL_INVALID:
+      return "feishu_bind_credential_invalid";
     case ErrCode.UNAUTHORIZED:
       return "unauthorized";
     case ErrCode.TOO_MANY_REQUESTS:
@@ -232,6 +244,36 @@ export function userProfile(token: string): Promise<ApiResult<ProfileResult>> {
   return call<ProfileResult>("/user/profile", { token });
 }
 
+export function listBindings(token: string): Promise<ApiResult<BindingListResult>> {
+  if (USE_MOCK) return mock.listBindings();
+  return call<BindingListResult>("/user/bindings", { token });
+}
+
+export function bindFeishuToken(
+  req: BindFeishuTokenRequest,
+  token: string,
+): Promise<ApiResult<FeishuBindResult>> {
+  if (USE_MOCK) return mock.bindFeishuToken(req);
+  return call<FeishuBindResult>("/user/bindings/feishu/token", {
+    method: "POST",
+    body: req,
+    token,
+  });
+}
+
+export function createFeishuChallenge(token: string): Promise<ApiResult<FeishuChallengeResult>> {
+  if (USE_MOCK) return mock.createFeishuChallenge();
+  return call<FeishuChallengeResult>("/user/bindings/feishu/challenge", {
+    method: "POST",
+    token,
+  });
+}
+
+export function unbindFeishu(token: string): Promise<ApiResult<FeishuBindResult>> {
+  if (USE_MOCK) return mock.unbindFeishu();
+  return call<FeishuBindResult>("/user/bindings/feishu", { method: "DELETE", token });
+}
+
 /** Live count of registered users. Public; the hero adds the seed base on top. */
 export function userCount(): Promise<ApiResult<UserCountResult>> {
   if (USE_MOCK) return mock.userCount();
@@ -321,7 +363,102 @@ const mock = {
       },
     });
   },
+  listBindings(): Promise<ApiResult<BindingListResult>> {
+    return Promise.resolve({
+      ok: true,
+      data: {
+        items: [
+          mockFeishuBound
+            ? {
+                provider: "feishu",
+                bound: true,
+                display_name: "Demo Feishu",
+                bound_at: "2026-07-27T08:00:00Z",
+                bind_source: "bot_token",
+              }
+            : { provider: "feishu", bound: false },
+        ],
+      },
+    });
+  },
+  bindFeishuToken(req: BindFeishuTokenRequest): Promise<ApiResult<FeishuBindResult>> {
+    if (!req.bind_token.trim()) {
+      return Promise.resolve({
+        ok: false,
+        error: "invalid_param",
+        status: 400,
+        code: ErrCode.INVALID_PARAM,
+      });
+    }
+    if (req.bind_token === "expired") {
+      return Promise.resolve({
+        ok: false,
+        error: "feishu_bind_credential_invalid",
+        status: 400,
+        code: ErrCode.FEISHU_BIND_CREDENTIAL_INVALID,
+      });
+    }
+    if (mockFeishuBound) {
+      return Promise.resolve({
+        ok: false,
+        error: "feishu_already_bound",
+        status: 400,
+        code: ErrCode.FEISHU_ALREADY_BOUND,
+      });
+    }
+    mockFeishuBound = true;
+    return Promise.resolve({
+      ok: true,
+      data: {
+        provider: "feishu",
+        bound: true,
+        display_name: "Demo Feishu",
+        bind_source: "bot_token",
+      },
+    });
+  },
+  createFeishuChallenge(): Promise<ApiResult<FeishuChallengeResult>> {
+    if (mockFeishuBound) {
+      return Promise.resolve({
+        ok: false,
+        error: "feishu_already_bound",
+        status: 400,
+        code: ErrCode.FEISHU_ALREADY_BOUND,
+      });
+    }
+    const bind_code = "A7K9M2";
+    // Auto-complete after a short delay so the profile poll can succeed in mock.
+    setTimeout(() => {
+      mockFeishuBound = true;
+    }, 4000);
+    return Promise.resolve({
+      ok: true,
+      data: {
+        bind_code,
+        expires_in: 600,
+        instruction: `在飞书对土地神发送：绑定 ${bind_code}`,
+      },
+    });
+  },
+  unbindFeishu(): Promise<ApiResult<FeishuBindResult>> {
+    if (!mockFeishuBound) {
+      return Promise.resolve({
+        ok: false,
+        error: "feishu_not_bound",
+        status: 400,
+        code: ErrCode.FEISHU_NOT_BOUND,
+      });
+    }
+    mockFeishuBound = false;
+    return Promise.resolve({
+      ok: true,
+      data: { provider: "feishu", bound: false },
+    });
+  },
   userCount(): Promise<ApiResult<UserCountResult>> {
     return Promise.resolve({ ok: true, data: { total_user_count: 248 } });
   },
 };
+
+/** Process-local mock binding state for `SEEDAO_USE_MOCK=1`. */
+let mockFeishuBound = false;

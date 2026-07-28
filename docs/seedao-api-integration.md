@@ -33,6 +33,10 @@ Every backend endpoint now has a BFF route. Usage by a user-facing feature:
 | `POST /v1/wallet/nonce` | `/api/wallet/nonce` | Yes — wallet flow |
 | `POST /v1/wallet/verify-sns` | `/api/wallet/verify-sns` | Yes — wallet ownership preview |
 | `GET /v1/user/profile` | `/api/profile` | Yes — Profile page |
+| `GET /v1/user/bindings` | `/api/user/bindings` | Yes — Profile Feishu status |
+| `POST /v1/user/bindings/feishu/token` | `/api/user/bindings/feishu/token` | Yes — `/profile/bind` (土地神 link) |
+| `POST /v1/user/bindings/feishu/challenge` | `/api/user/bindings/feishu/challenge` | Yes — Profile todo (官网 → 飞书) |
+| `DELETE /v1/user/bindings/feishu` | `/api/user/bindings/feishu` | Yes — Profile unbind |
 | `POST /v1/payments/orders` | `/api/payment/order` | Yes — Join → WeChat Pay |
 | `GET /v1/payments/orders/:order_no` | `/api/payment/status` | Yes — poll until paid |
 | `GET /v1/payments/orders` | `/api/payment/orders` | Yes — order history |
