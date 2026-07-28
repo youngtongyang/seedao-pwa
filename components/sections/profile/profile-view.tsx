@@ -4,12 +4,14 @@ import { CalendarDays, Crown, Loader2, LogOut, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { ProfileResult } from "@/lib/api/types";
+import type { BindingItem, ProfileResult } from "@/lib/api/types";
 import { logout } from "@/lib/auth/use-auth";
+import { fetchFeishuBinding } from "@/lib/bindings/client";
 import { resetBookmarks } from "@/lib/course/bookmarks-store";
 import { useT } from "@/lib/i18n";
 import { fetchProfile } from "@/lib/profile/client";
 import { cn } from "@/lib/utils";
+import { ProfileBindings } from "./profile-bindings";
 import { ProfileTodos } from "./profile-todos";
 
 function Avatar({ profile, size = 96 }: { profile: ProfileResult; size?: number }) {
@@ -65,6 +67,7 @@ export function ProfileView() {
   const t = useT();
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileResult | null>(null);
+  const [feishu, setFeishu] = useState<BindingItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function handleLogout() {
@@ -76,11 +79,11 @@ export function ProfileView() {
 
   useEffect(() => {
     let active = true;
-    fetchProfile().then((p) => {
-      if (active) {
-        setProfile(p);
-        setLoading(false);
-      }
+    Promise.all([fetchProfile(), fetchFeishuBinding()]).then(([p, binding]) => {
+      if (!active) return;
+      setProfile(p);
+      setFeishu(binding);
+      setLoading(false);
     });
     return () => {
       active = false;
@@ -103,10 +106,7 @@ export function ProfileView() {
     );
   }
 
-  // created_at is RFC3339 (e.g. 2026-06-15T08:00:00Z) — show the date part as-is
-  // to stay locale- and hydration-stable.
   const joined = profile.created_at?.slice(0, 10) || "—";
-  // membership_expires_at is RFC3339; null when the user has never paid.
   const membershipExpires = profile.membership_expires_at?.slice(0, 10) || null;
 
   return (
@@ -116,7 +116,6 @@ export function ProfileView() {
         <p className="mt-1 text-sm text-muted-foreground">{t.profile.subtitle}</p>
       </header>
 
-      {/* Identity: avatar + SNS name, with account details folded in below. */}
       <section className="rounded-3xl border border-border bg-card p-8">
         <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
           <Avatar profile={profile} />
@@ -143,18 +142,12 @@ export function ProfileView() {
         </div>
       </section>
 
-      {/* Keep assistant QR; other blocks stay hidden for now */}
+      <ProfileBindings feishu={feishu} onFeishuChange={setFeishu} />
+
       <ProfileTodos />
 
-      {/* Temporarily hidden: my programs / bio / reputation */}
-
-      {/* Logout — shared across desktop and mobile shells */}
       <div className="mt-8 flex justify-center sm:justify-end">
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          className="w-full sm:w-auto"
-        >
+        <Button variant="outline" onClick={handleLogout} className="w-full sm:w-auto">
           <LogOut className="size-4" />
           {t.nav.logout}
         </Button>

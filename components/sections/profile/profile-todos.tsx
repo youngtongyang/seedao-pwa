@@ -9,9 +9,6 @@ import { cn } from "@/lib/utils";
 
 const ASSISTANT_DONE_KEY = "seedao.todo.assistant";
 
-// "Added the assistant?" is remembered locally and exposed as an external store
-// — `useSyncExternalStore` gives an SSR-safe read without a synchronous setState
-// inside an effect (same approach as `lib/account` and `useHydrated`).
 const listeners = new Set<() => void>();
 function subscribeAssistant(onChange: () => void) {
   listeners.add(onChange);
@@ -36,11 +33,8 @@ function markAssistantDone() {
 }
 
 /**
- * The new-member checklist shown on the profile page. The first todo — adding
- * the community assistant on WeChat — is where the assistant QR now lives (it
- * used to sit in the payment panel). Completion is remembered locally so the
- * list reflects progress on return visits; the agent todo reuses the account's
- * `agentClaimed` flag set by the onboarding game.
+ * New-member checklist on the profile page. Account bindings (Feishu, etc.)
+ * live in `ProfileBindings`, not here.
  */
 export function ProfileTodos() {
   const t = useT();
@@ -77,8 +71,6 @@ export function ProfileTodos() {
             </div>
           )}
         </TodoItem>
-
-        {/* Temporarily hidden: claim personal AI agent */}
       </ol>
     </section>
   );
@@ -128,10 +120,10 @@ function TodoItem({
             )}
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
+          {children}
         </div>
         <span className="shrink-0 text-xs font-medium text-muted-foreground">{index}</span>
       </div>
-      {children}
     </li>
   );
 }
