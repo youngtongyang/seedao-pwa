@@ -95,6 +95,10 @@ export function ProposalDetailView({ id }: { id: number }) {
     }
   }, [id, authed]);
 
+  const handlePhaseChange = useCallback(() => {
+    void load();
+  }, [load]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount
     void load();
@@ -260,7 +264,7 @@ export function ProposalDetailView({ id }: { id: number }) {
         </div>
       )}
 
-      <ProposalStatusBanner proposal={proposal} onPhaseChange={() => void load()} />
+      <ProposalStatusBanner proposal={proposal} onPhaseChange={handlePhaseChange} />
 
       <div className="mb-8 rounded-2xl border border-border bg-card p-6">
         <h1 className="text-xl font-black leading-snug sm:text-2xl">

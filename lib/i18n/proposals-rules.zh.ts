@@ -8,6 +8,7 @@ export const proposalsRulesCopyZh = {
     nature: "提案性质",
     eligibility: "发起资格",
     timing: "公示与投票时限",
+    voteTiming: "投票时限",
     voters: "投票主体",
     quorum: "法定参与要求",
     tally: "计票与生效",
@@ -70,8 +71,8 @@ export const proposalsRulesCopyZh = {
     ],
     eligibility: ["市政厅成员可发起。", "须说明背景、具体方案与执行安排。"],
     timing: [
-      "提交并发布后进入公示期，默认 {pubHours}（{pubDays}）。",
-      "公示结束后进入投票期，默认 {voteHours}（{voteDays}）。",
+      "市政厅提案无公示期，提交并发布后立即进入投票。",
+      "投票期默认 {voteHours}（{voteDays}）。",
     ],
     voters: [
       "投票主体为市政厅成员。",
@@ -87,7 +88,6 @@ export const proposalsRulesCopyZh = {
       "若最高票选项出现并列，则本次投票无效。",
       "通过后由市政厅负责落地执行。",
     ],
-    pubDays: "3 天",
     voteDays: "2 天",
   },
   tier: {

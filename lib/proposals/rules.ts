@@ -88,7 +88,6 @@ function nodeMetaRuleSections(copy: RulesCopy, opts?: RuleOpts): RuleSection[] {
 }
 
 function townHallSections(copy: RulesCopy, opts?: RuleOpts): RuleSection[] {
-  const pub = hoursLabel(copy, opts?.publicitySeconds, 72);
   const vote = hoursLabel(copy, opts?.voteDurationSeconds, 48);
   const c = copy.townHall;
   const t = copy.sectionTitles;
@@ -97,11 +96,8 @@ function townHallSections(copy: RulesCopy, opts?: RuleOpts): RuleSection[] {
     { title: t.nature, items: [...c.nature] },
     { title: t.eligibility, items: [...c.eligibility] },
     {
-      title: t.timing,
-      items: [
-        fillTiming(c.timing[0], pub, vote, c.pubDays, c.voteDays),
-        fillTiming(c.timing[1], pub, vote, c.pubDays, c.voteDays),
-      ],
+      title: t.voteTiming,
+      items: c.timing.map((line) => fillTiming(line, "", vote, undefined, c.voteDays)),
     },
     { title: t.voters, items: [...c.voters] },
     { title: t.quorum, items: [...c.quorum] },
@@ -277,35 +273,14 @@ export function getResolutionRuleMeta(
   const builders = ruleBuilders(copy, typeLabels);
   const key = resolutionRule?.trim();
 
+  // Prefer proposal type over stored resolution_rule. The API only persists
+  // `standard` | `meta_rule`, and maps town_hall_standard → meta_rule, so the
+  // wire rule alone cannot tell 市政厅 from 节点大会元规则.
+  const fromType = metaFromProposalType(copy, typeLabels, builders, proposalType, opts);
+  if (fromType) return fromType;
+
   if (key && builders[key]) {
     return builders[key](opts);
-  }
-
-  if (proposalType) {
-    const normalizedType = normalizeProposalType(proposalType);
-    if (normalizedType in PROPOSAL_TYPES) {
-      const t = normalizedType as ProposalType;
-      const meta = PROPOSAL_TYPES[t];
-      const ruleKey = meta.resolutionRule;
-      if (builders[ruleKey]) {
-        const built = builders[ruleKey](opts);
-        if (t === "p2_project_close") {
-          return {
-            ...built,
-            label: typeLabels.p2_project_close,
-            sections: tierSections(copy, "P2", "close", opts),
-          };
-        }
-        if (t === "p3_project_close") {
-          return {
-            ...built,
-            label: typeLabels.p3_project_close,
-            sections: tierSections(copy, "P3", "close", opts),
-          };
-        }
-        return { ...built, label: typeLabels[t], proposalType: t };
-      }
-    }
   }
 
   if (key && (key.length > 40 || key.includes("。"))) {
@@ -335,6 +310,42 @@ export function getResolutionRuleMeta(
   }
 
   return null;
+}
+
+function metaFromProposalType(
+  copy: RulesCopy,
+  typeLabels: Messages["proposals"]["types"],
+  builders: Record<string, (opts?: RuleOpts) => ResolutionRuleMeta>,
+  proposalType: string | undefined,
+  opts?: RuleOpts,
+): ResolutionRuleMeta | null {
+  if (!proposalType) return null;
+
+  const normalizedType = normalizeProposalType(proposalType);
+  if (!(normalizedType in PROPOSAL_TYPES)) return null;
+
+  const t = normalizedType as ProposalType;
+  const ruleKey = PROPOSAL_TYPES[t].resolutionRule;
+  if (!builders[ruleKey]) return null;
+
+  const built = builders[ruleKey](opts);
+  if (t === "p2_project_close") {
+    return {
+      ...built,
+      label: typeLabels.p2_project_close,
+      proposalType: t,
+      sections: tierSections(copy, "P2", "close", opts),
+    };
+  }
+  if (t === "p3_project_close") {
+    return {
+      ...built,
+      label: typeLabels.p3_project_close,
+      proposalType: t,
+      sections: tierSections(copy, "P3", "close", opts),
+    };
+  }
+  return { ...built, label: typeLabels[t], proposalType: t };
 }
 
 export function getVoteTypeLabel(

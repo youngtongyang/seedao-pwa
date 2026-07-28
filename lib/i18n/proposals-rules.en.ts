@@ -8,6 +8,7 @@ export const proposalsRulesCopyEn = {
     nature: "Nature",
     eligibility: "Who may submit",
     timing: "Publicity & voting window",
+    voteTiming: "Voting window",
     voters: "Who may vote",
     quorum: "Participation requirement",
     tally: "Tally & effect",
@@ -79,8 +80,8 @@ export const proposalsRulesCopyEn = {
       "Background, plan, and execution details are required.",
     ],
     timing: [
-      "After publish, publicity applies by default ({pubHours}, {pubDays}).",
-      "Voting follows publicity ({voteHours}, {voteDays}).",
+      "Town Hall proposals have no publicity period; voting starts immediately after publish.",
+      "Voting lasts {voteHours} ({voteDays}) by default.",
     ],
     voters: [
       "Voters are Town Hall members.",
@@ -96,7 +97,6 @@ export const proposalsRulesCopyEn = {
       "A tie for first place invalidates the vote.",
       "Town Hall executes after passage.",
     ],
-    pubDays: "3 days",
     voteDays: "2 days",
   },
   tier: {

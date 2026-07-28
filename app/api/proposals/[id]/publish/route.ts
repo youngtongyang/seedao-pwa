@@ -3,7 +3,7 @@ import { getToken } from "@/lib/auth/session";
 import { publishProposal } from "@/lib/proposals/server";
 import type { PublishProposalInput } from "@/lib/proposals/types";
 
-/** POST /api/proposals/[id]/publish — 发布提案进入公示期 */
+/** POST /api/proposals/[id]/publish — publish a draft (hall types skip publicity). */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
