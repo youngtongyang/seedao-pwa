@@ -49,7 +49,8 @@ export const PROPOSAL_TYPES: Record<ProposalType, ProposalTypeMeta> = {
     tag: "市政厅决策提案",
     wireType: "市政厅决策提案",
     resolutionRule: "town_hall_standard",
-    defaultPublicityHours: 72,
+    /** Hall proposals skip publicity and enter voting on publish. */
+    defaultPublicityHours: 0,
     defaultVoteHours: 48,
   },
   p1_project_init: {
@@ -112,7 +113,7 @@ export const PROPOSAL_TYPES: Record<ProposalType, ProposalTypeMeta> = {
     tag: "市政厅岗位评估",
     wireType: "市政厅岗位评估",
     resolutionRule: "town_hall_standard",
-    defaultPublicityHours: 72,
+    defaultPublicityHours: 0,
     defaultVoteHours: 48,
   },
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { useI18n, useT } from "@/lib/i18n";
 import {
   activePhase,
@@ -29,19 +29,33 @@ export function ProposalStatusBanner({
         ? proposal.vote_end_at
         : undefined;
 
+  // Keep the latest callback without re-subscribing the timer when the parent
+  // re-renders with a new function identity (which used to restart this effect
+  // and immediately re-fire onPhaseChange → infinite reload loop).
+  const onPhaseChangeRef = useRef(onPhaseChange);
+  onPhaseChangeRef.current = onPhaseChange;
+  const expiredNotifiedRef = useRef(false);
+
+  useEffect(() => {
+    expiredNotifiedRef.current = false;
+  }, [phase, deadline]);
+
   useEffect(() => {
     if (!phase || !deadline) return;
 
     function runTick() {
       tick();
       const ms = msUntil(deadline);
-      if (ms !== null && ms <= 0) onPhaseChange?.();
+      if (ms !== null && ms <= 0 && !expiredNotifiedRef.current) {
+        expiredNotifiedRef.current = true;
+        onPhaseChangeRef.current?.();
+      }
     }
 
     runTick();
     const id = window.setInterval(runTick, 1000);
     return () => window.clearInterval(id);
-  }, [phase, deadline, onPhaseChange]);
+  }, [phase, deadline]);
 
   if (!phase || !deadline) return null;
 
