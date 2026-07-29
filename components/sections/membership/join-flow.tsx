@@ -310,42 +310,52 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   });
 
   const [nonce, setNonce] = useState(0);
+  // Sync locks: React state alone cannot block a second click before re-render.
+  const openingRef = useRef(false);
+  const handoffLockRef = useRef(false);
 
   const openOrder = useCallback(
     async (channel: PayChannel, activeRef: { current: boolean }, handoffNow = false) => {
+      if (openingRef.current) return;
+      openingRef.current = true;
       setPayChannel(channel);
       setState("creating");
-      const res = await createPaymentOrder({
-        pay_channel: channel,
-        return_to: returnToForPayment(undefined, "/profile"),
-      });
-      if (!activeRef.current) return;
-      if (!res.ok) {
-        if (res.error === "unauthorized") {
-          router.push("/login");
+      try {
+        const res = await createPaymentOrder({
+          pay_channel: channel,
+          return_to: returnToForPayment(undefined, "/profile"),
+        });
+        if (!activeRef.current) return;
+        if (!res.ok) {
+          if (res.error === "unauthorized") {
+            router.push("/login");
+            return;
+          }
+          setState("error");
           return;
         }
-        setState("error");
-        return;
-      }
-      const o = res.order;
-      setOrder(o);
-      setOrderNo(o.order_no);
-      // Prefer the channel the backend actually opened (guards against drift).
-      setPayChannel(o.pay_channel ?? channel);
-      const redirectUrl = paymentRedirectUrl(o);
-      if (isRedirectPayChannel(o.pay_channel ?? channel) && redirectUrl) {
-        if (handoffNow) {
-          savePendingOrder(o.order_no, snsName);
-          // Same-tab leave: when the user comes back unpaid, resume lands on h5Ready.
-          // Keep a brief confirming state only until navigation starts.
-          setState("confirming");
-          navigateToPayment(redirectUrl);
-          return;
+        const o = res.order;
+        setOrder(o);
+        setOrderNo(o.order_no);
+        // Prefer the channel the backend actually opened (guards against drift).
+        setPayChannel(o.pay_channel ?? channel);
+        const redirectUrl = paymentRedirectUrl(o);
+        if (isRedirectPayChannel(o.pay_channel ?? channel) && redirectUrl) {
+          if (handoffNow) {
+            savePendingOrder(o.order_no, snsName);
+            // Same-tab leave: when the user comes back unpaid, resume lands on h5Ready.
+            // Keep a brief confirming state only until navigation starts.
+            handoffLockRef.current = true;
+            setState("confirming");
+            navigateToPayment(redirectUrl);
+            return;
+          }
+          setState("h5Ready");
+        } else {
+          setState("waiting");
         }
-        setState("h5Ready");
-      } else {
-        setState("waiting");
+      } finally {
+        openingRef.current = false;
       }
     },
     [router, snsName],
@@ -437,19 +447,25 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   }, [orderNo, order, nonce, mobile, account, router, openOrder]);
 
   function startPay(channel: PayChannel) {
+    if (openingRef.current || state === "creating" || state === "confirming") return;
     // Redirect channels hand off immediately; Native stays on the QR + poll UI.
     void openOrder(channel, { current: true }, isRedirectPayChannel(channel));
   }
 
   function handoff() {
+    if (handoffLockRef.current || state === "confirming") return;
     const url = order ? paymentRedirectUrl(order) : undefined;
     if (!url || !order) return;
+    handoffLockRef.current = true;
     savePendingOrder(order.order_no, snsName);
     setState("confirming");
     openPaymentRedirect(url);
   }
 
   function retry() {
+    if (openingRef.current) return;
+    openingRef.current = false;
+    handoffLockRef.current = false;
     clearPendingOrder();
     setOrder(null);
     setOrderNo(null);
@@ -460,6 +476,9 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
 
   /** Abandon the current pending order and let the user pick another channel. */
   function changeChannel() {
+    if (openingRef.current || state === "creating" || state === "confirming") return;
+    openingRef.current = false;
+    handoffLockRef.current = false;
     const abandoned = orderNo;
     clearPendingOrder();
     setOrder(null);
@@ -511,6 +530,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
       // Still pending after leaving the cashier — stop the endless spinner and
       // offer "continue pay" / "change method" instead.
       if (res.status === "pending" && state === "confirming") {
+        handoffLockRef.current = false;
         setState("h5Ready");
       }
     }
@@ -531,6 +551,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
   // Match the heading to what's actually on screen / on the order.
   const activeChannel = order?.pay_channel ?? payChannel;
   const showPicker = payChannels.length > 1 && (state === "pick" || (state === "creating" && !activeChannel));
+  const payBusy = state === "creating" || state === "confirming";
 
   const payTitle = showPicker
     ? t.membership.payStepTitlePick
@@ -571,20 +592,30 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
 
       {showPicker ? (
         <div className="flex w-full flex-col gap-3">
-          {state === "creating" && !activeChannel ? (
+          {payBusy && !activeChannel ? (
             <div className="flex h-24 items-center justify-center">
               <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <>
               {payChannels.includes("wechat_native") && (
-                <Button size="lg" className="w-full" onClick={() => startPay("wechat_native")}>
+                <Button
+                  size="lg"
+                  className="w-full"
+                  disabled={payBusy}
+                  onClick={() => startPay("wechat_native")}
+                >
                   {t.membership.payWechatNativeCta}
                   <ArrowRight className="size-4" />
                 </Button>
               )}
               {payChannels.includes("wechat_h5") && (
-                <Button size="lg" className="w-full" onClick={() => startPay("wechat_h5")}>
+                <Button
+                  size="lg"
+                  className="w-full"
+                  disabled={payBusy}
+                  onClick={() => startPay("wechat_h5")}
+                >
                   {t.membership.payWechatH5Cta}
                   <ArrowRight className="size-4" />
                 </Button>
@@ -594,6 +625,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
                   size="lg"
                   variant="outline"
                   className="w-full"
+                  disabled={payBusy}
                   onClick={() => startPay("alipay_page")}
                 >
                   {t.membership.payAlipayH5Cta}
@@ -605,6 +637,7 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
                   size="lg"
                   variant={payChannels.length > 1 ? "outline" : "default"}
                   className="w-full"
+                  disabled={payBusy}
                   onClick={() => startPay("alipay_h5")}
                 >
                   {t.membership.payAlipayH5Cta}
@@ -618,12 +651,18 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
         <QrCode key={order.code_url} value={order.code_url} alt={t.membership.payQrAlt} size={172} />
       ) : state === "h5Ready" ? (
         <div className="flex w-full flex-col gap-3">
-          <Button size="lg" className="w-full" onClick={handoff}>
+          <Button size="lg" className="w-full" disabled={payBusy} onClick={handoff}>
             {h5Cta}
             <ArrowRight className="size-4" />
           </Button>
           {payChannels.length > 1 && (
-            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={changeChannel}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              disabled={payBusy}
+              onClick={changeChannel}
+            >
               {t.membership.payChangeChannel}
             </Button>
           )}
@@ -637,13 +676,19 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
       <PayStatusLine state={state} payChannel={activeChannel} />
 
       {state === "waiting" && payChannels.length > 1 && (
-        <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={changeChannel}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          disabled={payBusy}
+          onClick={changeChannel}
+        >
           {t.membership.payChangeChannel}
         </Button>
       )}
 
       {(state === "expired" || state === "error") && (
-        <Button size="lg" className="w-full" onClick={retry}>
+        <Button size="lg" className="w-full" disabled={payBusy} onClick={retry}>
           {t.membership.payRetry}
         </Button>
       )}
