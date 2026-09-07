@@ -4,6 +4,8 @@ import { type ApiResult, call } from "@/lib/api/server";
 import { USE_MOCK } from "@/lib/api/config";
 import type {
   CreateOrderInput,
+  CouponPreviewInput,
+  CouponPreviewResult,
   OrderListResult,
   OrderStatusResult,
   PayChannel,
@@ -11,6 +13,7 @@ import type {
   PaymentStatus,
 } from "./types";
 import { isH5PayChannel } from "./types";
+import { fenToYuanAmount } from "@/lib/membership";
 
 /**
  * Server-only client for the membership-renewal payment endpoints (API v2.5).
@@ -39,6 +42,34 @@ export function createOrder(input: CreateOrderInput, token: string): Promise<Api
   if (input.coupon_code) body.coupon_code = input.coupon_code;
   if (input.return_to) body.return_to = input.return_to;
   return call<PaymentOrder>("/payments/orders", { method: "POST", token, body });
+}
+
+/** `POST /v1/payments/coupons/preview` — membership list / payable amount (分). */
+export function previewCoupon(
+  input: CouponPreviewInput = {},
+  token?: string,
+): Promise<ApiResult<CouponPreviewResult>> {
+  if (USE_MOCK) return mock.previewCoupon(input);
+  const body: Record<string, unknown> = {
+    product_type: input.product_type ?? "membership_renew",
+  };
+  if (input.days !== undefined) body.days = input.days;
+  if (input.coupon_code) body.coupon_code = input.coupon_code;
+  return call<CouponPreviewResult>("/payments/coupons/preview", {
+    method: "POST",
+    token,
+    body,
+  });
+}
+
+/** Prefer payable amount from coupon preview (分 → display yuan number). */
+export function couponPreviewDisplayYuan(data: CouponPreviewResult): number {
+  const fen =
+    (typeof data.final_amount === "number" ? data.final_amount : undefined) ??
+    (typeof data.amount === "number" ? data.amount : undefined) ??
+    (typeof data.original_amount === "number" ? data.original_amount : undefined) ??
+    0;
+  return fenToYuanAmount(fen);
 }
 
 /** `GET /v1/payments/orders?limit=…` — the caller's order history. */
@@ -86,10 +117,9 @@ export function simulatePay(orderNo: string, token: string): Promise<ApiResult<O
  * from elapsed wall-clock — `pending` for a few seconds (the user scanning),
  * then `paid`. `membership_expires_at` is computed as now + `days`.
  */
-// Matches the displayed ¥35 price (`lib/mock/membership`). NB: the real backend
-// default is 9900 分 (¥99); the charged amount is server-side config
-// (`membership.membership_price_fen`), not anything the frontend sends.
-const MEMBERSHIP_FEE_CENTS = 3500;
+// Matches preview list price ¥299 (`coupons/preview`). Real backend amount is
+// server config (`membership.membership_price_fen`), not anything the frontend sends.
+const MEMBERSHIP_FEE_CENTS = 29900;
 const PAY_AFTER_MS = 6000; // simulated time-to-scan-and-pay
 const EXPIRE_AFTER_MS = 5 * 60 * 1000; // simulated order expiry
 const DEFAULT_DAYS = 365;
@@ -154,6 +184,18 @@ function mockOrder(orderNo: string, p: ParsedOrder, status: PaymentStatus): Paym
 }
 
 const mock = {
+  previewCoupon(_input: CouponPreviewInput): Promise<ApiResult<CouponPreviewResult>> {
+    return Promise.resolve({
+      ok: true,
+      data: {
+        product_type: "membership_renew",
+        days: DEFAULT_DAYS,
+        original_amount: MEMBERSHIP_FEE_CENTS,
+        final_amount: MEMBERSHIP_FEE_CENTS,
+        currency: "CNY",
+      },
+    });
+  },
   createOrder(input: CreateOrderInput): Promise<ApiResult<PaymentOrder>> {
     const now = Date.now();
     const p: ParsedOrder = {
@@ -179,6 +221,8 @@ const mock = {
       data.membership_expires_at = isoFromNow(p.days * 24 * 60 * 60 * 1000);
       data.paid_at = new Date().toISOString();
       data.wx_transaction_id = `4200mock${p.createdAt}`;
+      data.membership_tier = "pending";
+      data.application_status = "not_submitted";
     }
     return Promise.resolve({ ok: true, data });
   },
@@ -200,6 +244,8 @@ const mock = {
         membership_expires_at: isoFromNow(p.days * 24 * 60 * 60 * 1000),
         paid_at: new Date().toISOString(),
         wx_transaction_id: `4200mock${p.createdAt}`,
+        membership_tier: "pending",
+        application_status: "not_submitted",
       },
     });
   },

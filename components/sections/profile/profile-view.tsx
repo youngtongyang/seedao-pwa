@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, Crown, Loader2, LogOut, Phone } from "lucide-react";
+import { CalendarDays, Crown, ExternalLink, Loader2, LogOut, Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import type { ProfileResult } from "@/lib/api/types";
 import { logout } from "@/lib/auth/use-auth";
 import { resetBookmarks } from "@/lib/course/bookmarks-store";
 import { useT } from "@/lib/i18n";
-import { fetchProfile } from "@/lib/profile/client";
+import { getMembershipDisplayKind } from "@/lib/membership";
+import { fetchProfile, submitMembershipApplication } from "@/lib/profile/client";
 import { cn } from "@/lib/utils";
 import { ProfileTodos } from "./profile-todos";
 
@@ -61,6 +62,74 @@ function Stat({
   );
 }
 
+function MembershipStatusBlock({
+  profile,
+  onUpdated,
+}: {
+  profile: ProfileResult;
+  onUpdated: (next: ProfileResult) => void;
+}) {
+  const t = useT();
+  const kind = getMembershipDisplayKind(profile.membership_tier, profile.application_status);
+  const formUrl = profile.application_form_url?.trim() || "";
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const tierLabel =
+    kind === "full"
+      ? t.profile.membershipTierFull
+      : kind === "under_review"
+        ? t.profile.membershipTierUnderReview
+        : kind === "associate"
+          ? t.profile.membershipTierAssociate
+          : t.profile.membershipNone;
+
+  async function handleSubmitted() {
+    setError(null);
+    setBusy(true);
+    const r = await submitMembershipApplication();
+    setBusy(false);
+    if (!r.ok) {
+      setError(t.profile.applicationSubmitFailed);
+      return;
+    }
+    onUpdated(r.data);
+  }
+
+  if (kind === "none") return null;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-border bg-muted/30 p-4 text-left">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="text-lg font-bold tracking-tight">{tierLabel}</p>
+        {kind === "associate" && formUrl ? (
+          <a
+            href={formUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+          >
+            {t.profile.applicationSubmitCta}
+            <ExternalLink className="size-3.5" />
+          </a>
+        ) : null}
+        {kind === "associate" && !formUrl ? (
+          <p className="text-sm text-muted-foreground">{t.profile.applicationFormMissing}</p>
+        ) : null}
+      </div>
+
+      {kind === "associate" && formUrl ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button type="button" size="sm" disabled={busy} onClick={handleSubmitted}>
+            {busy ? t.profile.applicationSubmitting : t.profile.applicationSubmittedCta}
+          </Button>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ProfileView() {
   const t = useT();
   const router = useRouter();
@@ -103,11 +172,20 @@ export function ProfileView() {
     );
   }
 
-  // created_at is RFC3339 (e.g. 2026-06-15T08:00:00Z) — show the date part as-is
-  // to stay locale- and hydration-stable.
   const joined = profile.created_at?.slice(0, 10) || "—";
-  // membership_expires_at is RFC3339; null when the user has never paid.
   const membershipExpires = profile.membership_expires_at?.slice(0, 10) || null;
+  const displayKind = getMembershipDisplayKind(
+    profile.membership_tier,
+    profile.application_status,
+  );
+  const membershipValue =
+    displayKind === "full"
+      ? t.profile.membershipTierFull
+      : displayKind === "under_review"
+        ? t.profile.membershipTierUnderReview
+        : displayKind === "associate"
+          ? t.profile.membershipTierAssociate
+          : (membershipExpires ?? t.profile.membershipNone);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-6 py-12">
@@ -116,7 +194,6 @@ export function ProfileView() {
         <p className="mt-1 text-sm text-muted-foreground">{t.profile.subtitle}</p>
       </header>
 
-      {/* Identity: avatar + SNS name, with account details folded in below. */}
       <section className="rounded-3xl border border-border bg-card p-8">
         <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
           <Avatar profile={profile} />
@@ -129,6 +206,8 @@ export function ProfileView() {
           </div>
         </div>
 
+        <MembershipStatusBlock profile={profile} onUpdated={setProfile} />
+
         <div className="mt-6 grid gap-4 border-t border-border pt-6 sm:grid-cols-3">
           {profile.phone && (
             <Stat icon={<Phone className="size-4" />} label={t.profile.phoneLabel} value={profile.phone} />
@@ -137,24 +216,20 @@ export function ProfileView() {
           <Stat
             icon={<Crown className="size-4" />}
             label={t.profile.membershipExpires}
-            value={membershipExpires ?? t.profile.membershipNone}
-            accent={!!membershipExpires}
+            value={
+              displayKind === "none"
+                ? membershipValue
+                : (membershipExpires ?? membershipValue)
+            }
+            accent={!!membershipExpires || displayKind !== "none"}
           />
         </div>
       </section>
 
-      {/* Keep assistant QR; other blocks stay hidden for now */}
       <ProfileTodos />
 
-      {/* Temporarily hidden: my programs / bio / reputation */}
-
-      {/* Logout — shared across desktop and mobile shells */}
       <div className="mt-8 flex justify-center sm:justify-end">
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          className="w-full sm:w-auto"
-        >
+        <Button variant="outline" onClick={handleLogout} className="w-full sm:w-auto">
           <LogOut className="size-4" />
           {t.nav.logout}
         </Button>

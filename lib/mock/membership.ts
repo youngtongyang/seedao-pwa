@@ -16,8 +16,9 @@ export type Benefit = {
   desc: Localized;
 };
 
+/** Fallback only — prefer `previewMembershipCoupon` / coupons/preview for display. */
 export const membershipPrice = {
-  amount: 35,
+  amount: 0,
   currency: "¥",
 };
 

@@ -82,6 +82,12 @@ export type ApiErrorKey =
 
 export type RegisterSource = "new_sns" | "existing_sns";
 
+/** Membership tier after payment / review (API preview). */
+export type MembershipTier = "none" | "pending" | "full";
+
+/** Membership application workflow status. */
+export type ApplicationStatus = "not_submitted" | "under_review" | "approved";
+
 export type AuthUser = {
   id: number;
   sns_name: string;
@@ -91,6 +97,10 @@ export type AuthUser = {
    * the user has never held membership. Added in API v2.5.
    */
   membership_expires_at?: string | null;
+  membership_tier?: MembershipTier | string | null;
+  application_status?: ApplicationStatus | string | null;
+  application_submitted_at?: string | null;
+  application_form_url?: string | null;
 };
 
 /** Returned by both login and register. */
@@ -191,6 +201,14 @@ export type ProfileResult = {
    * membership. Added in API v2.5.
    */
   membership_expires_at?: string | null;
+  membership_tier?: MembershipTier | string | null;
+  application_status?: ApplicationStatus | string | null;
+  application_submitted_at?: string | null;
+  /** External form URL; omit / empty → do not render a link. */
+  application_form_url?: string | null;
   /** RFC3339 UTC, e.g. `2026-06-15T08:00:00Z`. */
   created_at: string;
 };
+
+/** `POST /v1/user/application/submit` — mark application as submitted. */
+export type ApplicationSubmitResult = ProfileResult;

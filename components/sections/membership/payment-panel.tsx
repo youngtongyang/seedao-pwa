@@ -8,6 +8,7 @@ import { ReturnToCapture } from "@/components/auth/return-to-capture";
 import { QRFrame } from "@/components/shared/qr-frame";
 import { useAccount } from "@/lib/account";
 import { useT } from "@/lib/i18n";
+import { FEISHU_DOWNLOAD_URL } from "@/lib/feishu";
 import type { PendingOrder } from "@/lib/payment/client";
 import { cn } from "@/lib/utils";
 import { JoinFlow, StepHeading, useJoinIntent, usePendingJoin } from "./join-flow";
@@ -117,6 +118,34 @@ function SpectatePanel() {
       <StepHeading title={t.membership.spectateTitle} desc={t.membership.spectateDesc} />
       <QRFrame src="/qr/community-channel.png" alt={t.membership.spectateQrAlt} size={172} withBadge={false} />
       <p className="text-sm text-muted-foreground">{t.membership.spectateQrHint}</p>
+      <div className="mt-2 flex w-full max-w-xs flex-col items-center gap-3">
+        <a
+          href={FEISHU_DOWNLOAD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          {t.membership.spectateDownloadPrompt}
+        </a>
+        <div className="flex w-full gap-2">
+          <a
+            href={FEISHU_DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-center text-sm font-semibold hover:bg-muted"
+          >
+            {t.membership.spectateDownloadPlay}
+          </a>
+          <a
+            href={FEISHU_DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-center text-sm font-semibold hover:bg-muted"
+          >
+            {t.membership.spectateDownloadAppStore}
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

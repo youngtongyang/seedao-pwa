@@ -47,22 +47,48 @@ export function MobileMenu({ trigger }: { trigger: React.ReactNode }) {
           </SheetTitle>
 
           <nav className="mt-4 flex flex-col">
-            {primaryNav.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                target={item.external ? "_blank" : undefined}
-                rel={item.external ? "noopener noreferrer" : undefined}
-                onClick={() => setOpen(false)}
-                className="flex items-center justify-between border-b border-border/70 py-3.5 text-base font-medium"
-              >
-                <span className="flex items-center gap-3">
-                  <item.icon className="size-5 text-muted-foreground" />
-                  {t.nav[item.labelKey]}
-                </span>
-                <ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-            ))}
+            {primaryNav.map((item) => {
+              if (item.children?.length) {
+                return (
+                  <div key={item.id} className="border-b border-border/70 py-3.5">
+                    <p className="flex items-center gap-3 text-base font-medium">
+                      <item.icon className="size-5 text-muted-foreground" />
+                      {t.nav[item.labelKey]}
+                    </p>
+                    <div className="mt-2 ml-8 flex flex-col gap-1">
+                      {item.children.map((child) => (
+                        <a
+                          key={child.id}
+                          href={child.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setOpen(false)}
+                          className="rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          {t.nav[child.labelKey]}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-between border-b border-border/70 py-3.5 text-base font-medium"
+                >
+                  <span className="flex items-center gap-3">
+                    <item.icon className="size-5 text-muted-foreground" />
+                    {t.nav[item.labelKey]}
+                  </span>
+                  <ChevronRight className="size-4 text-muted-foreground" />
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="mt-6 flex flex-col gap-2">

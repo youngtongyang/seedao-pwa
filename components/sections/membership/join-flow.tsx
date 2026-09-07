@@ -14,7 +14,6 @@ import type { AuthUser, SnsCheckResult } from "@/lib/api/types";
 import { registerNewSns } from "@/lib/auth/phone";
 import { refreshAuth } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
-import { membershipPrice } from "@/lib/mock/membership";
 import {
   type PendingOrder,
   availablePayChannels,
@@ -27,6 +26,7 @@ import {
   navigateToPayment,
   openPaymentRedirect,
   pollPaymentStatus,
+  previewMembershipCoupon,
   readPendingOrder,
   savePendingOrder,
 } from "@/lib/payment/client";
@@ -93,19 +93,45 @@ export function JoinFlow({
   // Resume an H5 order only on the first pay-phase entry (the round-trip back);
   // a fresh name→verify→pay run leaves this undefined so PayStep opens a new one.
   const [resumeOrderNo] = useState<string | undefined>(initialPending?.order_no);
+  const [priceYuan, setPriceYuan] = useState<number | null>(null);
+  const [priceFailed, setPriceFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    previewMembershipCoupon({ product_type: "membership_renew", days: 365 }).then((r) => {
+      if (!active) return;
+      if (r.ok && r.displayYuan > 0) {
+        setPriceYuan(r.displayYuan);
+        setPriceFailed(false);
+      } else {
+        setPriceFailed(true);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-6 pt-4">
-      {/* Price — the "list price" of membership, like a domain. */}
+      {/* Price from coupons/preview — never hardcode 35/299. */}
       <div>
         <div className="flex items-end justify-center gap-1">
           <span className="text-2xl font-semibold text-muted-foreground">
             {t.membership.currency}
           </span>
-          <span className="text-5xl font-black tracking-tight">{membershipPrice.amount}</span>
+          <span className="text-5xl font-black tracking-tight">
+            {priceYuan !== null ? priceYuan : "—"}
+          </span>
           <span className="mb-1.5 text-sm text-muted-foreground">{t.membership.perYear}</span>
         </div>
-        <p className="mt-1 text-center text-sm text-muted-foreground">{t.membership.priceLabel}</p>
+        <p className="mt-1 text-center text-sm text-muted-foreground">
+          {priceFailed
+            ? t.membership.payPriceFailed
+            : priceYuan === null
+              ? t.membership.payPriceLoading
+              : t.membership.priceLabel}
+        </p>
       </div>
 
       <AnimatePresence mode="wait">
@@ -133,7 +159,11 @@ export function JoinFlow({
               onBack={() => setPhase("name")}
             />
           ) : (
-            <PayStep snsName={snsName} resumeOrderNo={resumeOrderNo} />
+            <PayStep
+              snsName={snsName}
+              resumeOrderNo={resumeOrderNo}
+              priceYuan={priceYuan}
+            />
           )}
         </motion.div>
       </AnimatePresence>
@@ -291,7 +321,15 @@ type PayState =
  * Mobile: Alipay H5 (optionally WeChat H5), hand off on tap without tearing down
  * this page so polling keeps running; stashed order resumes after full reload.
  */
-function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: string }) {
+function PayStep({
+  snsName,
+  resumeOrderNo,
+  priceYuan,
+}: {
+  snsName: string;
+  resumeOrderNo?: string;
+  priceYuan: number | null;
+}) {
   const t = useT();
   const router = useRouter();
   const account = useAccount();
@@ -540,21 +578,22 @@ function PayStep({ snsName, resumeOrderNo }: { snsName: string; resumeOrderNo?: 
         ? t.membership.payStepTitle
         : t.membership.payStepTitlePick;
 
+  const amount = priceYuan ?? 0;
   const payDesc = showPicker
-    ? t.membership.payStepDescPick
+    ? t.membership.payStepDescPick(amount)
     : state === "waiting"
-      ? t.membership.payStepDescNative
+      ? t.membership.payStepDescNative(amount)
       : isAlipayChannel(activeChannel) && (state === "h5Ready" || state === "confirming")
         ? activeChannel === "alipay_page"
-          ? t.membership.payStepDescAlipayPage
-          : t.membership.payStepDescAlipayH5
+          ? t.membership.payStepDescAlipayPage(amount)
+          : t.membership.payStepDescAlipayH5(amount)
         : state === "h5Ready" || state === "confirming"
-          ? t.membership.payStepDescH5
+          ? t.membership.payStepDescH5(amount)
           : isAlipayChannel(activeChannel)
-            ? t.membership.payStepDescAlipayH5
+            ? t.membership.payStepDescAlipayH5(amount)
             : activeChannel
-              ? t.membership.payStepDesc
-              : t.membership.payStepDescPick;
+              ? t.membership.payStepDesc(amount)
+              : t.membership.payStepDescPick(amount);
 
   const h5Cta =
     isAlipayChannel(activeChannel) ? t.membership.payAlipayH5Cta : t.membership.payH5Cta;

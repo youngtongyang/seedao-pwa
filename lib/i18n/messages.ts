@@ -20,6 +20,10 @@ const zh = {
 
   nav: {
     home: "首页",
+    services: "服务",
+    serviceGroups: "社区小组",
+    serviceCityContacts: "城市联络人",
+    serviceGovernanceNodes: "治理节点",
     program: "共学课",
     membership: "成为会员",
     community: "社区",
@@ -93,6 +97,9 @@ const zh = {
       "还没准备好加入？扫码进入飞书交流群，先感受社区氛围，随时可以正式加入。",
     spectateQrAlt: "飞书交流群二维码",
     spectateQrHint: "用飞书扫一扫，加入交流群",
+    spectateDownloadPrompt: "没有飞书？点击下载 APP",
+    spectateDownloadPlay: "Play 商店",
+    spectateDownloadAppStore: "App Store",
 
     // 加入 · 第一步：像买域名一样挑选名称
     nameStepTitle: "选择你的 SEEDAO 名称",
@@ -114,12 +121,17 @@ const zh = {
     payStepTitlePick: "选择支付方式",
     payStepTitle: "微信支付",
     payStepTitleAlipay: "支付宝支付",
-    payStepDescPick: "选择支付方式完成 ¥35 年度会员支付。",
-    payStepDesc: "使用微信完成 ¥35 年度会员支付。",
-    payStepDescNative: "使用微信扫描下方二维码，完成 ¥35 年度会员支付。",
-    payStepDescH5: "点按下方按钮，前往微信完成 ¥35 年度会员支付。",
-    payStepDescAlipayH5: "点按下方按钮，前往支付宝完成 ¥35 年度会员支付。",
-    payStepDescAlipayPage: "前往支付宝电脑收银台完成 ¥35 年度会员支付（可用手机扫码）。",
+    payStepDescPick: (amount: number) => `选择支付方式完成 ¥${amount} 年度会员支付。`,
+    payStepDesc: (amount: number) => `使用微信完成 ¥${amount} 年度会员支付。`,
+    payStepDescNative: (amount: number) =>
+      `使用微信扫描下方二维码，完成 ¥${amount} 年度会员支付。`,
+    payStepDescH5: (amount: number) => `点按下方按钮，前往微信完成 ¥${amount} 年度会员支付。`,
+    payStepDescAlipayH5: (amount: number) =>
+      `点按下方按钮，前往支付宝完成 ¥${amount} 年度会员支付。`,
+    payStepDescAlipayPage: (amount: number) =>
+      `前往支付宝电脑收银台完成 ¥${amount} 年度会员支付（可用手机扫码）。`,
+    payPriceLoading: "价格加载中…",
+    payPriceFailed: "价格暂时无法获取，请稍后重试。",
     payAutoNote: "支付成功后会自动确认，无需手动操作，我们会带你进入个人主页。",
     payCreating: "正在生成订单…",
     payWaiting: "等待支付…扫码完成后会自动跳转。",
@@ -370,6 +382,14 @@ const zh = {
     joinedAt: "加入于",
     membershipExpires: "会员到期",
     membershipNone: "尚未开通",
+    membershipTierAssociate: "准会员",
+    membershipTierFull: "正式会员",
+    membershipTierUnderReview: "审核中",
+    applicationSubmitCta: "初次注册请提交申请表",
+    applicationSubmittedCta: "我已提交",
+    applicationSubmitting: "提交中…",
+    applicationSubmitFailed: "提交失败，请稍后重试。",
+    applicationFormMissing: "申请表链接暂未配置，请联系社区助手。",
     bio: "简介",
     noBio: "还没有填写简介。",
     todosTitle: "待办清单",
@@ -631,6 +651,10 @@ const en: typeof zh = {
 
   nav: {
     home: "Home",
+    services: "Services",
+    serviceGroups: "Community groups",
+    serviceCityContacts: "City contacts",
+    serviceGovernanceNodes: "Governance nodes",
     program: "Programs",
     membership: "Membership",
     community: "Community",
@@ -704,6 +728,9 @@ const en: typeof zh = {
       "Not ready to join yet? Scan to enter our Feishu chat group, feel the community first — you can join for real anytime.",
     spectateQrAlt: "Feishu chat group QR code",
     spectateQrHint: "Scan with Feishu to join the group",
+    spectateDownloadPrompt: "Don't have Feishu? Download the app",
+    spectateDownloadPlay: "Play Store",
+    spectateDownloadAppStore: "App Store",
 
     // Join · step 1: pick a name, like buying a domain
     nameStepTitle: "Choose your SEEDAO name",
@@ -727,13 +754,18 @@ const en: typeof zh = {
     payStepTitlePick: "Choose payment method",
     payStepTitle: "Pay with WeChat",
     payStepTitleAlipay: "Pay with Alipay",
-    payStepDescPick: "Choose how to pay the ¥35 annual membership.",
-    payStepDesc: "Pay the ¥35 annual membership with WeChat.",
-    payStepDescNative: "Scan the QR code below with WeChat to pay the ¥35 annual membership.",
-    payStepDescH5: "Tap the button below to pay the ¥35 annual membership in WeChat.",
-    payStepDescAlipayH5: "Tap the button below to pay the ¥35 annual membership in Alipay.",
-    payStepDescAlipayPage:
-      "Continue to the Alipay desktop checkout to pay the ¥35 annual membership (you can scan with your phone).",
+    payStepDescPick: (amount: number) => `Choose how to pay the ¥${amount} annual membership.`,
+    payStepDesc: (amount: number) => `Pay the ¥${amount} annual membership with WeChat.`,
+    payStepDescNative: (amount: number) =>
+      `Scan the QR code below with WeChat to pay the ¥${amount} annual membership.`,
+    payStepDescH5: (amount: number) =>
+      `Tap the button below to pay the ¥${amount} annual membership in WeChat.`,
+    payStepDescAlipayH5: (amount: number) =>
+      `Tap the button below to pay the ¥${amount} annual membership in Alipay.`,
+    payStepDescAlipayPage: (amount: number) =>
+      `Continue to the Alipay desktop checkout to pay the ¥${amount} annual membership (you can scan with your phone).`,
+    payPriceLoading: "Loading price…",
+    payPriceFailed: "Could not load the price. Please try again.",
     payAutoNote:
       "Payment is confirmed automatically — nothing to do by hand. We'll take you to your profile.",
     payCreating: "Opening your order…",
@@ -992,6 +1024,14 @@ const en: typeof zh = {
     joinedAt: "Joined",
     membershipExpires: "Membership expires",
     membershipNone: "Not a member yet",
+    membershipTierAssociate: "Associate member",
+    membershipTierFull: "Full member",
+    membershipTierUnderReview: "Under review",
+    applicationSubmitCta: "First-time members: submit the application form",
+    applicationSubmittedCta: "I have submitted",
+    applicationSubmitting: "Submitting…",
+    applicationSubmitFailed: "Could not confirm submission. Please try again.",
+    applicationFormMissing: "Application form link is not configured yet. Please contact the community assistant.",
     bio: "Bio",
     noBio: "No bio yet.",
     todosTitle: "To-do list",

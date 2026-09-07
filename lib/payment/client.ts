@@ -1,5 +1,6 @@
-import type { CreateOrderInput, H5PayChannel, PayChannel, PaymentOrder, PaymentStatus } from "./types";
+import type { CreateOrderInput, H5PayChannel, PayChannel, PaymentOrder, PaymentStatus, CouponPreviewInput, CouponPreviewResult } from "./types";
 import { isH5PayChannel } from "./types";
+import { fenToYuanAmount } from "@/lib/membership";
 
 /**
  * Client entry points for the membership-renewal payment flow. These call our
@@ -13,6 +14,10 @@ import { isH5PayChannel } from "./types";
 
 export type CreateOrderOutcome =
   | { ok: true; order: PaymentOrder }
+  | { ok: false; error?: string };
+
+export type CouponPreviewOutcome =
+  | { ok: true; data: CouponPreviewResult; displayYuan: number }
   | { ok: false; error?: string };
 
 /** Status the client acts on; includes channel so resume UI can label Alipay vs WeChat. */
@@ -146,6 +151,30 @@ export async function createPaymentOrder(input: CreateOrderInput = {}): Promise<
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) return { ok: false, error: errorOf(data) };
     return { ok: true, order: data as unknown as PaymentOrder };
+  } catch {
+    return { ok: false, error: "upstream_unreachable" };
+  }
+}
+
+/** Membership price preview (分 → display yuan). */
+export async function previewMembershipCoupon(
+  input: CouponPreviewInput = {},
+): Promise<CouponPreviewOutcome> {
+  try {
+    const res = await fetch("/api/payment/coupon-preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: errorOf(data) };
+    const preview = data as unknown as CouponPreviewResult;
+    const fen =
+      (typeof preview.final_amount === "number" ? preview.final_amount : undefined) ??
+      (typeof preview.amount === "number" ? preview.amount : undefined) ??
+      (typeof preview.original_amount === "number" ? preview.original_amount : undefined) ??
+      0;
+    return { ok: true, data: preview, displayYuan: fenToYuanAmount(fen) };
   } catch {
     return { ok: false, error: "upstream_unreachable" };
   }
