@@ -34,22 +34,22 @@ export function ProposalStatusBanner({
   // and immediately re-fire onPhaseChange → infinite reload loop).
   const onPhaseChangeRef = useRef(onPhaseChange);
   onPhaseChangeRef.current = onPhaseChange;
-  const expiredNotifiedRef = useRef(false);
-
-  useEffect(() => {
-    expiredNotifiedRef.current = false;
-  }, [phase, deadline]);
+  // Keyed by phase+deadline so a remount/refetch with the same deadline does
+  // not notify again (parent must also avoid full-page loading on refresh).
+  const notifiedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!phase || !deadline) return;
 
+    const key = `${phase}:${deadline}`;
+
     function runTick() {
       tick();
       const ms = msUntil(deadline);
-      if (ms !== null && ms <= 0 && !expiredNotifiedRef.current) {
-        expiredNotifiedRef.current = true;
-        onPhaseChangeRef.current?.();
-      }
+      if (ms === null || ms > 0) return;
+      if (notifiedKeyRef.current === key) return;
+      notifiedKeyRef.current = key;
+      onPhaseChangeRef.current?.();
     }
 
     runTick();

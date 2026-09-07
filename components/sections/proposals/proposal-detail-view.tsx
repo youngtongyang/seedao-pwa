@@ -67,13 +67,16 @@ export function ProposalDetailView({ id }: { id: number }) {
     fetchProfile().then((p) => setMySns(p?.sns_name ?? null));
   }, [authed]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    // Full-page loading unmounts ProposalStatusBanner and resets its "notified"
+    // refs — if the vote deadline already passed, that re-fires onPhaseChange
+    // and loops. Phase-change refresh must stay silent.
+    if (!opts?.silent) setLoading(true);
     const [detailRes, votesRes] = await Promise.all([
       fetchProposal(id, { include_votes: true, include_comments: true }),
       fetchVotes(id),
     ]);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
     if (detailRes.ok) {
       setProposal(detailRes.data);
       setResolvedWallets(new Map());
@@ -96,7 +99,7 @@ export function ProposalDetailView({ id }: { id: number }) {
   }, [id, authed]);
 
   const handlePhaseChange = useCallback(() => {
-    void load();
+    void load({ silent: true });
   }, [load]);
 
   useEffect(() => {
