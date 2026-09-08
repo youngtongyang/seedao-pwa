@@ -98,8 +98,6 @@ const zh = {
     spectateQrAlt: "飞书交流群二维码",
     spectateQrHint: "用飞书扫一扫，加入交流群",
     spectateDownloadPrompt: "没有飞书？点击下载 APP",
-    spectateDownloadPlay: "Play 商店",
-    spectateDownloadAppStore: "App Store",
 
     // 加入 · 第一步：像买域名一样挑选名称
     nameStepTitle: "选择你的 SEEDAO 名称",
@@ -759,8 +757,6 @@ const en: typeof zh = {
     spectateQrAlt: "Feishu chat group QR code",
     spectateQrHint: "Scan with Feishu to join the group",
     spectateDownloadPrompt: "Don't have Feishu? Download the app",
-    spectateDownloadPlay: "Play Store",
-    spectateDownloadAppStore: "App Store",
 
     // Join · step 1: pick a name, like buying a domain
     nameStepTitle: "Choose your SEEDAO name",
