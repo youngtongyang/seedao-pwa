@@ -8,6 +8,7 @@ import { ReturnToCapture } from "@/components/auth/return-to-capture";
 import { QRFrame } from "@/components/shared/qr-frame";
 import { useAccount } from "@/lib/account";
 import { useT } from "@/lib/i18n";
+import { FEISHU_DOWNLOAD_URL } from "@/lib/feishu";
 import type { PendingOrder } from "@/lib/payment/client";
 import { cn } from "@/lib/utils";
 import { JoinFlow, StepHeading, useJoinIntent, usePendingJoin } from "./join-flow";
@@ -117,6 +118,14 @@ function SpectatePanel() {
       <StepHeading title={t.membership.spectateTitle} desc={t.membership.spectateDesc} />
       <QRFrame src="/qr/community-channel.png" alt={t.membership.spectateQrAlt} size={172} withBadge={false} />
       <p className="text-sm text-muted-foreground">{t.membership.spectateQrHint}</p>
+      <a
+        href={FEISHU_DOWNLOAD_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-2 text-sm font-medium text-primary hover:underline"
+      >
+        {t.membership.spectateDownloadPrompt}
+      </a>
     </div>
   );
 }
