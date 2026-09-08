@@ -28,7 +28,7 @@ export function ProposalCard({
         "hover:border-primary/30 hover:bg-muted/20",
       )}
     >
-      <Link href={href} className="block p-4 sm:p-5">
+      <Link href={href} prefetch={false} className="block p-4 sm:p-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
           <div className="min-w-0 flex-1">
             <h3 className="text-[15px] font-bold leading-snug group-hover:text-primary sm:text-lg">
@@ -65,7 +65,7 @@ export function ProposalCard({
       {isUnsubmitted && isMine && (
         <div className="border-t border-border px-4 py-2.5 sm:px-5 sm:py-3">
           <Button asChild variant="outline" size="sm" className="h-8 text-xs sm:h-9 sm:text-sm">
-            <Link href={`/proposals/new?id=${item.id}`}>
+            <Link href={`/proposals/new?id=${item.id}`} prefetch={false}>
               <Pencil className="size-3.5" />
               {t.proposals.detail.editDraft}
             </Link>
