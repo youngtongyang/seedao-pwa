@@ -645,9 +645,15 @@ const mock = {
       return Promise.resolve({ ok: false, error: "invalid_param", status: 400 });
     }
     const now = Date.now();
-    const pubSec = input.publicity_seconds ?? 96 * 3600;
+    const hall =
+      p.type === "town_hall_meeting" ||
+      p.type === "town_hall_evaluation" ||
+      p.type === "市政厅联席会议常规提案" ||
+      p.type === "市政厅决策提案";
+    const pubSec = hall ? 0 : (input.publicity_seconds ?? 96 * 3600);
     const voteSec = input.vote_duration_seconds ?? 48 * 3600;
-    p.status = "publicity";
+    // Align with API: no publicity → enter voting immediately (wire `published`).
+    p.status = pubSec === 0 ? "voting" : "publicity";
     p.published_at = new Date(now).toISOString();
     p.publicity_seconds = pubSec;
     p.publicity_end_at = new Date(now + pubSec * 1000).toISOString();

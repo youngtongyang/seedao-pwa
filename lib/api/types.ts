@@ -48,6 +48,14 @@ export const ErrCode = {
   PROPOSAL_VOTE_NOT_FOUND: 40027,
   /** Proposal status does not allow this action (e.g. comment on draft). */
   PROPOSAL_STATUS_INVALID: 40022,
+  /** Feishu binding not found for this user. */
+  FEISHU_NOT_BOUND: 40040,
+  /** Current user already has an active Feishu binding. */
+  FEISHU_ALREADY_BOUND: 40041,
+  /** This Feishu open_id is bound to another SeeDAO user. */
+  FEISHU_OPEN_ID_TAKEN: 40042,
+  /** bind_token / bind_code missing, invalid, or expired. */
+  FEISHU_BIND_CREDENTIAL_INVALID: 40043,
   UNAUTHORIZED: 40100,
   TOO_MANY_REQUESTS: 42901,
   INTERNAL: 50000,
@@ -72,6 +80,10 @@ export type ApiErrorKey =
   | "course_not_found"
   | "course_sku_not_on_sale"
   | "course_member_login_required"
+  | "feishu_not_bound"
+  | "feishu_already_bound"
+  | "feishu_open_id_taken"
+  | "feishu_bind_credential_invalid"
   | "unauthorized"
   | "rate_limited"
   | "internal"
@@ -212,3 +224,40 @@ export type ProfileResult = {
 
 /** `POST /v1/user/application/submit` — mark application as submitted. */
 export type ApplicationSubmitResult = ProfileResult;
+
+// ── OAuth / Feishu bindings ───────────────────────────────────────────────────
+
+export type OAuthProvider = "feishu";
+
+export type FeishuBindSource = "bot_token" | "bot_code" | string;
+
+/** One provider row from `GET /v1/user/bindings`. */
+export type BindingItem = {
+  provider: OAuthProvider | string;
+  bound: boolean;
+  display_name?: string;
+  bound_at?: string;
+  bind_source?: FeishuBindSource;
+};
+
+export type BindingListResult = {
+  items: BindingItem[];
+};
+
+/** Shared shape for bind / unbind Feishu responses. */
+export type FeishuBindResult = {
+  provider: OAuthProvider | string;
+  bound: boolean;
+  display_name?: string;
+  bind_source?: FeishuBindSource;
+};
+
+export type FeishuChallengeResult = {
+  bind_code: string;
+  expires_in: number;
+  instruction: string;
+};
+
+export type BindFeishuTokenRequest = {
+  bind_token: string;
+};

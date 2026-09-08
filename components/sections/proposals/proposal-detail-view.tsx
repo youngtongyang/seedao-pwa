@@ -67,13 +67,16 @@ export function ProposalDetailView({ id }: { id: number }) {
     fetchProfile().then((p) => setMySns(p?.sns_name ?? null));
   }, [authed]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    // Full-page loading unmounts ProposalStatusBanner and resets its "notified"
+    // refs — if the vote deadline already passed, that re-fires onPhaseChange
+    // and loops. Phase-change refresh must stay silent.
+    if (!opts?.silent) setLoading(true);
     const [detailRes, votesRes] = await Promise.all([
       fetchProposal(id, { include_votes: true, include_comments: true }),
       fetchVotes(id),
     ]);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
     if (detailRes.ok) {
       setProposal(detailRes.data);
       setResolvedWallets(new Map());
@@ -94,6 +97,10 @@ export function ProposalDetailView({ id }: { id: number }) {
       setSelected([]);
     }
   }, [id, authed]);
+
+  const handlePhaseChange = useCallback(() => {
+    void load({ silent: true });
+  }, [load]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount
@@ -260,7 +267,7 @@ export function ProposalDetailView({ id }: { id: number }) {
         </div>
       )}
 
-      <ProposalStatusBanner proposal={proposal} onPhaseChange={() => void load()} />
+      <ProposalStatusBanner proposal={proposal} onPhaseChange={handlePhaseChange} />
 
       <div className="mb-8 rounded-2xl border border-border bg-card p-6">
         <h1 className="text-xl font-black leading-snug sm:text-2xl">

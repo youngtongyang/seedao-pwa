@@ -4,13 +4,15 @@ import { CalendarDays, Crown, ExternalLink, Loader2, LogOut, Phone } from "lucid
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { ProfileResult } from "@/lib/api/types";
+import type { BindingItem, ProfileResult } from "@/lib/api/types";
 import { logout } from "@/lib/auth/use-auth";
+import { fetchFeishuBinding } from "@/lib/bindings/client";
 import { resetBookmarks } from "@/lib/course/bookmarks-store";
 import { useT } from "@/lib/i18n";
 import { getMembershipDisplayKind } from "@/lib/membership";
 import { fetchProfile, submitMembershipApplication } from "@/lib/profile/client";
 import { cn } from "@/lib/utils";
+import { ProfileBindings } from "./profile-bindings";
 import { ProfileTodos } from "./profile-todos";
 
 function Avatar({ profile, size = 96 }: { profile: ProfileResult; size?: number }) {
@@ -134,6 +136,7 @@ export function ProfileView() {
   const t = useT();
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileResult | null>(null);
+  const [feishu, setFeishu] = useState<BindingItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function handleLogout() {
@@ -145,11 +148,11 @@ export function ProfileView() {
 
   useEffect(() => {
     let active = true;
-    fetchProfile().then((p) => {
-      if (active) {
-        setProfile(p);
-        setLoading(false);
-      }
+    Promise.all([fetchProfile(), fetchFeishuBinding()]).then(([p, binding]) => {
+      if (!active) return;
+      setProfile(p);
+      setFeishu(binding);
+      setLoading(false);
     });
     return () => {
       active = false;
@@ -225,6 +228,8 @@ export function ProfileView() {
           />
         </div>
       </section>
+
+      <ProfileBindings feishu={feishu} onFeishuChange={setFeishu} />
 
       <ProfileTodos />
 

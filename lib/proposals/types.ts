@@ -25,7 +25,11 @@ export const CREATABLE_PROPOSAL_TYPES = [
 
 export type CreatableProposalType = (typeof CREATABLE_PROPOSAL_TYPES)[number];
 
-/** Per-type create permission from GET /v1/governance/proposal-permissions. */
+/**
+ * Per-type create permission from GET /v1/governance/proposal-permissions.
+ * `create_types` is authoritative when a key is present; `can_create_any`
+ * only fills in for omitted keys (does not override explicit `false`).
+ */
 export type ProposalCreatePermissions = {
   sns_name: string;
   can_create_any: boolean;
