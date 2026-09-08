@@ -14,6 +14,7 @@ import type { AuthUser, SnsCheckResult } from "@/lib/api/types";
 import { registerNewSns } from "@/lib/auth/phone";
 import { refreshAuth } from "@/lib/auth/use-auth";
 import { useT } from "@/lib/i18n";
+import { fetchMembershipFee } from "@/lib/membership/client";
 import {
   type PendingOrder,
   availablePayChannels,
@@ -26,7 +27,6 @@ import {
   navigateToPayment,
   openPaymentRedirect,
   pollPaymentStatus,
-  previewMembershipCoupon,
   readPendingOrder,
   savePendingOrder,
 } from "@/lib/payment/client";
@@ -98,7 +98,7 @@ export function JoinFlow({
 
   useEffect(() => {
     let active = true;
-    previewMembershipCoupon({ product_type: "membership_renew", days: 365 }).then((r) => {
+    fetchMembershipFee().then((r) => {
       if (!active) return;
       if (r.ok && r.displayYuan > 0) {
         setPriceYuan(r.displayYuan);
@@ -114,7 +114,7 @@ export function JoinFlow({
 
   return (
     <div className="flex flex-col gap-6 pt-4">
-      {/* Price from coupons/preview — never hardcode 35/299. */}
+      {/* Price from GET /api/membership/fee — never hardcode list price. */}
       <div>
         <div className="flex items-end justify-center gap-1">
           <span className="text-2xl font-semibold text-muted-foreground">

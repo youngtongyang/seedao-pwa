@@ -16,7 +16,7 @@ export type Benefit = {
   desc: Localized;
 };
 
-/** Fallback only — prefer `previewMembershipCoupon` / coupons/preview for display. */
+/** Fallback only — prefer `fetchMembershipFee` / GET /membership/fee for display. */
 export const membershipPrice = {
   amount: 0,
   currency: "¥",
