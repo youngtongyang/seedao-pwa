@@ -489,6 +489,11 @@ const zh = {
       defaultSingleOptions: ["同意", "反对", "弃权"],
       defaultMultiOptions: ["选项一", "选项二", "选项三"],
       multiOptionsHint: "多选投票：请填写成员可同时勾选的多个选项（如议题方向、候选事项等）",
+      tableHint: "编辑表格：先点击某个单元格，再点右侧按钮增减行列",
+      tableAddRow: "加一行",
+      tableAddCol: "加一列",
+      tableDelRow: "删一行",
+      tableDelCol: "删一列",
     },
     detail: {
       vote: "投票",
@@ -1145,6 +1150,11 @@ const en: typeof zh = {
       defaultSingleOptions: ["Agree", "Against", "Abstain"],
       defaultMultiOptions: ["Option A", "Option B", "Option C"],
       multiOptionsHint: "Multi-select: list options members may choose together (topics, candidates, etc.)",
+      tableHint: "Tables: click a cell, then use the buttons to add or remove rows/columns",
+      tableAddRow: "Add row",
+      tableAddCol: "Add column",
+      tableDelRow: "Delete row",
+      tableDelCol: "Delete column",
     },
     detail: {
       vote: "Vote",
