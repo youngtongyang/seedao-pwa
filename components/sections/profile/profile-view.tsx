@@ -90,12 +90,16 @@ function MembershipStatusBlock({
     setError(null);
     setBusy(true);
     const r = await submitMembershipApplication();
-    setBusy(false);
     if (!r.ok) {
+      setBusy(false);
       setError(t.profile.applicationSubmitFailed);
       return;
     }
-    onUpdated(r.data);
+    // Submit may return a partial profile; merge then refetch so identity fields stay visible.
+    onUpdated({ ...profile, ...r.data });
+    const fresh = await fetchProfile();
+    setBusy(false);
+    if (fresh) onUpdated(fresh);
   }
 
   if (kind === "none") return null;
