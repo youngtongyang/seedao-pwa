@@ -39,9 +39,9 @@ const DOCS_URL = "https://seedao2049.feishu.cn/wiki/Dgh2w1AJiieOgWk1eKRcWQBenSb"
  * Kept as named constants so ops can update without hunting through JSX.
  */
 export const SERVICE_LINKS = {
-  groups: "https://seedao2049.feishu.cn/wiki/Dgh2w1AJiieOgWk1eKRcWQBenSb",
-  cityContacts: "https://seedao2049.feishu.cn/wiki/Dgh2w1AJiieOgWk1eKRcWQBenSb",
-  governanceNodes: "https://seedao2049.feishu.cn/wiki/Dgh2w1AJiieOgWk1eKRcWQBenSb",
+  groups: "https://seedao2049.feishu.cn/wiki/I9i4wUZ0GiWDkkkOpulcLAQlnSB",
+  cityContacts: "https://seedao2049.feishu.cn/wiki/N2W9wifA6iCguZkvL68cMDYgnvc",
+  governanceNodes: "https://seedao2049.feishu.cn/wiki/JUZ6wz4gEiZsuCkXfNqc8Yjjnad",
 } as const;
 
 /** Primary navigation shown in the desktop header. */
