@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/auth/api-fetch";
 import type {
   CastVoteInput,
   CreateCommentInput,
@@ -49,7 +50,7 @@ export async function fetchProposals(
   query: ListProposalsQuery = {},
 ): Promise<ApiOutcome<ProposalListResult>> {
   try {
-    const res = await fetch(`/api/proposals${qs(query)}`, { cache: "no-store" });
+    const res = await apiFetch(`/api/proposals${qs(query)}`, { cache: "no-store" });
     return parse<ProposalListResult>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
@@ -61,7 +62,7 @@ export async function fetchProposal(
   opts?: { include_votes?: boolean; include_comments?: boolean },
 ): Promise<ApiOutcome<ProposalDetail>> {
   try {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/proposals/${id}${qs({
         include_votes: opts?.include_votes ? "true" : undefined,
         include_comments: opts?.include_comments ? "true" : undefined,
@@ -76,7 +77,7 @@ export async function fetchProposal(
 
 export async function fetchProposalPermissions(): Promise<ApiOutcome<ProposalCreatePermissions>> {
   try {
-    const res = await fetch("/api/governance/proposal-permissions", { cache: "no-store" });
+    const res = await apiFetch("/api/governance/proposal-permissions", { cache: "no-store" });
     return parse<ProposalCreatePermissions>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
@@ -87,7 +88,7 @@ export async function createProposal(
   input: CreateProposalInput,
 ): Promise<ApiOutcome<ProposalResponse>> {
   try {
-    const res = await fetch("/api/proposals", {
+    const res = await apiFetch("/api/proposals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -103,7 +104,7 @@ export async function updateProposal(
   input: UpdateProposalInput,
 ): Promise<ApiOutcome<ProposalResponse>> {
   try {
-    const res = await fetch(`/api/proposals/${id}`, {
+    const res = await apiFetch(`/api/proposals/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -119,7 +120,7 @@ export async function publishProposal(
   input: PublishProposalInput = {},
 ): Promise<ApiOutcome<ProposalResponse>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/publish`, {
+    const res = await apiFetch(`/api/proposals/${id}/publish`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -132,7 +133,7 @@ export async function publishProposal(
 
 export async function closeProposal(id: number): Promise<ApiOutcome<ProposalResponse>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/close`, { method: "POST" });
+    const res = await apiFetch(`/api/proposals/${id}/close`, { method: "POST" });
     return parse<ProposalResponse>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
@@ -141,7 +142,7 @@ export async function closeProposal(id: number): Promise<ApiOutcome<ProposalResp
 
 export async function finalizeProposal(id: number): Promise<ApiOutcome<ProposalDetail>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/finalize`, { method: "POST" });
+    const res = await apiFetch(`/api/proposals/${id}/finalize`, { method: "POST" });
     return parse<ProposalDetail>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
@@ -150,7 +151,7 @@ export async function finalizeProposal(id: number): Promise<ApiOutcome<ProposalD
 
 export async function fetchVoteSummary(id: number): Promise<ApiOutcome<VoteTally>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/vote-summary`, { cache: "no-store" });
+    const res = await apiFetch(`/api/proposals/${id}/vote-summary`, { cache: "no-store" });
     return parse<VoteTally>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
@@ -159,7 +160,7 @@ export async function fetchVoteSummary(id: number): Promise<ApiOutcome<VoteTally
 
 export async function fetchVotes(id: number): Promise<ApiOutcome<ProposalVoteItem[]>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/votes`, { cache: "no-store" });
+    const res = await apiFetch(`/api/proposals/${id}/votes`, { cache: "no-store" });
     return parse<ProposalVoteItem[]>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
@@ -168,7 +169,7 @@ export async function fetchVotes(id: number): Promise<ApiOutcome<ProposalVoteIte
 
 export async function fetchMyVote(id: number): Promise<ApiOutcome<ProposalVoteItem | null>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/votes/me`, { cache: "no-store" });
+    const res = await apiFetch(`/api/proposals/${id}/votes/me`, { cache: "no-store" });
     return parse<ProposalVoteItem | null>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
@@ -180,7 +181,7 @@ export async function castVote(
   input: CastVoteInput,
 ): Promise<ApiOutcome<ProposalVoteItem>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/votes`, {
+    const res = await apiFetch(`/api/proposals/${id}/votes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -193,7 +194,7 @@ export async function castVote(
 
 export async function fetchComments(id: number): Promise<ApiOutcome<ProposalCommentItem[]>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/comments`, { cache: "no-store" });
+    const res = await apiFetch(`/api/proposals/${id}/comments`, { cache: "no-store" });
     return parse<ProposalCommentItem[]>(res);
   } catch {
     return { ok: false, error: "upstream_unreachable" };
@@ -205,7 +206,7 @@ export async function createComment(
   input: CreateCommentInput,
 ): Promise<ApiOutcome<ProposalCommentItem>> {
   try {
-    const res = await fetch(`/api/proposals/${id}/comments`, {
+    const res = await apiFetch(`/api/proposals/${id}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),

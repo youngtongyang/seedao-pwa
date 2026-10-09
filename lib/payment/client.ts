@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/auth/api-fetch";
 import type { CreateOrderInput, H5PayChannel, PayChannel, PaymentOrder, PaymentStatus, CouponPreviewInput, CouponPreviewResult } from "./types";
 import { isH5PayChannel } from "./types";
 import { fenToYuanAmount } from "@/lib/membership";
@@ -143,7 +144,7 @@ export function clearPendingOrder(): void {
 /** Open a WeChat renewal order; returns the QR (`code_url`) / redirect (`h5_url`) to show. */
 export async function createPaymentOrder(input: CreateOrderInput = {}): Promise<CreateOrderOutcome> {
   try {
-    const res = await fetch("/api/payment/order", {
+    const res = await apiFetch("/api/payment/order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -161,7 +162,7 @@ export async function previewMembershipCoupon(
   input: CouponPreviewInput = {},
 ): Promise<CouponPreviewOutcome> {
   try {
-    const res = await fetch("/api/payment/coupon-preview", {
+    const res = await apiFetch("/api/payment/coupon-preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -194,7 +195,7 @@ export async function findInFlightOrder(): Promise<
   { ok: true; order: PaymentOrder | null } | { ok: false; error?: string }
 > {
   try {
-    const res = await fetch("/api/payment/orders?limit=5", { cache: "no-store" });
+    const res = await apiFetch("/api/payment/orders?limit=5", { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as { orders?: unknown };
     if (!res.ok) return { ok: false, error: errorOf(data as Record<string, unknown>) };
     const orders = Array.isArray(data.orders) ? (data.orders as PaymentOrder[]) : [];
@@ -217,7 +218,7 @@ export async function findInFlightOrder(): Promise<
  */
 export async function pollPaymentStatus(orderNo: string): Promise<PollOutcome> {
   try {
-    const res = await fetch(`/api/payment/status?order_no=${encodeURIComponent(orderNo)}`, {
+    const res = await apiFetch(`/api/payment/status?order_no=${encodeURIComponent(orderNo)}`, {
       cache: "no-store",
     });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -236,7 +237,7 @@ export async function pollPaymentStatus(orderNo: string): Promise<PollOutcome> {
 /** Close an unpaid order (e.g. when the user backs out or the code expired). */
 export async function closePaymentOrder(orderNo: string): Promise<{ ok: boolean }> {
   try {
-    const res = await fetch("/api/payment/order/close", {
+    const res = await apiFetch("/api/payment/order/close", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order_no: orderNo }),

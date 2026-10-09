@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api/http";
+import { jsonError, readJson, unauthorizedResponse } from "@/lib/api/http";
 import { bindFeishuToken } from "@/lib/api/server";
 import { getToken } from "@/lib/auth/session";
 
@@ -8,7 +8,7 @@ import { getToken } from "@/lib/auth/session";
  */
 export async function POST(request: Request) {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const body = (await readJson<Record<string, unknown>>(request)) ?? {};
   const bindToken = typeof body.bind_token === "string" ? body.bind_token.trim() : "";

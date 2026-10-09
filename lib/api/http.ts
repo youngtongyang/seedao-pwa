@@ -1,5 +1,6 @@
 import "server-only";
 
+import { clearSession } from "@/lib/auth/session";
 import type { ApiResult } from "./server";
 
 type Fail = Extract<ApiResult<unknown>, { ok: false }>;
@@ -10,12 +11,25 @@ export function apiErrorText(r: Fail): string | undefined {
 }
 
 /**
+ * 401 response that also clears `seedao.session` + `seedao.authed`.
+ * Prevents "fake login": readable authed cookie left behind after the JWT dies.
+ */
+export async function unauthorizedResponse(error = "unauthorized"): Promise<Response> {
+  await clearSession();
+  return Response.json({ error }, { status: 401 });
+}
+
+/**
  * Turn a failed `ApiResult` into a client-facing JSON error response, carrying
  * the stable error key (and message) and a sane HTTP status.
+ * Upstream/session 401 also clears cookies so the UI hint cannot linger.
  */
-export function jsonError(r: Fail): Response {
+export async function jsonError(r: Fail): Promise<Response> {
   const status = r.status >= 400 && r.status <= 599 ? r.status : 400;
   const message = apiErrorText(r);
+  if (status === 401 || r.error === "unauthorized") {
+    await clearSession();
+  }
   return Response.json({ error: r.error, message, detail: r.detail }, { status });
 }
 

@@ -23,8 +23,11 @@ export default async function FeishuBindPage({ searchParams }: PageProps) {
     : "/profile/bind";
 
   const store = await cookies();
+  if (!store.get("seedao.session")) {
+    redirect(loginRedirectPath(returnTo));
+  }
   if (!store.get("seedao.authed")) {
-    redirect(store.get("seedao.session") ? joinRedirectPath(returnTo) : loginRedirectPath(returnTo));
+    redirect(joinRedirectPath(returnTo));
   }
 
   return (

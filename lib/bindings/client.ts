@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/auth/api-fetch";
 import type {
   BindingItem,
   BindingListResult,
@@ -18,7 +19,7 @@ function feishuFromList(data: BindingListResult | null): BindingItem | null {
 /** `GET /api/user/bindings` — returns the Feishu row (or a default unbound stub). */
 export async function fetchFeishuBinding(): Promise<BindingItem | null> {
   try {
-    const res = await fetch("/api/user/bindings", { cache: "no-store" });
+    const res = await apiFetch("/api/user/bindings", { cache: "no-store" });
     if (!res.ok) return null;
     const data = (await res.json()) as BindingListResult;
     return (
@@ -36,7 +37,7 @@ export async function bindFeishuWithToken(
   bindToken: string,
 ): Promise<{ ok: true; data: FeishuBindResult } | { ok: false; error: BindingsClientError }> {
   try {
-    const res = await fetch("/api/user/bindings/feishu/token", {
+    const res = await apiFetch("/api/user/bindings/feishu/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bind_token: bindToken }),
@@ -65,7 +66,7 @@ export async function createFeishuChallenge(): Promise<
   { ok: true; data: FeishuChallengeResult } | { ok: false; error: BindingsClientError }
 > {
   try {
-    const res = await fetch("/api/user/bindings/feishu/challenge", { method: "POST" });
+    const res = await apiFetch("/api/user/bindings/feishu/challenge", { method: "POST" });
     const body = (await res.json().catch(() => null)) as
       | FeishuChallengeResult
       | BindingsClientError
@@ -90,7 +91,7 @@ export async function unbindFeishuBinding(): Promise<
   { ok: true; data: FeishuBindResult } | { ok: false; error: BindingsClientError }
 > {
   try {
-    const res = await fetch("/api/user/bindings/feishu", { method: "DELETE" });
+    const res = await apiFetch("/api/user/bindings/feishu", { method: "DELETE" });
     const body = (await res.json().catch(() => null)) as
       | FeishuBindResult
       | BindingsClientError
