@@ -1,4 +1,4 @@
-import { jsonError } from "@/lib/api/http";
+import { jsonError, unauthorizedResponse } from "@/lib/api/http";
 import { getToken } from "@/lib/auth/session";
 import { addBookmark, removeBookmark } from "@/lib/course/server";
 
@@ -10,7 +10,7 @@ type Ctx = { params: Promise<{ course_id: string }> };
  */
 export async function PUT(_request: Request, { params }: Ctx) {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const courseId = (await params).course_id?.trim();
   if (!courseId) return Response.json({ error: "invalid_param" }, { status: 400 });
@@ -26,7 +26,7 @@ export async function PUT(_request: Request, { params }: Ctx) {
  */
 export async function DELETE(_request: Request, { params }: Ctx) {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const courseId = (await params).course_id?.trim();
   if (!courseId) return Response.json({ error: "invalid_param" }, { status: 400 });

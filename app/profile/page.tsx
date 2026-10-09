@@ -15,9 +15,13 @@ export default async function ProfilePage() {
   // a registered-but-unpaid user has a session token but no `authed`, so send
   // them to finish payment. A user with neither goes to log in.
   const store = await cookies();
+  const returnTo = "/profile";
+  // Session JWT gone but `authed` tip left behind → treat as logged out.
+  if (!store.get("seedao.session")) {
+    redirect(loginRedirectPath(returnTo));
+  }
   if (!store.get("seedao.authed")) {
-    const returnTo = "/profile";
-    redirect(store.get("seedao.session") ? joinRedirectPath(returnTo) : loginRedirectPath(returnTo));
+    redirect(joinRedirectPath(returnTo));
   }
 
   return (

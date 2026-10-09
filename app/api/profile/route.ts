@@ -1,4 +1,4 @@
-import { jsonError } from "@/lib/api/http";
+import { jsonError, unauthorizedResponse } from "@/lib/api/http";
 import { userProfile } from "@/lib/api/server";
 import { getToken } from "@/lib/auth/session";
 import { isMembershipActive } from "@/lib/membership";
@@ -14,7 +14,7 @@ import { isMembershipActive } from "@/lib/membership";
  */
 export async function GET() {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const result = await userProfile(token);
   if (!result.ok) return jsonError(result);

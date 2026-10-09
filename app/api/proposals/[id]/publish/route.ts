@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api/http";
+import { jsonError, readJson, unauthorizedResponse } from "@/lib/api/http";
 import { getToken } from "@/lib/auth/session";
 import { publishProposal } from "@/lib/proposals/server";
 import type { PublishProposalInput } from "@/lib/proposals/types";
@@ -9,7 +9,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const { id: rawId } = await params;
   const id = Number(rawId);

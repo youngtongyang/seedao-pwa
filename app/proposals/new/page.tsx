@@ -22,9 +22,12 @@ function CreateFallback() {
 
 export default async function ProposalCreatePage() {
   const store = await cookies();
+  const returnTo = "/proposals/new";
+  if (!store.get("seedao.session")) {
+    redirect(loginRedirectPath(returnTo));
+  }
   if (!store.get("seedao.authed")) {
-    const returnTo = "/proposals/new";
-    redirect(store.get("seedao.session") ? joinRedirectPath(returnTo) : loginRedirectPath(returnTo));
+    redirect(joinRedirectPath(returnTo));
   }
 
   return (

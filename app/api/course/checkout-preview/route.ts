@@ -1,11 +1,13 @@
 import { jsonError, readJson } from "@/lib/api/http";
+import { userProfile } from "@/lib/api/server";
 import { getToken } from "@/lib/auth/session";
 import { previewCheckout } from "@/lib/course/server";
+import { qualifiesForMemberDiscount } from "@/lib/membership";
 
 /**
  * POST /api/course/checkout-preview — 课程价格试算。
  * Body: { course_id, sku_id, channel_code?, apply_member_discount? }
- * Token 可选 — 登录后 apply_member_discount=true 时生效。
+ * Member discount only when membership_tier === full (准会员走原价).
  */
 export async function POST(request: Request) {
   const token = (await getToken()) ?? undefined;
@@ -15,8 +17,12 @@ export async function POST(request: Request) {
   const skuId = typeof body.sku_id === "string" ? body.sku_id.trim() : "";
   if (!courseId || !skuId) return Response.json({ error: "invalid_param" }, { status: 400 });
 
-  // 有 JWT 就请求会员折扣，由后端根据实际会员状态决定是否生效
-  const applyMemberDiscount = !!token || body.apply_member_discount === true;
+  let applyMemberDiscount = body.apply_member_discount === true;
+  if (token) {
+    const profile = await userProfile(token);
+    applyMemberDiscount =
+      profile.ok && qualifiesForMemberDiscount(profile.data.membership_tier);
+  }
 
   const result = await previewCheckout(
     {

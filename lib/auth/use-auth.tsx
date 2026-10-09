@@ -37,6 +37,26 @@ export function refreshAuth() {
   notify();
 }
 
+/** Drop the readable authed hint + local account cache and notify subscribers. */
+export function syncAuthUi() {
+  if (typeof document !== "undefined") {
+    // Match Path/SameSite/Secure variants so the readable hint actually clears.
+    const expire = `${AUTHED_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+    document.cookie = expire;
+    document.cookie = `${expire}; Secure`;
+  }
+  clearAccount();
+  notify();
+}
+
+/**
+ * Call after any authenticated `/api/*` response with status 401.
+ * Server should already have cleared cookies via Set-Cookie; this syncs React UI.
+ */
+export function handleUnauthorizedResponse(res: Response): void {
+  if (res.status === 401) syncAuthUi();
+}
+
 /** Clear the session on the server, then update the UI. */
 export async function logout() {
   try {
@@ -44,8 +64,7 @@ export async function logout() {
   } catch {
     /* ignore — clear the UI regardless */
   }
-  clearAccount();
-  notify();
+  syncAuthUi();
 }
 
 /** `true` once the user has an active session. Reactive across the app. */

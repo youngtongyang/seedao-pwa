@@ -131,6 +131,32 @@ export type OrderStatusResult = PaymentOrder & {
   paid_at?: string;
   /** WeChat transaction id; present once `paid`. */
   wx_transaction_id?: string;
+  /** Present once `paid` (API preview). */
+  membership_tier?: string | null;
+  application_status?: string | null;
+};
+
+/** Body for `POST /v1/payments/coupons/preview` (membership list price). */
+export type CouponPreviewInput = {
+  product_type?: ProductType;
+  days?: number;
+  coupon_code?: string;
+};
+
+/**
+ * Membership price preview. Amounts are integer **分 (cents)**.
+ * Prefer `final_amount` for display; fall back to `original_amount` / `amount`.
+ */
+export type CouponPreviewResult = {
+  product_type?: string;
+  days?: number;
+  original_amount?: number;
+  final_amount?: number;
+  /** Some backends return a single `amount` field. */
+  amount?: number;
+  currency?: string;
+  coupon_code?: string | null;
+  discount_amount?: number;
 };
 
 /** A row in the order list (`GET /v1/payments/orders?limit=…`). */

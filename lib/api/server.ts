@@ -12,6 +12,7 @@ import {
   type FeishuChallengeResult,
   type LoginRequest,
   type ProfileResult,
+  type ApplicationSubmitResult,
   type RegisterRequest,
   type SendSmsResult,
   type SnsCheckReason,
@@ -244,6 +245,12 @@ export function userProfile(token: string): Promise<ApiResult<ProfileResult>> {
   return call<ProfileResult>("/user/profile", { token });
 }
 
+/** `POST /v1/user/application/submit` — user confirms the application form was sent. */
+export function submitApplication(token: string): Promise<ApiResult<ApplicationSubmitResult>> {
+  if (USE_MOCK) return mock.submitApplication();
+  return call<ApplicationSubmitResult>("/user/application/submit", { method: "POST", token });
+}
+
 export function listBindings(token: string): Promise<ApiResult<BindingListResult>> {
   if (USE_MOCK) return mock.listBindings();
   return call<BindingListResult>("/user/bindings", { token });
@@ -303,9 +310,20 @@ function mockAuthResult(snsName: string, source: string): AuthResult {
     token: "mock-session",
     token_exp: 4102444800, // 2100-01-01
     // Fresh registrations have no membership yet — it's activated by payment.
-    user: { id: 1001, sns_name: snsName, register_source: source, membership_expires_at: null },
+    user: {
+      id: 1001,
+      sns_name: snsName,
+      register_source: source,
+      membership_expires_at: null,
+      membership_tier: "none",
+      application_status: "not_submitted",
+      application_form_url: null,
+    },
   };
 }
+
+let mockApplicationStatus: "not_submitted" | "under_review" | "approved" = "not_submitted";
+let mockMembershipTier: "none" | "pending" | "full" = "pending";
 
 const mock = {
   smsSend(): Promise<ApiResult<SendSmsResult>> {
@@ -359,9 +377,22 @@ const mock = {
         avatar: "",
         bio: "",
         membership_expires_at: "2027-06-15T08:00:00Z",
+        membership_tier: mockMembershipTier,
+        application_status: mockApplicationStatus,
+        application_submitted_at:
+          mockApplicationStatus === "not_submitted" ? null : "2026-07-10T08:00:00Z",
+        application_form_url:
+          mockApplicationStatus === "not_submitted"
+            ? "https://seedao2049.feishu.cn/share/base/form/mock-application"
+            : null,
         created_at: "2026-06-15T08:00:00Z",
       },
     });
+  },
+  submitApplication(): Promise<ApiResult<ApplicationSubmitResult>> {
+    mockApplicationStatus = "under_review";
+    mockMembershipTier = "pending";
+    return mock.userProfile();
   },
   listBindings(): Promise<ApiResult<BindingListResult>> {
     return Promise.resolve({

@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api/http";
+import { jsonError, readJson, unauthorizedResponse } from "@/lib/api/http";
 import { parseReturnTo } from "@/lib/auth/return-to-server";
 import { getToken } from "@/lib/auth/session";
 import { createCourseOrder, listCourseOrders } from "@/lib/course/server";
@@ -11,7 +11,7 @@ import { parsePayChannel } from "@/lib/payment/types";
  */
 export async function GET(request: Request) {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const sp = new URL(request.url).searchParams;
   const limitParam = sp.get("limit");
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
   const applyMember = body.apply_member_discount === true;
   if (applyMember && !token) {
-    return Response.json({ error: "course_member_login_required" }, { status: 401 });
+    return unauthorizedResponse("course_member_login_required");
   }
 
   const result = await createCourseOrder(

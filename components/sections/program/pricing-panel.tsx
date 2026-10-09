@@ -6,6 +6,7 @@ import { QRFrame } from "@/components/shared/qr-frame";
 import { Button } from "@/components/ui/button";
 import { useAccount } from "@/lib/account";
 import { useT } from "@/lib/i18n";
+import { qualifiesForMemberDiscount } from "@/lib/membership";
 import { programPricing } from "@/lib/mock/program";
 
 const { basePrice, earlyBirdPrice, memberDiscountRate } = programPricing;
@@ -14,8 +15,11 @@ export function PricingPanel() {
   const t = useT();
   const account = useAccount();
 
-  const isMember = account.isMember;
-  const finalPrice = isMember ? Math.round(earlyBirdPrice * memberDiscountRate) : earlyBirdPrice;
+  // Only full members get the course member price; associate (pending) pays list price.
+  const isFullMember = qualifiesForMemberDiscount(account.user?.membership_tier);
+  const finalPrice = isFullMember
+    ? Math.round(earlyBirdPrice * memberDiscountRate)
+    : earlyBirdPrice;
   const memberPrice = Math.round(earlyBirdPrice * memberDiscountRate);
 
   return (
@@ -35,7 +39,7 @@ export function PricingPanel() {
           </span>
         </div>
 
-        {isMember ? (
+        {isFullMember ? (
           <div className="flex items-start gap-2 rounded-xl bg-accent/8 px-3.5 py-3 text-sm text-accent-foreground">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-accent" />
             <div>
@@ -65,7 +69,7 @@ export function PricingPanel() {
         <p className="text-sm font-medium">添加小助手微信完成支付</p>
         <QRFrame src="/qr/ai_aide.png" alt="小助手微信二维码" size={160} withBadge={false} />
         <p className="text-xs text-muted-foreground">微信扫一扫，私聊小助手转账</p>
-        {isMember && (
+        {isFullMember && (
           <p className="rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
             请按会员价 ¥{memberPrice} 支付
           </p>

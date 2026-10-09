@@ -1,4 +1,4 @@
-import { jsonError } from "@/lib/api/http";
+import { jsonError, unauthorizedResponse } from "@/lib/api/http";
 import { getToken } from "@/lib/auth/session";
 import { listBookmarks } from "@/lib/course/server";
 
@@ -8,7 +8,7 @@ import { listBookmarks } from "@/lib/course/server";
  */
 export async function GET() {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const result = await listBookmarks(token);
   if (!result.ok) return jsonError(result);

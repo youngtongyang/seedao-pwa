@@ -1,5 +1,7 @@
-import type { CreateOrderInput, H5PayChannel, PayChannel, PaymentOrder, PaymentStatus } from "./types";
+import { apiFetch } from "@/lib/auth/api-fetch";
+import type { CreateOrderInput, H5PayChannel, PayChannel, PaymentOrder, PaymentStatus, CouponPreviewInput, CouponPreviewResult } from "./types";
 import { isH5PayChannel } from "./types";
+import { fenToYuanAmount } from "@/lib/membership";
 
 /**
  * Client entry points for the membership-renewal payment flow. These call our
@@ -13,6 +15,10 @@ import { isH5PayChannel } from "./types";
 
 export type CreateOrderOutcome =
   | { ok: true; order: PaymentOrder }
+  | { ok: false; error?: string };
+
+export type CouponPreviewOutcome =
+  | { ok: true; data: CouponPreviewResult; displayYuan: number }
   | { ok: false; error?: string };
 
 /** Status the client acts on; includes channel so resume UI can label Alipay vs WeChat. */
@@ -138,7 +144,7 @@ export function clearPendingOrder(): void {
 /** Open a WeChat renewal order; returns the QR (`code_url`) / redirect (`h5_url`) to show. */
 export async function createPaymentOrder(input: CreateOrderInput = {}): Promise<CreateOrderOutcome> {
   try {
-    const res = await fetch("/api/payment/order", {
+    const res = await apiFetch("/api/payment/order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -146,6 +152,30 @@ export async function createPaymentOrder(input: CreateOrderInput = {}): Promise<
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) return { ok: false, error: errorOf(data) };
     return { ok: true, order: data as unknown as PaymentOrder };
+  } catch {
+    return { ok: false, error: "upstream_unreachable" };
+  }
+}
+
+/** Membership price preview (分 → display yuan). */
+export async function previewMembershipCoupon(
+  input: CouponPreviewInput = {},
+): Promise<CouponPreviewOutcome> {
+  try {
+    const res = await apiFetch("/api/payment/coupon-preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) return { ok: false, error: errorOf(data) };
+    const preview = data as unknown as CouponPreviewResult;
+    const fen =
+      (typeof preview.final_amount === "number" ? preview.final_amount : undefined) ??
+      (typeof preview.amount === "number" ? preview.amount : undefined) ??
+      (typeof preview.original_amount === "number" ? preview.original_amount : undefined) ??
+      0;
+    return { ok: true, data: preview, displayYuan: fenToYuanAmount(fen) };
   } catch {
     return { ok: false, error: "upstream_unreachable" };
   }
@@ -165,7 +195,7 @@ export async function findInFlightOrder(): Promise<
   { ok: true; order: PaymentOrder | null } | { ok: false; error?: string }
 > {
   try {
-    const res = await fetch("/api/payment/orders?limit=5", { cache: "no-store" });
+    const res = await apiFetch("/api/payment/orders?limit=5", { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as { orders?: unknown };
     if (!res.ok) return { ok: false, error: errorOf(data as Record<string, unknown>) };
     const orders = Array.isArray(data.orders) ? (data.orders as PaymentOrder[]) : [];
@@ -188,7 +218,7 @@ export async function findInFlightOrder(): Promise<
  */
 export async function pollPaymentStatus(orderNo: string): Promise<PollOutcome> {
   try {
-    const res = await fetch(`/api/payment/status?order_no=${encodeURIComponent(orderNo)}`, {
+    const res = await apiFetch(`/api/payment/status?order_no=${encodeURIComponent(orderNo)}`, {
       cache: "no-store",
     });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -207,7 +237,7 @@ export async function pollPaymentStatus(orderNo: string): Promise<PollOutcome> {
 /** Close an unpaid order (e.g. when the user backs out or the code expired). */
 export async function closePaymentOrder(orderNo: string): Promise<{ ok: boolean }> {
   try {
-    const res = await fetch("/api/payment/order/close", {
+    const res = await apiFetch("/api/payment/order/close", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order_no: orderNo }),

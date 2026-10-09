@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api/http";
+import { jsonError, readJson, unauthorizedResponse } from "@/lib/api/http";
 import { getToken } from "@/lib/auth/session";
 import { createProposal, listProposals } from "@/lib/proposals/server";
 import type { CreateProposalInput, ListProposalsQuery } from "@/lib/proposals/types";
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const body = await readJson<CreateProposalInput>(request);
   if (!body?.title?.trim() || !body.type) {

@@ -1,4 +1,4 @@
-import { jsonError, readJson } from "@/lib/api/http";
+import { jsonError, readJson, unauthorizedResponse } from "@/lib/api/http";
 import { parseReturnTo } from "@/lib/auth/return-to-server";
 import { getToken } from "@/lib/auth/session";
 import { createOrder } from "@/lib/payment/server";
@@ -16,7 +16,7 @@ import { parsePayChannel } from "@/lib/payment/types";
  */
 export async function POST(request: Request) {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const body = (await readJson<Record<string, unknown>>(request)) ?? {};
   const input: CreateOrderInput = {};

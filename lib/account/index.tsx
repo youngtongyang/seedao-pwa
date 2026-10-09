@@ -84,7 +84,18 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useHydrated();
 
   const activateMembership = useCallback(
-    () => update((s) => ({ ...s, isMember: true })),
+    () =>
+      update((s) => ({
+        ...s,
+        isMember: true,
+        user: s.user
+          ? {
+              ...s.user,
+              membership_tier: s.user.membership_tier ?? "pending",
+              application_status: s.user.application_status ?? "not_submitted",
+            }
+          : s.user,
+      })),
     [],
   );
   const setUser = useCallback(

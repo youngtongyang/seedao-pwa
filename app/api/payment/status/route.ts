@@ -1,4 +1,4 @@
-import { jsonError } from "@/lib/api/http";
+import { jsonError, unauthorizedResponse } from "@/lib/api/http";
 import { getToken, markMember } from "@/lib/auth/session";
 import { queryOrder } from "@/lib/payment/server";
 
@@ -13,7 +13,7 @@ import { queryOrder } from "@/lib/payment/server";
  */
 export async function GET(request: Request) {
   const token = await getToken();
-  if (!token) return Response.json({ error: "unauthorized" }, { status: 401 });
+  if (!token) return unauthorizedResponse();
 
   const orderNo = new URL(request.url).searchParams.get("order_no")?.trim() ?? "";
   if (!orderNo) return Response.json({ error: "invalid_param" }, { status: 400 });

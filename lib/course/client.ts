@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/auth/api-fetch";
 import type {
   BookmarkListResult,
   BookmarkMutationResult,
@@ -42,7 +43,7 @@ function errorOf(data: Record<string, unknown>): string | undefined {
 /** 课程价格试算 — BFF → 后端 /v1/courses/checkout/preview */
 export async function previewCheckout(input: CheckoutPreviewInput): Promise<PreviewOutcome> {
   try {
-    const res = await fetch("/api/course/checkout-preview", {
+    const res = await apiFetch("/api/course/checkout-preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -58,7 +59,7 @@ export async function previewCheckout(input: CheckoutPreviewInput): Promise<Prev
 /** 创建课程订单 — BFF → 后端 /v1/courses/orders */
 export async function createCourseOrder(input: CreateCourseOrderInput): Promise<OrderOutcome> {
   try {
-    const res = await fetch("/api/course/orders", {
+    const res = await apiFetch("/api/course/orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(input),
@@ -82,7 +83,7 @@ export async function queryCourseOrder(orderNo: string, orderToken?: string): Pr
     const token = orderToken ?? readOrderToken(orderNo);
     const params = new URLSearchParams();
     if (token) params.set("token", token);
-    const res = await fetch(`/api/course/orders/${encodeURIComponent(orderNo)}?${params}`, {
+    const res = await apiFetch(`/api/course/orders/${encodeURIComponent(orderNo)}?${params}`, {
       cache: "no-store",
     });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -97,7 +98,7 @@ export async function queryCourseOrder(orderNo: string, orderToken?: string): Pr
 export async function closeCourseOrder(orderNo: string, orderToken?: string): Promise<StatusOutcome> {
   try {
     const token = orderToken ?? readOrderToken(orderNo);
-    const res = await fetch(`/api/course/orders/${encodeURIComponent(orderNo)}/close`, {
+    const res = await apiFetch(`/api/course/orders/${encodeURIComponent(orderNo)}/close`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(token ? { order_token: token } : {}),
@@ -113,7 +114,7 @@ export async function closeCourseOrder(orderNo: string, orderToken?: string): Pr
 /** 认领无主订单 — 登录后绑定到当前账号 */
 export async function claimCourseOrder(orderNo: string, orderToken: string): Promise<StatusOutcome> {
   try {
-    const res = await fetch("/api/course/orders/claim", {
+    const res = await apiFetch("/api/course/orders/claim", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ order_no: orderNo, order_token: orderToken }),
@@ -131,7 +132,7 @@ export async function claimCourseOrder(orderNo: string, orderToken: string): Pro
 /** 我的收藏 — 401 表示当前浏览器没有会话（未注册/未登录） */
 export async function listBookmarks(): Promise<BookmarkListOutcome> {
   try {
-    const res = await fetch("/api/course/bookmarks", { cache: "no-store" });
+    const res = await apiFetch("/api/course/bookmarks", { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) return { ok: false, error: errorOf(data), status: res.status };
     return { ok: true, data: data as unknown as BookmarkListResult };
@@ -143,7 +144,7 @@ export async function listBookmarks(): Promise<BookmarkListOutcome> {
 /** 收藏课程（幂等） */
 export async function addBookmark(courseId: string): Promise<BookmarkMutationOutcome> {
   try {
-    const res = await fetch(`/api/course/bookmarks/${encodeURIComponent(courseId)}`, {
+    const res = await apiFetch(`/api/course/bookmarks/${encodeURIComponent(courseId)}`, {
       method: "PUT",
     });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -157,7 +158,7 @@ export async function addBookmark(courseId: string): Promise<BookmarkMutationOut
 /** 取消收藏（幂等） */
 export async function removeBookmark(courseId: string): Promise<BookmarkMutationOutcome> {
   try {
-    const res = await fetch(`/api/course/bookmarks/${encodeURIComponent(courseId)}`, {
+    const res = await apiFetch(`/api/course/bookmarks/${encodeURIComponent(courseId)}`, {
       method: "DELETE",
     });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
@@ -173,7 +174,7 @@ export async function removeBookmark(courseId: string): Promise<BookmarkMutation
 /** 我的课程订单 — 无主订单 claim 后才出现；401 表示没有会话 */
 export async function listCourseOrders(): Promise<OrderListOutcome> {
   try {
-    const res = await fetch("/api/course/orders", { cache: "no-store" });
+    const res = await apiFetch("/api/course/orders", { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) return { ok: false, error: errorOf(data), status: res.status };
     return { ok: true, data: data as unknown as CourseOrderListResult };
