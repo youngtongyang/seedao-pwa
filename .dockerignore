@@ -20,6 +20,3 @@ coverage
 *.pem
 .vercel
 
-# deploy docs (not needed inside image)
-deploy/README.md
-deploy/nginx

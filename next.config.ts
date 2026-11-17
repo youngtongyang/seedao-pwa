@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Smaller Docker image via `node server.js` (see deploy/Dockerfile).
+  // Smaller Docker image via standalone output (`node server.js` in the root Dockerfile).
   output: "standalone",
   // Pin the workspace root (multiple lockfiles exist higher up the tree).
   turbopack: { root: __dirname },

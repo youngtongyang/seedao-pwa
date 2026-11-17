@@ -3,6 +3,9 @@
 > 一个让人**认识自己、认识彼此**，与 AI 共学共建的社区 PWA。
 > A community PWA to **know yourself, know each other**, and co-learn & co-build with AI.
 
+> 本仓库是 SeeDAO 2.0 PWA 的公开代码快照，便于阅读与本地开发。生产环境的部署与运维文档不在本仓库中。
+> This is a public source snapshot of the SeeDAO 2.0 PWA for reading and local development. Production deployment and operations docs are not included.
+
 [中文](#中文) · [English](#english)
 
 ---
